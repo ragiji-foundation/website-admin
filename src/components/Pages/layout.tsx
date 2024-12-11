@@ -2,8 +2,8 @@
 import '@mantine/core/styles.css';
 
 import { ColorSchemeScript, MantineProvider } from '@mantine/core';
-import { FooterLinks } from '@/components/FooterLinks';
-import { HeaderMenu } from '@/components/HeaderMenu';
+import { FooterLinks } from '@/components/Pages/FooterLinks';
+import { HeaderMenu } from '@/components/Pages/HeaderMenu';
 
 export const metadata = {
   title: 'My Mantine app',
