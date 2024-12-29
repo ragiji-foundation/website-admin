@@ -1,5 +1,3 @@
-
-
 import Link from 'next/link';
 import { IconLayoutBottombarFilled, IconLayoutNavbar, IconLayoutNavbarFilled, IconProps, IconPyramid } from '@tabler/icons-react';
 import {
@@ -14,6 +12,7 @@ import {
   IconUsers,
   IconNews,
   IconMessage,
+  IconMailbox,
 } from '@tabler/icons-react';
 import { Stack, Divider, Text } from '@mantine/core';
 import { NavLink } from '@mantine/core';
@@ -156,6 +155,16 @@ export function Navbar() {
             />
           </Link>
         </NavLink>
+
+        {/* Add this before the Settings nav link */}
+        <Link href="/enquiries" passHref legacyBehavior>
+          <NavLink
+            component="a"
+            label="Enquiries"
+            leftSection={<IconMailbox size={16} />}
+            className={classes.navButton}
+          />
+        </Link>
 
         {/* Settings */}
         <Link href="/settings" passHref legacyBehavior>

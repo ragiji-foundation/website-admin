@@ -36,7 +36,7 @@
 import '@mantine/core/styles.css';
 import { ColorSchemeScript, MantineProvider } from '@mantine/core';
 import { FooterLinks } from '@/components/Pages/FooterLinks';
-import { HeaderMenu } from '@/components/Pages/HeaderMenu';
+import  HeaderMenu  from '@/components/Pages/HeaderMenu';
 import Head from 'next/head'; // Import Head from next/head
 
 export const metadata = {
