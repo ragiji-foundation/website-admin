@@ -13,6 +13,18 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// Handle OPTIONS requests for CORS preflight
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': 'https://www.ragijifoundation.com',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -66,7 +78,14 @@ export async function POST(request: Request) {
     // Return success response with the created enquiry
     return NextResponse.json(
       { message: 'Enquiry submitted successfully', enquiry },
-      { status: 201 }
+      {
+        status: 201,
+        headers: {
+          'Access-Control-Allow-Origin': 'https://www.ragijifoundation.com',
+          'Access-Control-Allow-Methods': 'POST',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        }
+      }
     );
 
   } catch (error) {

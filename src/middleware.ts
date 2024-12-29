@@ -1,91 +1,80 @@
-// import { NextResponse } from 'next/server';
-// import { jwtVerify } from 'jose';
-
-// export async function middleware(req: Request) {
-//   try {
-//     const cookieHeader = req.headers.get('Cookie');
-
-//     // Check for nullish cookie header
-//     if (!cookieHeader) {
-//         console.log("No cookie header found.");
-//         return NextResponse.redirect(new URL('/auth/login', req.url));
-//     }
-
-//     const authToken = cookieHeader.split('; ').find((c) => c.startsWith('authToken='));
-//     if (!authToken) {
-//       console.log("No auth token found in cookie");
-//       return NextResponse.redirect(new URL('/auth/login', req.url));
-//     }
-
-//     const token = authToken.split('=')[1];
-//     console.log('Token from cookie:', token);
-
-//     const secret = process.env.JWT_SECRET;
-//     if (!secret) {
-//       console.error("JWT_SECRET environment variable not set!");
-//       return NextResponse.redirect(new URL('/auth/login', req.url));
-//     }
-
-//     // Verify the token - will throw an error if invalid.
-//     await jwtVerify(token, new TextEncoder().encode(secret));
-//     return NextResponse.next();
-//   } catch (error: unknown) {
-//     const errorMessage = error instanceof Error ? error.message : String(error); // Handle error type safety
-//     console.error('Middleware error:', errorMessage);
-//     return NextResponse.redirect(new URL('/auth/login', req.url));
-//   }
-// }
-
-// export const config = {
-//   matcher: ['/', '/blogs/:path*', '/pages/:path*', '/navigation/:path*'],
-// };
-
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
-export async function middleware(req: Request) {
+export async function middleware(request: NextRequest) {
+  // Skip CORS check for OPTIONS requests (preflight)
+  if (request.method === 'OPTIONS') {
+    return new NextResponse(null, {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': 'https://www.ragijifoundation.com',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Max-Age': '86400',
+      },
+    });
+  }
+
   try {
-    const cookieHeader = req.headers.get('Cookie');
+    // Skip auth for public API endpoints
+    if (request.nextUrl.pathname.startsWith('/api/contact')) {
+      const response = NextResponse.next();
+      // Add CORS headers
+      response.headers.set('Access-Control-Allow-Origin', 'https://www.ragijifoundation.com');
+      response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      return response;
+    }
 
-    // Check for nullish cookie header
+    const cookieHeader = request.headers.get('Cookie');
+
     if (!cookieHeader) {
-        console.log("No cookie header found.");
-        return NextResponse.redirect(new URL('/auth/login', req.url));
+      console.log("No cookie header found.");
+      return NextResponse.redirect(new URL('/auth/login', request.url));
     }
 
-    // Find the authToken cookie
-    const authTokenCookie = cookieHeader.split('; ').find((c) => c.startsWith('authToken='));
-    if (!authTokenCookie) {
+    const authToken = cookieHeader.split('; ').find((c) => c.startsWith('authToken='));
+    if (!authToken) {
       console.log("No auth token found in cookie");
-      return NextResponse.redirect(new URL('/auth/login', req.url));
+      return NextResponse.redirect(new URL('/auth/login', request.url));
     }
 
-    // Extract the token value
-    const token = authTokenCookie.split('=')[1];
-    console.log('Token from cookie:', token);
-
+    const token = authToken.split('=')[1];
     const secret = process.env.JWT_SECRET;
+
     if (!secret) {
       console.error("JWT_SECRET environment variable not set!");
-      return NextResponse.redirect(new URL('/auth/login', req.url));
+      return NextResponse.redirect(new URL('/auth/login', request.url));
     }
 
-    // Verify the token - will throw an error if invalid.
+    // Verify the token
     await jwtVerify(token, new TextEncoder().encode(secret));
 
-    // If verification is successful, proceed to the next handler
-    return NextResponse.next();
+    // If verification successful, proceed with CORS headers
+    const response = NextResponse.next();
+    response.headers.set('Access-Control-Allow-Origin', 'https://www.ragijifoundation.com');
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    return response;
+
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Middleware error:', errorMessage);
 
-    // Clear the potentially invalid authToken cookie
-    const response = NextResponse.redirect(new URL('/auth/login', req.url));
+    // Clear the potentially invalid authToken cookie and redirect
+    const response = NextResponse.redirect(new URL('/auth/login', request.url));
     response.cookies.delete('authToken');
     return response;
   }
 }
 
 export const config = {
-  matcher: ['/', '/blogs/:path*', '/pages/:path*', '/navigation/:path*'],
+  matcher: [
+    '/api/:path*',
+    '/',
+    '/blogs/:path*',
+    '/pages/:path*',
+    '/navigation/:path*'
+  ],
 };
