@@ -1,18 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// Fix the type definition for the params
-interface Params {
-  params: {
-    id: string;
-  };
-}
-
-export async function PUT(request: NextRequest, { params }: Params) {
+export async function PUT(
+  request: NextRequest,
+  context: { params: { id: string } }
+) {
   try {
     const body = await request.json();
     const testimonial = await prisma.testimonial.update({
-      where: { id: parseInt(params.id) },
+      where: { id: parseInt(context.params.id) },
       data: {
         name: body.name,
         role: body.role,
@@ -44,10 +40,13 @@ export async function PUT(request: NextRequest, { params }: Params) {
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: Params) {
+export async function DELETE(
+  request: NextRequest,
+  context: { params: { id: string } }
+) {
   try {
     await prisma.testimonial.delete({
-      where: { id: parseInt(params.id) },
+      where: { id: parseInt(context.params.id) },
     });
 
     return NextResponse.json(
