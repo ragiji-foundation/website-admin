@@ -3,6 +3,15 @@ import { prisma } from '@/lib/prisma';
 import nodemailer from 'nodemailer';
 
 // Add email transport configuration
+console.log('SMTP Config:', {
+  host: process.env.SMTP_HOST,
+  port: process.env.SMTP_PORT,
+  user: process.env.SMTP_USER ? 'Set' : 'Not set',
+  pass: process.env.SMTP_PASSWORD ? 'Set' : 'Not set',
+  fromEmail: process.env.SMTP_FROM_EMAIL,
+  adminEmail: process.env.ADMIN_EMAIL,
+});
+
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT),
