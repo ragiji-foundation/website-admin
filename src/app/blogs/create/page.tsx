@@ -1,182 +1,418 @@
 "use client";
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { RichTextEditor, Link } from '@mantine/tiptap';
 import { useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Highlight from '@tiptap/extension-highlight';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
-import Superscript from '@tiptap/extension-superscript';
-import SubScript from '@tiptap/extension-subscript';
-import { Button, Container, TextInput, Grid,Stack, Paper, Textarea, Fieldset } from '@mantine/core';
+import Image from '@tiptap/extension-image';
+import {
+  Container,
+  TextInput,
+  Select,
+  MultiSelect,
+  Button,
+  Group,
+  Stack,
+  Tabs,
+  Grid,
+  Paper,
+  Title,
+  Badge,
+  Text,
+  Avatar,
+  Divider,
+  Switch,
+  Textarea,
+} from '@mantine/core';
+import { notifications } from '@mantine/notifications';
+import { IconCalendar, IconUser } from '@tabler/icons-react';
+import { format } from 'date-fns';
 
-// Define types for your data
-interface BlogPost {
+interface BlogFormData {
   title: string;
-  category: string;
-  tags: string[];
+  content: string;
   slug: string;
-  author: string;
+  status: string;
+  category: string;
   metaDescription: string;
   ogTitle: string;
   ogDescription: string;
-  content: string;
+  tags: string[];
+  locale: string;
 }
 
 const initialContent = `
-  <h2 style="text-align: center;">Create Your Blog Post</h2>
-  <p>Start writing your content here...</p>
+<h2>Start writing your blog post...</h2>
+<p>Use the toolbar above to format your content.</p>
 `;
 
-function BlogCreatePage() {
-  const [blogPost, setBlogPost] = useState<BlogPost>({
-    title: '',
-    category: '',
-    tags: [],
-    slug: '',
-    author: '',
-    metaDescription: '',
-    ogTitle: '',
-    ogDescription: '',
-    content: initialContent,
+export default function CreateBlogPage() {
+  const router = useRouter();
+  const [activeLocale, setActiveLocale] = useState<string>('en');
+  const [showPreview, setShowPreview] = useState(true);
+  const [formData, setFormData] = useState<Record<string, BlogFormData>>({
+    en: {
+      title: '',
+      content: initialContent,
+      slug: '',
+      status: 'draft',
+      category: '',
+      metaDescription: '',
+      ogTitle: '',
+      ogDescription: '',
+      tags: [],
+      locale: 'en',
+    },
+    hi: {
+      title: '',
+      content: initialContent,
+      slug: '',
+      status: 'draft',
+      category: '',
+      metaDescription: '',
+      ogTitle: '',
+      ogDescription: '',
+      tags: [],
+      locale: 'hi',
+    },
   });
-  const [previewMode, setPreviewMode] = useState(false);
 
   const editor = useEditor({
     extensions: [
       StarterKit,
       Underline,
       Link,
-      Superscript,
-      SubScript,
       Highlight,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      Image,
     ],
-    content: initialContent,
+    content: formData[activeLocale].content,
     onUpdate: ({ editor }) => {
-      setBlogPost((prev) => ({ ...prev, content: editor.getHTML() }));
+      setFormData(prev => ({
+        ...prev,
+        [activeLocale]: {
+          ...prev[activeLocale],
+          content: editor.getHTML(),
+        },
+      }));
     },
   });
 
-  const handleSave = () => {
-    console.log('Saved blog post:', blogPost);
-    // Implement save logic here
+  const handleSubmit = async () => {
+    try {
+      const response = await fetch('/api/blogs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData[activeLocale]),
+      });
+
+      if (!response.ok) throw new Error('Failed to create blog');
+
+      const blog = await response.json();
+      notifications.show({
+        title: 'Success',
+        message: 'Blog post created successfully',
+        color: 'green',
+      });
+
+      router.push(`/blogs/${blog.slug}`);
+    } catch (err) {
+      notifications.show({
+        title: 'Error',
+        message: err instanceof Error ? err.message : 'Failed to create blog post',
+        color: 'red',
+      });
+    }
   };
 
+  const BlogPreview = () => (
+    <Paper shadow="xs" p="md" style={{ height: '100%', overflowY: 'auto' }}>
+      <Stack gap="md">
+        <Title order={1}>{formData[activeLocale].title || 'Untitled Blog'}</Title>
+
+        <Group gap="xs">
+          {formData[activeLocale].tags?.map((tag, index) => (
+            <Badge key={index} variant="light">
+              {tag}
+            </Badge>
+          ))}
+        </Group>
+
+        {formData[activeLocale].category && (
+          <Badge color="blue" size="lg">
+            {formData[activeLocale].category}
+          </Badge>
+        )}
+
+        <Group gap="lg">
+          <Group gap="xs">
+            <Avatar radius="xl" />
+            <Text size="sm" c="dimmed">
+              <IconUser size={14} style={{ display: 'inline', marginRight: 4 }} />
+              Author Name
+            </Text>
+          </Group>
+          <Text size="sm" c="dimmed">
+            <IconCalendar size={14} style={{ display: 'inline', marginRight: 4 }} />
+            {format(new Date(), 'MMMM dd, yyyy')}
+          </Text>
+          <Badge color={formData[activeLocale].status === 'published' ? 'green' : 'yellow'}>
+            {formData[activeLocale].status}
+          </Badge>
+        </Group>
+
+        <Divider />
+
+        <div
+          className="blog-content"
+          dangerouslySetInnerHTML={{ __html: formData[activeLocale].content }}
+        />
+      </Stack>
+    </Paper>
+  );
+
   return (
-    <Container style={{ paddingLeft: 0, paddingRight: 0, maxWidth: '80vw' }}>
-      <h1>Create Blog Post</h1>
+    <Container size="xl" py="xl">
+      <Group justify="space-between" mb="xl">
+        <Title order={2}>Create New Blog</Title>
+        <Group>
+          <Switch
+            label="Show Preview"
+            checked={showPreview}
+            onChange={(event) => setShowPreview(event.currentTarget.checked)}
+          />
+          <Button onClick={() => router.back()} variant="light">
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit}>
+            Create
+          </Button>
+        </Group>
+      </Group>
 
-      <Grid gutter="lg" style={{ width: '80vw' }}>
-        {/* Left Grid.Column: Blog Form and Editor */}
-        <Grid.Col span={previewMode ? 6 : 12}>
-          <Fieldset legend="Blog Information">
-            <Stack gap="md">
-              {/* Title */}
-              <TextInput
-                label="Blog Title"
-                placeholder="Enter the title of your blog"
-                value={blogPost.title}
-                onChange={(e) => setBlogPost((prev) => ({ ...prev, title: e.target.value }))}
-              />
+      <Tabs value={activeLocale} onChange={(value) => setActiveLocale(value as string)} mb="xl">
+        <Tabs.List>
+          <Tabs.Tab value="en">English</Tabs.Tab>
+          <Tabs.Tab value="hi">Hindi</Tabs.Tab>
+        </Tabs.List>
+      </Tabs>
 
-              {/* Slug */}
-              <TextInput
-                label="Slug"
-                placeholder="Enter a slug for the blog"
-                value={blogPost.slug}
-                onChange={(e) => setBlogPost((prev) => ({ ...prev, slug: e.target.value }))}
-              />
+      <Grid gutter="md">
+        <Grid.Col span={showPreview ? 6 : 12}>
+          <Stack gap="md">
+            <TextInput
+              label="Title"
+              value={formData[activeLocale].title}
+              onChange={(e) => setFormData(prev => ({
+                ...prev,
+                [activeLocale]: {
+                  ...prev[activeLocale],
+                  title: e.target.value,
+                },
+              }))}
+            />
 
-              {/* Category */}
-              <TextInput
-                label="Category"
-                placeholder="Enter a category for your blog"
-                value={blogPost.category}
-                onChange={(e) => setBlogPost((prev) => ({ ...prev, category: e.target.value }))}
-              />
+            <TextInput
+              label="Slug"
+              value={formData[activeLocale].slug}
+              onChange={(e) => setFormData(prev => ({
+                ...prev,
+                [activeLocale]: {
+                  ...prev[activeLocale],
+                  slug: e.target.value,
+                },
+              }))}
+            />
 
-              {/* Author */}
-              <TextInput
-                label="Author"
-                placeholder="Enter the author's name"
-                value={blogPost.author}
-                onChange={(e) => setBlogPost((prev) => ({ ...prev, author: e.target.value }))}
-              />
+            <Select
+              label="Status"
+              data={[
+                { value: 'draft', label: 'Draft' },
+                { value: 'published', label: 'Published' },
+                { value: 'archived', label: 'Archived' },
+              ]}
+              value={formData[activeLocale].status}
+              onChange={(value) => setFormData(prev => ({
+                ...prev,
+                [activeLocale]: {
+                  ...prev[activeLocale],
+                  status: value || 'draft',
+                },
+              }))}
+            />
 
+            <Select
+              label="Category"
+              data={[
+                { value: 'technology', label: 'Technology' },
+                { value: 'lifestyle', label: 'Lifestyle' },
+                { value: 'health', label: 'Health' },
+              ]}
+              value={formData[activeLocale].category}
+              onChange={(value) => setFormData(prev => ({
+                ...prev,
+                [activeLocale]: {
+                  ...prev[activeLocale],
+                  category: value || '',
+                },
+              }))}
+            />
 
-              {/* Rich Text Editor for content */}
-              <div style={{ marginTop: '30px' }}>
-              <RichTextEditor editor={editor}>
-                  <RichTextEditor.Toolbar sticky stickyOffset={60}>
-                    <RichTextEditor.ControlsGroup>
-                      <RichTextEditor.Bold />
-                      <RichTextEditor.Italic />
-                      <RichTextEditor.Underline />
-                      <RichTextEditor.Strikethrough />
-                      <RichTextEditor.ClearFormatting />
-                      <RichTextEditor.Highlight />
-                      <RichTextEditor.Code />
-                    </RichTextEditor.ControlsGroup>
-                  {/* Toolbar contents */}
-                </RichTextEditor.Toolbar>
-                <RichTextEditor.Content /> {/* Content needs to be within RichTextEditor */}
-                </RichTextEditor>
-              </div>
+            <MultiSelect
+              label="Tags"
+              data={[
+                { value: 'web', label: 'Web Development' },
+                { value: 'mobile', label: 'Mobile Development' },
+                { value: 'design', label: 'Design' },
+              ]}
+              value={formData[activeLocale].tags}
+              onChange={(value) => setFormData(prev => ({
+                ...prev,
+                [activeLocale]: {
+                  ...prev[activeLocale],
+                  tags: value,
+                },
+              }))}
+            />
 
-              {/* Meta Description */}
-              <Textarea
-                label="Meta Description"
-                placeholder="Enter meta description"
-                value={blogPost.metaDescription}
-                onChange={(e) => setBlogPost((prev) => ({ ...prev, metaDescription: e.target.value }))}
-              />
+            <RichTextEditor editor={editor}>
+              <RichTextEditor.Toolbar sticky stickyOffset={60}>
+                <RichTextEditor.ControlsGroup>
+                  <RichTextEditor.Bold />
+                  <RichTextEditor.Italic />
+                  <RichTextEditor.Underline />
+                  <RichTextEditor.Strikethrough />
+                  <RichTextEditor.ClearFormatting />
+                  <RichTextEditor.Highlight />
+                  <RichTextEditor.Code />
+                </RichTextEditor.ControlsGroup>
 
-              {/* Open Graph Title */}
-              <TextInput
-                label="Open Graph Title"
-                placeholder="Enter Open Graph title"
-                value={blogPost.ogTitle}
-                onChange={(e) => setBlogPost((prev) => ({ ...prev, ogTitle: e.target.value }))}
-              />
+                <RichTextEditor.ControlsGroup>
+                  <RichTextEditor.H1 />
+                  <RichTextEditor.H2 />
+                  <RichTextEditor.H3 />
+                  <RichTextEditor.H4 />
+                </RichTextEditor.ControlsGroup>
 
-              {/* Open Graph Description */}
-              <Textarea
-                label="Open Graph Description"
-                placeholder="Enter Open Graph description"
-                value={blogPost.ogDescription}
-                onChange={(e) => setBlogPost((prev) => ({ ...prev, ogDescription: e.target.value }))}
-              />
-              {/* Save Button */}
-              <Button onClick={handleSave}>Save Post</Button>
-            </Stack>
-          </Fieldset>
+                <RichTextEditor.ControlsGroup>
+                  <RichTextEditor.Blockquote />
+                  <RichTextEditor.Hr />
+                  <RichTextEditor.BulletList />
+                  <RichTextEditor.OrderedList />
+                </RichTextEditor.ControlsGroup>
+
+                <RichTextEditor.ControlsGroup>
+                  <RichTextEditor.Link />
+                  <RichTextEditor.Unlink />
+                </RichTextEditor.ControlsGroup>
+
+                <RichTextEditor.ControlsGroup>
+                  <RichTextEditor.AlignLeft />
+                  <RichTextEditor.AlignCenter />
+                  <RichTextEditor.AlignRight />
+                  <RichTextEditor.AlignJustify />
+                </RichTextEditor.ControlsGroup>
+              </RichTextEditor.Toolbar>
+
+              <RichTextEditor.Content />
+            </RichTextEditor>
+
+            <Textarea
+              label="Meta Description"
+              value={formData[activeLocale].metaDescription}
+              onChange={(e) => setFormData(prev => ({
+                ...prev,
+                [activeLocale]: {
+                  ...prev[activeLocale],
+                  metaDescription: e.target.value,
+                },
+              }))}
+            />
+
+            <TextInput
+              label="OG Title"
+              value={formData[activeLocale].ogTitle}
+              onChange={(e) => setFormData(prev => ({
+                ...prev,
+                [activeLocale]: {
+                  ...prev[activeLocale],
+                  ogTitle: e.target.value,
+                },
+              }))}
+            />
+
+            <Textarea
+              label="OG Description"
+              value={formData[activeLocale].ogDescription}
+              onChange={(e) => setFormData(prev => ({
+                ...prev,
+                [activeLocale]: {
+                  ...prev[activeLocale],
+                  ogDescription: e.target.value,
+                },
+              }))}
+            />
+          </Stack>
         </Grid.Col>
 
-        {/* Right Grid.Column: Preview Section */}
-        {previewMode && (
-          <Grid.Col span={6}>
-            <Paper shadow="xs" style={{ height: '100%', padding: 'lg' }}>
-              <h2>{blogPost.title || 'Blog Title'}</h2>
-              <p><strong>Category:</strong> {blogPost.category}</p>
-              <p><strong>Author:</strong> {blogPost.author}</p>
-              <p><strong>Tags:</strong> {blogPost.tags.join(', ')}</p>
-              <div dangerouslySetInnerHTML={{ __html: blogPost.content }} />
-              <p><strong>Meta Description:</strong> {blogPost.metaDescription}</p>
-              <p><strong>Open Graph Title:</strong> {blogPost.ogTitle}</p>
-              <p><strong>Open Graph Description:</strong> {blogPost.ogDescription}</p>
-            </Paper>
+        {showPreview && (
+          <Grid.Col span={6} style={{ position: 'sticky', top: 0 }}>
+            <BlogPreview />
           </Grid.Col>
         )}
       </Grid>
 
-      <Button onClick={handleSave} mt="md">Save Post</Button>
-      <Button onClick={() => setPreviewMode(!previewMode)} mt="md" style={{ marginLeft: '10px' }}>
-        {previewMode ? 'Edit' : 'Preview'}
-      </Button>
+      <style jsx global>{`
+        .blog-content {
+          font-size: 1.1rem;
+          line-height: 1.7;
+        }
+
+        .blog-content h1,
+        .blog-content h2,
+        .blog-content h3,
+        .blog-content h4 {
+          margin-top: 2rem;
+          margin-bottom: 1rem;
+        }
+
+        .blog-content p {
+          margin-bottom: 1.5rem;
+        }
+
+        .blog-content img {
+          max-width: 100%;
+          height: auto;
+          border-radius: 8px;
+          margin: 2rem 0;
+        }
+
+        .blog-content blockquote {
+          border-left: 4px solid var(--mantine-color-blue-6);
+          margin: 2rem 0;
+          padding: 1rem 2rem;
+          background: var(--mantine-color-gray-0);
+          font-style: italic;
+        }
+
+        .blog-content pre {
+          background: var(--mantine-color-dark-8);
+          padding: 1rem;
+          border-radius: 8px;
+          overflow-x: auto;
+        }
+
+        .blog-content code {
+          background: var(--mantine-color-dark-8);
+          padding: 0.2rem 0.4rem;
+          border-radius: 4px;
+          font-size: 0.9em;
+        }
+      `}</style>
     </Container>
   );
 }
-
-export default BlogCreatePage;

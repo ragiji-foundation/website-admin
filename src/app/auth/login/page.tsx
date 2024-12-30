@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import AuthenticationImage from "@/components/Auth/AuthenticationImage";
 import { useRouter } from 'next/navigation';
+import { notifications } from '@mantine/notifications';
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -15,42 +16,43 @@ export default function LoginPage() {
     try {
       const response = await fetch('/api/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
+        credentials: 'include', // Important for cookies
       });
 
       if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Incorrect username or password');
-        } else if (response.status === 400) {
-          const errorData: { error: string } = await response.json(); //Type the response
-          throw new Error(errorData.error || 'Bad Request');
-        } else {
-          throw new Error(`Login failed with status ${response.status}`);
-        }
+        const data = await response.json();
+        throw new Error(data.error || 'Login failed');
       }
 
-      const data: { token: string } = await response.json(); // Type the response
-      console.log('Login successful:', data);
+      notifications.show({
+        title: 'Success',
+        message: 'Logged in successfully',
+        color: 'green',
+      });
 
-      const secureAttribute = process.env.NODE_ENV === 'production' ? '; Secure' : '';
-      document.cookie = `authToken=${data.token}; path=/; HttpOnly; SameSite=Strict${secureAttribute}`;
-      console.log("Cookie set:", document.cookie);
       router.push('/');
+      router.refresh(); // Important to refresh the router cache
 
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error); //Safe error handling
-      setError(errorMessage);
-      console.error("Login error:", error);
-      setTimeout(() => setError(null), 5000);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Login failed';
+      setError(message);
+      notifications.show({
+        title: 'Error',
+        message,
+        color: 'red',
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <AuthenticationImage onLogin={handleLogin} isLoading={isLoading} error={error} />
+    <AuthenticationImage
+      onLogin={handleLogin}
+      isLoading={isLoading}
+      error={error}
+    />
   );
 }

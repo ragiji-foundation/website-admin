@@ -1,33 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SignJWT } from 'jose';
 
-// Add OPTIONS handler to properly handle CORS
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-  });
-}
-
 export async function POST(req: NextRequest) {
   try {
-    // Add CORS headers
-    const corsHeaders = {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    };
-
     const { username, password } = await req.json();
 
     if (!username || !password) {
       return NextResponse.json(
         { error: 'Username and password are required' },
-        { status: 400, headers: corsHeaders }
+        { status: 400 }
       );
     }
 
@@ -38,69 +19,51 @@ export async function POST(req: NextRequest) {
       console.error('Environment variables not set');
       return NextResponse.json(
         { error: 'Server configuration error' },
-        { status: 500, headers: corsHeaders }
+        { status: 500 }
       );
     }
 
     if (username !== adminUsername || password !== adminPassword) {
       return NextResponse.json(
         { error: 'Incorrect username or password' },
-        { status: 401, headers: corsHeaders }
+        { status: 401 }
       );
     }
 
-    const tokenData = await generateToken(username);
-    const { jwt, expirationSeconds } = JSON.parse(tokenData);
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error('JWT_SECRET environment variable is not set');
+    }
+
+    const expirationTime = '24h';
+    const token = await new SignJWT({ username })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime(expirationTime)
+      .sign(new TextEncoder().encode(secret));
 
     const response = NextResponse.json(
-      { token: jwt },
-      { status: 200, headers: corsHeaders }
+      { success: true },
+      { status: 200 }
     );
 
-    // Set cookie with proper configuration
     response.cookies.set({
-      name: "authToken",
-      value: jwt,
+      name: 'authToken',
+      value: token,
       httpOnly: true,
-      secure: true, // Always use secure in production
-      sameSite: 'strict',
-      maxAge: expirationSeconds,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
       path: '/',
+      maxAge: 60 * 60 * 24 // 24 hours
     });
 
     return response;
-  } catch (error: unknown) {
+
+  } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json(
       { error: 'Server error' },
-      {
-        status: 500,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        }
-      }
+      { status: 500 }
     );
   }
-}
-
-async function generateToken(username: string): Promise<string> {
-  const payload = { username };
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error('JWT_SECRET environment variable is not set');
-  }
-
-  const expirationTime = '1h'; // 1 hour expiration
-  const expirationSeconds = 60 * 60; // 1 hour in seconds
-
-  // Generate token with jose's SignJWT class
-  const jwt = await new SignJWT(payload)
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime(expirationTime)
-    .sign(new TextEncoder().encode(secret));
-
-  return JSON.stringify({ jwt, expirationSeconds });
 }
