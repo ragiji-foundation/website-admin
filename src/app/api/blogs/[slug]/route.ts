@@ -7,21 +7,23 @@ export async function GET(
   context: any
 ) {
   try {
-    const { searchParams } = new URL(request.url);
+    const { slug } = await context.params;
+    const searchParams = request.nextUrl.searchParams;
     const locale = searchParams.get('locale') || 'en';
-    const slug = context.params.slug;
-
-    if (!slug) {
-      return NextResponse.json(
-        { error: 'Slug is required' },
-        { status: 400 }
-      );
-    }
 
     const blog = await prisma.blog.findFirst({
-      where: { slug, locale },
+      where: {
+        slug,
+        locale,
+      },
       include: {
-        author: { select: { name: true, image: true } },
+        author: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
         category: true,
         tags: true,
       },
@@ -35,10 +37,10 @@ export async function GET(
     }
 
     return NextResponse.json(blog);
-  } catch (err) {
-    console.error('Error fetching blog:', err);
+  } catch (error) {
+    console.error('Error fetching blog:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch blog' },
+      { error: 'Internal Server Error' },
       { status: 500 }
     );
   }
@@ -50,49 +52,51 @@ export async function PUT(
   context: any
 ) {
   try {
-    const slug = context.params.slug;
+    const { slug } = await context.params;
+    const data = await request.json();
+    const locale = data.locale || 'en';
 
-    if (!slug) {
-      return NextResponse.json(
-        { error: 'Slug is required' },
-        { status: 400 }
-      );
-    }
-
-    const body = await request.json();
-    const { locale, title, content, status, metaDescription, ogTitle, ogDescription, categoryId, tagIds } = body;
-
-    if (!locale) {
-      return NextResponse.json(
-        { error: 'Locale is required' },
-        { status: 400 }
-      );
-    }
-
-    const blog = await prisma.blog.update({
+    const blog = await prisma.blog.findFirst({
       where: {
-        slug_locale: { slug, locale },
+        slug,
+        locale,
+      },
+    });
+
+    if (!blog) {
+      return NextResponse.json(
+        { error: 'Blog not found' },
+        { status: 404 }
+      );
+    }
+
+    const updatedBlog = await prisma.blog.update({
+      where: {
+        id: blog.id,
       },
       data: {
-        title,
-        content,
-        status,
-        metaDescription,
-        ogTitle,
-        ogDescription,
-        categoryId,
-        tags: { set: tagIds?.map((id: number) => ({ id })) || [] },
+        title: data.title,
+        content: data.content,
+        status: data.status,
+        metaDescription: data.metaDescription,
+        ogTitle: data.ogTitle,
+        ogDescription: data.ogDescription,
+        authorName: data.authorName,
+        categoryId: data.categoryId,
+        tags: {
+          set: [],
+          connect: data.tags
+        }
       },
       include: {
-        author: { select: { name: true, image: true } },
         category: true,
         tags: true,
       },
     });
 
-    return NextResponse.json(blog);
-  } catch (err) {
-    console.error('Error updating blog:', err);
+    return NextResponse.json(updatedBlog);
+  } catch (error) {
+    console.error('Error updating blog:', error);
     return NextResponse.json(
       { error: 'Failed to update blog' },
       { status: 500 }
@@ -106,7 +110,9 @@ export async function DELETE(
   context: any
 ) {
   try {
-    const slug = context.params.slug;
+    const { slug } = await context.params;
+    const searchParams = request.nextUrl.searchParams;
+    const locale = searchParams.get('locale') || 'en';
 
     if (!slug) {
       return NextResponse.json(
@@ -115,16 +121,13 @@ export async function DELETE(
       );
     }
 
-    const { searchParams } = new URL(request.url);
-    const locale = searchParams.get('locale') || 'en';
-
     await prisma.blog.delete({
       where: { slug_locale: { slug, locale } },
     });
 
     return NextResponse.json({ message: 'Blog deleted successfully' });
-  } catch (err) {
-    console.error('Error deleting blog:', err);
+  } catch (error) {
+    console.error('Error deleting blog:', error);
     return NextResponse.json(
       { error: 'Failed to delete blog' },
       { status: 500 }

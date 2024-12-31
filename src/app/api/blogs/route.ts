@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import slugify from 'slugify';
 
 const logError = (error: unknown, context: string) => {
   if (error instanceof Error) {
@@ -85,33 +86,66 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const data = await request.json();
 
     // Validate required fields
-    if (!body.title || !body.content || !body.locale) {
+    if (!data.title || !data.content || !data.locale) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    const blog = await prisma.blog.create({
-      data: {
-        title: body.title,
-        content: body.content,
-        locale: body.locale,
-        slug: body.slug,
-        status: body.status || 'draft',
-        category: body.category,
-        metaDescription: body.metaDescription,
-        ogTitle: body.ogTitle,
-        ogDescription: body.ogDescription,
-        authorId: body.authorId,
-        tags: body.tags,
+    // Generate slug from title
+    let slug = slugify(data.title, { lower: true, strict: true });
+
+    // Check if slug exists and append number if needed
+    const existingBlog = await prisma.blog.findFirst({
+      where: {
+        slug,
+        locale: data.locale,
       },
     });
 
-    return NextResponse.json(blog, { status: 201 });
+    if (existingBlog) {
+      const count = await prisma.blog.count({
+        where: {
+          slug: {
+            startsWith: slug,
+          },
+          locale: data.locale,
+        },
+      });
+      slug = `${slug}-${count + 1}`;
+    }
+
+    // Create the blog post with proper types and fixed authorId
+    const blog = await prisma.blog.create({
+      data: {
+        title: data.title as string,
+        content: data.content as string,
+        status: data.status as string || 'draft',
+        locale: data.locale as string,
+        slug: slug,
+        metaDescription: data.metaDescription as string || '',
+        ogTitle: data.ogTitle as string || '',
+        ogDescription: data.ogDescription as string || '',
+        authorName: 'Admin User', // Fixed author name
+        authorId: 5, // Fixed authorId
+        categoryId: data.categoryId ? parseInt(data.categoryId.toString()) : null,
+        tags: data.tags ? {
+          connect: data.tags.map((tag: { id: number }) => ({
+            id: parseInt(tag.id.toString())
+          }))
+        } : undefined
+      },
+      include: {
+        category: true,
+        tags: true,
+      },
+    });
+
+    return NextResponse.json(blog);
   } catch (error) {
     console.error('Error creating blog:', error);
     return NextResponse.json(

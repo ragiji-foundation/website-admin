@@ -1,418 +1,344 @@
 "use client";
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { RichTextEditor, Link } from '@mantine/tiptap';
 import { useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Highlight from '@tiptap/extension-highlight';
 import Underline from '@tiptap/extension-underline';
-import TextAlign from '@tiptap/extension-text-align';
 import Image from '@tiptap/extension-image';
+import TextAlign from '@tiptap/extension-text-align';
+import Subscript from '@tiptap/extension-subscript';
+import Superscript from '@tiptap/extension-superscript';
+import Link from '@tiptap/extension-link';
+import { useRouter } from 'next/navigation';
+import { notifications } from '@mantine/notifications';
 import {
-  Container,
   TextInput,
+  Stack,
+  Button,
   Select,
   MultiSelect,
-  Button,
-  Group,
-  Stack,
-  Tabs,
+  Title,
   Grid,
   Paper,
-  Title,
-  Badge,
+  Group,
+  ActionIcon,
   Text,
-  Avatar,
-  Divider,
-  Switch,
-  Textarea,
 } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
-import { IconCalendar, IconUser } from '@tabler/icons-react';
-import { format } from 'date-fns';
+import { IconArrowLeft } from '@tabler/icons-react';
+import { Editor } from '@/components/Editor';
+import { BlogPreview } from '@/components/BlogPreview';
 
-interface BlogFormData {
+interface Category {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+interface Tag {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+interface Blog {
   title: string;
   content: string;
-  slug: string;
   status: string;
-  category: string;
   metaDescription: string;
   ogTitle: string;
   ogDescription: string;
-  tags: string[];
+  category?: { id: number; name: string };
+  categoryId?: number;
+  tags: Array<{ id: number; name: string }>;
   locale: string;
+  authorName?: string;
 }
 
-const initialContent = `
-<h2>Start writing your blog post...</h2>
-<p>Use the toolbar above to format your content.</p>
-`;
+const getBaseUrl = () => {
+  if (typeof window !== 'undefined') return ''; // browser should use relative url
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`; // SSR should use vercel url
+  return `http://localhost:${process.env.PORT ?? 3000}`; // dev SSR should use localhost
+};
 
-export default function CreateBlogPage() {
+export default function CreateBlog() {
   const router = useRouter();
-  const [activeLocale, setActiveLocale] = useState<string>('en');
-  const [showPreview, setShowPreview] = useState(true);
-  const [formData, setFormData] = useState<Record<string, BlogFormData>>({
-    en: {
-      title: '',
-      content: initialContent,
-      slug: '',
-      status: 'draft',
-      category: '',
-      metaDescription: '',
-      ogTitle: '',
-      ogDescription: '',
-      tags: [],
-      locale: 'en',
-    },
-    hi: {
-      title: '',
-      content: initialContent,
-      slug: '',
-      status: 'draft',
-      category: '',
-      metaDescription: '',
-      ogTitle: '',
-      ogDescription: '',
-      tags: [],
-      locale: 'hi',
-    },
+  const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [blog, setBlog] = useState<Blog>({
+    title: '',
+    content: '',
+    status: 'draft',
+    metaDescription: '',
+    ogTitle: '',
+    ogDescription: '',
+    tags: [],
+    locale: 'en',
+    authorName: 'Admin',
+    categoryId: undefined,
   });
 
   const editor = useEditor({
     extensions: [
       StarterKit,
       Underline,
-      Link,
-      Highlight,
-      TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Image,
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+      }),
+      Subscript,
+      Superscript,
+      Link.configure({
+        openOnClick: false,
+      }),
     ],
-    content: formData[activeLocale].content,
-    onUpdate: ({ editor }) => {
-      setFormData(prev => ({
-        ...prev,
-        [activeLocale]: {
-          ...prev[activeLocale],
-          content: editor.getHTML(),
-        },
-      }));
+    content: '',
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',
+      },
     },
+    onUpdate: ({ editor }) => {
+      setBlog(prev => ({
+        ...prev,
+        content: editor.getHTML()
+      }));
+    }
   });
 
-  const handleSubmit = async () => {
+  useState(() => {
+    const fetchData = async () => {
+      try {
+        const baseUrl = getBaseUrl();
+        const [categoriesRes, tagsRes] = await Promise.all([
+          fetch(`${baseUrl}/api/categories`),
+          fetch(`${baseUrl}/api/tags`)
+        ]);
+
+        const [categoriesData, tagsData] = await Promise.all([
+          categoriesRes.json(),
+          tagsRes.json()
+        ]);
+
+        setCategories(categoriesData);
+        setTags(tagsData);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        notifications.show({
+          title: 'Error',
+          message: 'Failed to fetch categories and tags',
+          color: 'red'
+        });
+      }
+    };
+    fetchData();
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
     try {
+      const blogData = {
+        title: blog.title,
+        content: editor?.getHTML() || '',
+        status: blog.status,
+        metaDescription: blog.metaDescription,
+        ogTitle: blog.ogTitle,
+        ogDescription: blog.ogDescription,
+        categoryId: blog.category?.id,
+        locale: blog.locale,
+        authorName: 'Admin',
+        tags: blog.tags.map(tag => ({ id: tag.id }))
+      };
+
       const response = await fetch('/api/blogs', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData[activeLocale]),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(blogData),
       });
 
-      if (!response.ok) throw new Error('Failed to create blog');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to create blog');
+      }
 
-      const blog = await response.json();
       notifications.show({
         title: 'Success',
-        message: 'Blog post created successfully',
-        color: 'green',
+        message: 'Blog created successfully',
+        color: 'green'
       });
 
-      router.push(`/blogs/${blog.slug}`);
-    } catch (err) {
+      router.push('/blogs');
+    } catch (error) {
+      console.error('Error creating blog:', error);
       notifications.show({
         title: 'Error',
-        message: err instanceof Error ? err.message : 'Failed to create blog post',
-        color: 'red',
+        message: error instanceof Error ? error.message : 'Failed to create blog',
+        color: 'red'
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const BlogPreview = () => (
-    <Paper shadow="xs" p="md" style={{ height: '100%', overflowY: 'auto' }}>
-      <Stack gap="md">
-        <Title order={1}>{formData[activeLocale].title || 'Untitled Blog'}</Title>
-
-        <Group gap="xs">
-          {formData[activeLocale].tags?.map((tag, index) => (
-            <Badge key={index} variant="light">
-              {tag}
-            </Badge>
-          ))}
-        </Group>
-
-        {formData[activeLocale].category && (
-          <Badge color="blue" size="lg">
-            {formData[activeLocale].category}
-          </Badge>
-        )}
-
-        <Group gap="lg">
-          <Group gap="xs">
-            <Avatar radius="xl" />
-            <Text size="sm" c="dimmed">
-              <IconUser size={14} style={{ display: 'inline', marginRight: 4 }} />
-              Author Name
-            </Text>
-          </Group>
-          <Text size="sm" c="dimmed">
-            <IconCalendar size={14} style={{ display: 'inline', marginRight: 4 }} />
-            {format(new Date(), 'MMMM dd, yyyy')}
-          </Text>
-          <Badge color={formData[activeLocale].status === 'published' ? 'green' : 'yellow'}>
-            {formData[activeLocale].status}
-          </Badge>
-        </Group>
-
-        <Divider />
-
-        <div
-          className="blog-content"
-          dangerouslySetInnerHTML={{ __html: formData[activeLocale].content }}
-        />
-      </Stack>
-    </Paper>
-  );
-
   return (
-    <Container size="xl" py="xl">
-      <Group justify="space-between" mb="xl">
-        <Title order={2}>Create New Blog</Title>
-        <Group>
-          <Switch
-            label="Show Preview"
-            checked={showPreview}
-            onChange={(event) => setShowPreview(event.currentTarget.checked)}
-          />
-          <Button onClick={() => router.back()} variant="light">
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit}>
-            Create
-          </Button>
-        </Group>
-      </Group>
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white border-b border-gray-200">
+        <div className="w-full px-[5%]">
+          <Group justify="space-between" align="center" py="xs">
+            <Group>
+              <ActionIcon
+                variant="subtle"
+                onClick={() => router.push('/blogs')}
+                size="lg"
+              >
+                <IconArrowLeft size={20} />
+              </ActionIcon>
+              <div>
+                <Text size="sm" c="dimmed">Creating New</Text>
+                <Title order={3}>Blog Post</Title>
+              </div>
+            </Group>
 
-      <Tabs value={activeLocale} onChange={(value) => setActiveLocale(value as string)} mb="xl">
-        <Tabs.List>
-          <Tabs.Tab value="en">English</Tabs.Tab>
-          <Tabs.Tab value="hi">Hindi</Tabs.Tab>
-        </Tabs.List>
-      </Tabs>
+            <Group>
+              <Select
+                value={blog.locale}
+                onChange={(value) => setBlog({ ...blog, locale: value || 'en' })}
+                data={[
+                  { value: 'en', label: 'English' },
+                  { value: 'hi', label: 'Hindi' },
+                ]}
+              />
+              <Button
+                variant="light"
+                onClick={() => router.push('/blogs')}
+              >
+                Cancel
+              </Button>
+              <Button
+                loading={loading}
+                onClick={handleSubmit}
+              >
+                Create Blog
+              </Button>
+            </Group>
+          </Group>
+        </div>
+      </header>
 
-      <Grid gutter="md">
-        <Grid.Col span={showPreview ? 6 : 12}>
-          <Stack gap="md">
-            <TextInput
-              label="Title"
-              value={formData[activeLocale].title}
-              onChange={(e) => setFormData(prev => ({
-                ...prev,
-                [activeLocale]: {
-                  ...prev[activeLocale],
-                  title: e.target.value,
-                },
-              }))}
-            />
+      <div className="w-full px-[5%] py-4">
+        <form onSubmit={handleSubmit}>
+          <Grid gutter="md">
+            <Grid.Col span={7}>
+              <Stack gap="md">
+                <Paper shadow="sm" p="sm" withBorder>
+                  <TextInput
+                    label="Title"
+                    placeholder="Enter blog title"
+                    value={blog.title}
+                    onChange={(e) => setBlog({ ...blog, title: e.target.value })}
+                    required
+                    size="lg"
+                  />
+                </Paper>
 
-            <TextInput
-              label="Slug"
-              value={formData[activeLocale].slug}
-              onChange={(e) => setFormData(prev => ({
-                ...prev,
-                [activeLocale]: {
-                  ...prev[activeLocale],
-                  slug: e.target.value,
-                },
-              }))}
-            />
+                <Paper shadow="sm" withBorder>
+                  <Editor editor={editor} />
+                </Paper>
 
-            <Select
-              label="Status"
-              data={[
-                { value: 'draft', label: 'Draft' },
-                { value: 'published', label: 'Published' },
-                { value: 'archived', label: 'Archived' },
-              ]}
-              value={formData[activeLocale].status}
-              onChange={(value) => setFormData(prev => ({
-                ...prev,
-                [activeLocale]: {
-                  ...prev[activeLocale],
-                  status: value || 'draft',
-                },
-              }))}
-            />
+                <Paper shadow="sm" p="sm" withBorder>
+                  <Stack gap="md">
+                    <Title order={4}>SEO Settings</Title>
+                    <TextInput
+                      label="Meta Description"
+                      placeholder="Enter meta description"
+                      value={blog.metaDescription}
+                      onChange={(e) => setBlog({ ...blog, metaDescription: e.target.value })}
+                    />
+                    <TextInput
+                      label="OG Title"
+                      placeholder="Enter OG title"
+                      value={blog.ogTitle}
+                      onChange={(e) => setBlog({ ...blog, ogTitle: e.target.value })}
+                    />
+                    <TextInput
+                      label="OG Description"
+                      placeholder="Enter OG description"
+                      value={blog.ogDescription}
+                      onChange={(e) => setBlog({ ...blog, ogDescription: e.target.value })}
+                    />
+                  </Stack>
+                </Paper>
+              </Stack>
+            </Grid.Col>
 
-            <Select
-              label="Category"
-              data={[
-                { value: 'technology', label: 'Technology' },
-                { value: 'lifestyle', label: 'Lifestyle' },
-                { value: 'health', label: 'Health' },
-              ]}
-              value={formData[activeLocale].category}
-              onChange={(value) => setFormData(prev => ({
-                ...prev,
-                [activeLocale]: {
-                  ...prev[activeLocale],
-                  category: value || '',
-                },
-              }))}
-            />
+            <Grid.Col span={5}>
+              <Stack gap="md">
+                <Paper shadow="sm" p="sm" withBorder>
+                  <Title order={4} mb="sm">Preview</Title>
+                  <BlogPreview
+                    title={blog.title}
+                    content={blog.content}
+                    category={blog.category}
+                    tags={blog.tags}
+                  />
+                </Paper>
 
-            <MultiSelect
-              label="Tags"
-              data={[
-                { value: 'web', label: 'Web Development' },
-                { value: 'mobile', label: 'Mobile Development' },
-                { value: 'design', label: 'Design' },
-              ]}
-              value={formData[activeLocale].tags}
-              onChange={(value) => setFormData(prev => ({
-                ...prev,
-                [activeLocale]: {
-                  ...prev[activeLocale],
-                  tags: value,
-                },
-              }))}
-            />
-
-            <RichTextEditor editor={editor}>
-              <RichTextEditor.Toolbar sticky stickyOffset={60}>
-                <RichTextEditor.ControlsGroup>
-                  <RichTextEditor.Bold />
-                  <RichTextEditor.Italic />
-                  <RichTextEditor.Underline />
-                  <RichTextEditor.Strikethrough />
-                  <RichTextEditor.ClearFormatting />
-                  <RichTextEditor.Highlight />
-                  <RichTextEditor.Code />
-                </RichTextEditor.ControlsGroup>
-
-                <RichTextEditor.ControlsGroup>
-                  <RichTextEditor.H1 />
-                  <RichTextEditor.H2 />
-                  <RichTextEditor.H3 />
-                  <RichTextEditor.H4 />
-                </RichTextEditor.ControlsGroup>
-
-                <RichTextEditor.ControlsGroup>
-                  <RichTextEditor.Blockquote />
-                  <RichTextEditor.Hr />
-                  <RichTextEditor.BulletList />
-                  <RichTextEditor.OrderedList />
-                </RichTextEditor.ControlsGroup>
-
-                <RichTextEditor.ControlsGroup>
-                  <RichTextEditor.Link />
-                  <RichTextEditor.Unlink />
-                </RichTextEditor.ControlsGroup>
-
-                <RichTextEditor.ControlsGroup>
-                  <RichTextEditor.AlignLeft />
-                  <RichTextEditor.AlignCenter />
-                  <RichTextEditor.AlignRight />
-                  <RichTextEditor.AlignJustify />
-                </RichTextEditor.ControlsGroup>
-              </RichTextEditor.Toolbar>
-
-              <RichTextEditor.Content />
-            </RichTextEditor>
-
-            <Textarea
-              label="Meta Description"
-              value={formData[activeLocale].metaDescription}
-              onChange={(e) => setFormData(prev => ({
-                ...prev,
-                [activeLocale]: {
-                  ...prev[activeLocale],
-                  metaDescription: e.target.value,
-                },
-              }))}
-            />
-
-            <TextInput
-              label="OG Title"
-              value={formData[activeLocale].ogTitle}
-              onChange={(e) => setFormData(prev => ({
-                ...prev,
-                [activeLocale]: {
-                  ...prev[activeLocale],
-                  ogTitle: e.target.value,
-                },
-              }))}
-            />
-
-            <Textarea
-              label="OG Description"
-              value={formData[activeLocale].ogDescription}
-              onChange={(e) => setFormData(prev => ({
-                ...prev,
-                [activeLocale]: {
-                  ...prev[activeLocale],
-                  ogDescription: e.target.value,
-                },
-              }))}
-            />
-          </Stack>
-        </Grid.Col>
-
-        {showPreview && (
-          <Grid.Col span={6} style={{ position: 'sticky', top: 0 }}>
-            <BlogPreview />
-          </Grid.Col>
-        )}
-      </Grid>
-
-      <style jsx global>{`
-        .blog-content {
-          font-size: 1.1rem;
-          line-height: 1.7;
-        }
-
-        .blog-content h1,
-        .blog-content h2,
-        .blog-content h3,
-        .blog-content h4 {
-          margin-top: 2rem;
-          margin-bottom: 1rem;
-        }
-
-        .blog-content p {
-          margin-bottom: 1.5rem;
-        }
-
-        .blog-content img {
-          max-width: 100%;
-          height: auto;
-          border-radius: 8px;
-          margin: 2rem 0;
-        }
-
-        .blog-content blockquote {
-          border-left: 4px solid var(--mantine-color-blue-6);
-          margin: 2rem 0;
-          padding: 1rem 2rem;
-          background: var(--mantine-color-gray-0);
-          font-style: italic;
-        }
-
-        .blog-content pre {
-          background: var(--mantine-color-dark-8);
-          padding: 1rem;
-          border-radius: 8px;
-          overflow-x: auto;
-        }
-
-        .blog-content code {
-          background: var(--mantine-color-dark-8);
-          padding: 0.2rem 0.4rem;
-          border-radius: 4px;
-          font-size: 0.9em;
-        }
-      `}</style>
-    </Container>
+                <Paper shadow="sm" p="sm" withBorder>
+                  <Stack gap="md">
+                    <Title order={4}>Publishing Settings</Title>
+                    <Select
+                      label="Status"
+                      value={blog.status}
+                      onChange={(value) => setBlog({ ...blog, status: value || 'draft' })}
+                      data={[
+                        { value: 'draft', label: 'Draft' },
+                        { value: 'published', label: 'Published' },
+                        { value: 'archived', label: 'Archived' },
+                      ]}
+                    />
+                    <Select
+                      label="Category"
+                      value={blog.category?.id.toString()}
+                      onChange={(value) => setBlog({
+                        ...blog,
+                        category: {
+                          id: parseInt(value || '0'),
+                          name: categories.find((c: Category) => c.id.toString() === value)?.name || ''
+                        },
+                        categoryId: parseInt(value || '0')
+                      })}
+                      data={categories.map((cat: Category) => ({
+                        value: cat.id.toString(),
+                        label: cat.name
+                      }))}
+                    />
+                    <MultiSelect
+                      label="Tags"
+                      value={blog.tags.map(tag => tag.id.toString())}
+                      onChange={(values) => setBlog({
+                        ...blog,
+                        tags: values.map(v => ({
+                          id: parseInt(v),
+                          name: tags.find((t: Tag) => t.id.toString() === v)?.name || ''
+                        }))
+                      })}
+                      data={tags.map((tag: Tag) => ({
+                        value: tag.id.toString(),
+                        label: tag.name,
+                        key: `tag-${tag.id}`
+                      }))}
+                    />
+                  </Stack>
+                </Paper>
+              </Stack>
+            </Grid.Col>
+          </Grid>
+        </form>
+      </div>
+    </div>
   );
 }

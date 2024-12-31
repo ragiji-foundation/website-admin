@@ -1,23 +1,25 @@
-import { Extension } from '@tiptap/core';
-import Image from '@tiptap/extension-image';
+import { Editor } from '@tiptap/react';
 
-export const CustomImage = Image.configure({
-  HTMLAttributes: {
-    class: 'blog-image',
-  },
-});
+export async function handleImageUpload(file: File, editor: Editor) {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
 
-export const ImageUpload = Extension.create({
-  name: 'imageUpload',
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    });
 
-  addCommands() {
-    return {
-      setImage: (attrs: { src: string }) => ({ commands }) => {
-        return commands.insertContent({
-          type: 'image',
-          attrs: attrs,
-        });
-      },
-    };
-  },
-}); 
+    if (!response.ok) throw new Error('Upload failed');
+
+    const data = await response.json();
+
+    // Insert image into editor
+    editor.chain().focus().setImage({ src: data.url }).run();
+
+    return data.url;
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    throw error;
+  }
+} 

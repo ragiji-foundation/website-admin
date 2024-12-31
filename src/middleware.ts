@@ -2,10 +2,30 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
-const publicPaths = ['/auth/login', '/api/login', '/api/contact'];
+const publicPaths = [
+  '/auth/login',
+  '/api/login',
+  '/api/contact',
+  '/api/blogs',           // Public blog reading
+  '/api/categories',      // Public category reading
+  '/api/tags',           // Public tag reading
+  '/api/testimonials',    // Public testimonial reading
+  '/api/upload'  // Add this to allow image uploads
+];
+
+// Update the isPublicPath check to include the request parameter
+const isPublicPath = (path: string, request: NextRequest) => {
+  return publicPaths.some(publicPath => {
+    // Exact match
+    if (path === publicPath) return true;
+    // Check if it's a GET request to a public path
+    if (path.startsWith(publicPath + '/') && request.method === 'GET') return true;
+    return false;
+  });
+};
 
 export async function middleware(request: NextRequest) {
-  const isPublicPath = publicPaths.some(path => request.nextUrl.pathname.startsWith(path));
+  const isPublic = isPublicPath(request.nextUrl.pathname, request);
 
   // Handle CORS preflight
   if (request.method === 'OPTIONS') {
@@ -21,7 +41,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Allow public paths without authentication
-  if (isPublicPath) {
+  if (isPublic) {
     return NextResponse.next();
   }
 
@@ -57,6 +77,14 @@ export const config = {
     '/blogs/:path*',
     '/pages/:path*',
     '/navigation/:path*',
-    '/auth/:path*'
+    '/auth/:path*',
+    '/admin/:path*',
+    '/testimonials/:path*',
+    '/enquiries/:path*',
+    '/settings/:path*',
+    '/logo/:path*',
+    '/header/:path*',
+    '/navbar/:path*',
+    '/footer/:path*'
   ],
 };

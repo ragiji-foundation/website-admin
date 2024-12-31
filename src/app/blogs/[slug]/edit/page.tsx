@@ -1,59 +1,32 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useSearchParams, useRouter } from 'next/navigation';
-import { RichTextEditor, Link } from '@mantine/tiptap';
 import { useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Highlight from '@tiptap/extension-highlight';
 import Underline from '@tiptap/extension-underline';
-import TextAlign from '@tiptap/extension-text-align';
-import { ImageUpload } from '@/components/Editor/ImageUpload';
+import Image from '@tiptap/extension-image';
+import { useParams, useRouter } from 'next/navigation';
+import { notifications } from '@mantine/notifications';
 import {
-  Container,
   TextInput,
+  Stack,
+  Button,
   Select,
   MultiSelect,
-  Button,
-  Group,
-  Stack,
-  Tabs,
-  LoadingOverlay,
-  Textarea,
+  Title,
   Grid,
   Paper,
-  Title,
-  Badge,
+  Group,
+  ActionIcon,
   Text,
-  Avatar,
-  Divider,
-  Switch,
 } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
-import { IconCalendar, IconUser } from '@tabler/icons-react';
-import { format } from 'date-fns';
-import Image from '@tiptap/extension-image';
-
-interface BlogFormData {
-  title: string;
-  content: string;
-  slug: string;
-  status: string;
-  category: {
-    id: number;
-    name: string;
-    slug: string;
-  } | null;
-  metaDescription: string;
-  ogTitle: string;
-  ogDescription: string;
-  tags: Array<{
-    id: number;
-    name: string;
-    slug: string;
-  }>;
-  locale: string;
-}
+import { IconArrowLeft, IconClock, IconCalendar } from '@tabler/icons-react';
+import { Editor } from '@/components/Editor/index';
+import { BlogPreview } from '@/components/BlogPreview';
+import TextAlign from '@tiptap/extension-text-align';
+import Subscript from '@tiptap/extension-subscript';
+import Superscript from '@tiptap/extension-superscript';
+import Link from '@tiptap/extension-link';
 
 interface Category {
   id: number;
@@ -67,25 +40,26 @@ interface Tag {
   slug: string;
 }
 
-export default function EditBlogPage() {
+interface Blog {
+  id: number;
+  title: string;
+  content: string;
+  status: string;
+  metaDescription: string;
+  ogTitle: string;
+  ogDescription: string;
+  category: { id: number; name: string };
+  categoryId?: number;
+  tags: Array<{ id: number; name: string }>;
+  locale: string;
+  authorName?: string;
+}
+
+export default function EditBlog() {
+  const params = useParams();
   const router = useRouter();
-  const { slug } = useParams();
-  const searchParams = useSearchParams();
-  const [activeLocale, setActiveLocale] = useState(searchParams.get('locale') || 'en');
-  const [isLoading, setIsLoading] = useState(true);
-  const [formData, setFormData] = useState<BlogFormData>({
-    title: '',
-    content: '',
-    slug: slug as string,
-    status: 'draft',
-    category: null,
-    metaDescription: '',
-    ogTitle: '',
-    ogDescription: '',
-    tags: [],
-    locale: activeLocale,
-  });
-  const [showPreview, setShowPreview] = useState(true);
+  const [blog, setBlog] = useState<Blog | null>(null);
+  const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
 
@@ -93,430 +67,267 @@ export default function EditBlogPage() {
     extensions: [
       StarterKit,
       Underline,
-      Link,
-      Highlight,
-      TextAlign.configure({ types: ['heading', 'paragraph'] }),
-      Image.configure({
-        HTMLAttributes: {
-          class: 'blog-image',
-        },
+      Image,
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
       }),
-      ImageUpload.configure({
-        uploadFn: async (file: File) => {
-          const formData = new FormData();
-          formData.append('file', file);
-
-          try {
-            const response = await fetch('/api/upload', {
-              method: 'POST',
-              body: formData,
-            });
-
-            if (!response.ok) throw new Error('Upload failed');
-
-            const { url } = await response.json();
-            return url;
-          } catch (error) {
-            console.error('Error uploading image:', error);
-            throw error;
-          }
-        },
+      Subscript,
+      Superscript,
+      Link.configure({
+        openOnClick: false,
       }),
     ],
-    content: formData.content,
-    onUpdate: ({ editor }) => {
-      setFormData(prev => ({
-        ...prev,
-        content: editor.getHTML(),
-      }));
+    content: '',
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',
+      },
     },
+    onUpdate: ({ editor }) => {
+      if (blog) {
+        setBlog(prev => ({
+          ...prev!,
+          content: editor.getHTML()
+        }));
+      }
+    }
   });
 
   useEffect(() => {
-    const fetchBlog = async () => {
+    const fetchData = async () => {
       try {
-        setIsLoading(true);
-        const response = await fetch(`/api/blogs/${slug}?locale=${activeLocale}`);
+        const [blogRes, categoriesRes, tagsRes] = await Promise.all([
+          fetch(`/api/blogs/${params.slug}?locale=en`),
+          fetch('/api/categories'),
+          fetch('/api/tags')
+        ]);
 
-        if (!response.ok) throw new Error('Failed to fetch blog');
+        const [blogData, categoriesData, tagsData] = await Promise.all([
+          blogRes.json(),
+          categoriesRes.json(),
+          tagsRes.json()
+        ]);
 
-        const data = await response.json();
-        setFormData({
-          title: data.title,
-          content: data.content,
-          slug: data.slug,
-          status: data.status,
-          category: data.category,
-          metaDescription: data.metaDescription,
-          ogTitle: data.ogTitle,
-          ogDescription: data.ogDescription,
-          tags: data.tags,
-          locale: activeLocale,
-        });
-        editor?.commands.setContent(data.content);
-      } catch (err) {
+        setBlog(blogData);
+        setCategories(categoriesData);
+        setTags(tagsData);
+        editor?.commands.setContent(blogData.content);
+      } catch (error) {
+        console.error('Error fetching data:', error);
         notifications.show({
           title: 'Error',
-          message: err instanceof Error ? err.message : 'Failed to fetch blog post',
-          color: 'red',
+          message: 'Failed to fetch data',
+          color: 'red'
         });
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
-    if (slug) {
-      fetchBlog();
+    if (params.slug) {
+      fetchData();
     }
-  }, [slug, activeLocale, editor?.commands]);
+  }, [params.slug, editor]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
-      const response = await fetch(`/api/blogs/${slug}`, {
+      const blogData = {
+        title: blog?.title,
+        content: editor?.getHTML() || '',
+        status: blog?.status,
+        metaDescription: blog?.metaDescription,
+        ogTitle: blog?.ogTitle,
+        ogDescription: blog?.ogDescription,
+        categoryId: blog?.category?.id,
+        locale: blog?.locale || 'en',
+        authorName: blog?.authorName || 'Admin',
+        tags: blog?.tags.map(tag => ({ id: tag.id }))
+      };
+
+      const response = await fetch(`/api/blogs/${params.slug}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(blogData),
       });
 
-      if (!response.ok) throw new Error('Failed to update blog');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update blog');
+      }
 
       notifications.show({
         title: 'Success',
-        message: 'Blog post updated successfully',
-        color: 'green',
+        message: 'Blog updated successfully',
+        color: 'green'
       });
 
-      router.push(`/blogs/${slug}?locale=${activeLocale}`);
+      router.push('/blogs');
     } catch (error) {
       console.error('Error updating blog:', error);
       notifications.show({
         title: 'Error',
-        message: error instanceof Error ? error.message : 'Failed to update blog post',
-        color: 'red',
+        message: error instanceof Error ? error.message : 'Failed to update blog',
+        color: 'red'
       });
     }
   };
 
-  const fetchTaxonomies = async () => {
-    try {
-      const [categoriesRes, tagsRes] = await Promise.all([
-        fetch('/api/categories'),
-        fetch('/api/tags')
-      ]);
-
-      if (categoriesRes.ok && tagsRes.ok) {
-        const categoriesData = await categoriesRes.json();
-        const tagsData = await tagsRes.json();
-
-        setCategories(categoriesData);
-        setTags(tagsData);
-      }
-    } catch (error) {
-      console.error('Error fetching taxonomies:', error);
-    }
-  };
-
-  useEffect(() => {
-    fetchTaxonomies();
-  }, []);
-
-  const BlogPreview = () => (
-    <Paper shadow="xs" p="md" style={{ height: '100%', overflowY: 'auto' }}>
-      <Stack gap="md">
-        <Title order={1}>{formData.title || 'Untitled Blog'}</Title>
-
-        <Group gap="xs">
-          {formData.tags?.map((tag) => (
-            <Badge key={tag.id} variant="light">
-              {tag.name}
-            </Badge>
-          ))}
-        </Group>
-
-        {formData.category && (
-          <Badge color="blue" size="lg">
-            {formData.category.name}
-          </Badge>
-        )}
-
-        <Group gap="lg">
-          <Group gap="xs">
-            <Avatar radius="xl" />
-            <Text size="sm" c="dimmed">
-              <IconUser size={14} style={{ display: 'inline', marginRight: 4 }} />
-              Author Name
-            </Text>
-          </Group>
-          <Text size="sm" c="dimmed">
-            <IconCalendar size={14} style={{ display: 'inline', marginRight: 4 }} />
-            {format(new Date(), 'MMMM dd, yyyy')}
-          </Text>
-          <Badge color={formData.status === 'published' ? 'green' : 'yellow'}>
-            {formData.status}
-          </Badge>
-        </Group>
-
-        <Divider />
-
-        <div
-          className="blog-content"
-          dangerouslySetInnerHTML={{ __html: formData.content }}
-        />
-      </Stack>
-    </Paper>
-  );
+  if (loading) return <div>Loading...</div>;
+  if (!blog) return <div>Blog not found</div>;
 
   return (
-    <Container size="xl" py="xl">
-      <LoadingOverlay visible={isLoading} />
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white border-b border-gray-200">
+        <div className="w-full px-[5%]">
+          <Group justify="space-between" align="center" py="xs">
+            <Group>
+              <ActionIcon
+                variant="subtle"
+                onClick={() => router.push('/blogs')}
+                size="lg"
+              >
+                <IconArrowLeft size={20} />
+              </ActionIcon>
+              <div>
+                <Text size="sm" c="dimmed">Editing</Text>
+                <Title order={3}>{blog?.title || 'Loading...'}</Title>
+              </div>
+            </Group>
 
-      <Group justify="space-between" mb="xl">
-        <Title order={2}>{slug ? 'Edit Blog' : 'Create Blog'}</Title>
-        <Group>
-          <Switch
-            label="Show Preview"
-            checked={showPreview}
-            onChange={(event) => setShowPreview(event.currentTarget.checked)}
-          />
-          <Button onClick={() => router.back()} variant="light">
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit}>
-            {slug ? 'Update' : 'Create'}
-          </Button>
-        </Group>
-      </Group>
+            <Group>
+              <Group gap="xs">
+                <IconClock size={16} />
+                <Text size="sm">Last modified: {new Date().toLocaleDateString()}</Text>
+              </Group>
+              <Group gap="xs">
+                <IconCalendar size={16} />
+                <Text size="sm">Created: {new Date().toLocaleDateString()}</Text>
+              </Group>
+              <Button
+                variant="light"
+                onClick={() => router.push(`/blogs/${params.slug}`)}
+              >
+                Preview
+              </Button>
+              <Button type="submit">Publish Changes</Button>
+            </Group>
+          </Group>
+        </div>
+      </header>
 
-      <Tabs value={activeLocale} onChange={(value) => setActiveLocale(value || 'en')} mb="xl">
-        <Tabs.List>
-          <Tabs.Tab value="en">English</Tabs.Tab>
-          <Tabs.Tab value="hi">Hindi</Tabs.Tab>
-        </Tabs.List>
-      </Tabs>
+      <div className="w-full px-[5%] py-4">
+        <form onSubmit={handleSubmit}>
+          <Grid gutter="md">
+            <Grid.Col span={7} p="xs">
+              <Stack gap="md">
+                <Paper shadow="sm" p="sm" withBorder>
+                  <TextInput
+                    label="Title"
+                    placeholder="Enter blog title"
+                    value={blog?.title}
+                    onChange={(e) => setBlog({ ...blog!, title: e.target.value })}
+                    required
+                    size="lg"
+                  />
+                </Paper>
 
-      <Grid gutter="md">
-        <Grid.Col span={showPreview ? 6 : 12}>
-          <Stack gap="md">
-            <TextInput
-              label="Title"
-              value={formData.title}
-              onChange={(e) => setFormData(prev => ({
-                ...prev,
-                title: e.target.value,
-              }))}
-            />
+                <Paper shadow="sm" withBorder>
+                  <Editor editor={editor} />
+                </Paper>
 
-            <Select
-              label="Status"
-              value={formData.status}
-              onChange={(value) => setFormData(prev => ({
-                ...prev,
-                status: value || 'draft',
-              }))}
-              data={[
-                { value: 'draft', label: 'Draft' },
-                { value: 'published', label: 'Published' },
-                { value: 'archived', label: 'Archived' },
-              ]}
-            />
+                <Paper shadow="sm" p="sm" withBorder>
+                  <Stack gap="md">
+                    <Title order={4}>SEO Settings</Title>
+                    <TextInput
+                      label="Meta Description"
+                      placeholder="Enter meta description"
+                      value={blog?.metaDescription}
+                      onChange={(e) => setBlog({ ...blog!, metaDescription: e.target.value })}
+                    />
+                    <TextInput
+                      label="OG Title"
+                      placeholder="Enter OG title"
+                      value={blog?.ogTitle}
+                      onChange={(e) => setBlog({ ...blog!, ogTitle: e.target.value })}
+                    />
+                    <TextInput
+                      label="OG Description"
+                      placeholder="Enter OG description"
+                      value={blog?.ogDescription}
+                      onChange={(e) => setBlog({ ...blog!, ogDescription: e.target.value })}
+                    />
+                  </Stack>
+                </Paper>
+              </Stack>
+            </Grid.Col>
 
-            <Select
-              label="Category"
-              value={formData.category?.id.toString() || null}
-              onChange={(value) => setFormData(prev => ({
-                ...prev,
-                category: value ? categories.find(cat => cat.id.toString() === value) || null : null
-              }))}
-              data={categories.map(cat => ({
-                value: cat.id.toString(),
-                label: cat.name
-              }))}
-              clearable
-            />
+            <Grid.Col span={5} p="xs">
+              <Stack gap="md">
+                <Paper shadow="sm" p="sm" withBorder>
+                  <Title order={4} mb="sm">Preview</Title>
+                  <BlogPreview
+                    title={blog?.title || ''}
+                    content={blog?.content || ''}
+                    category={blog?.category}
+                    tags={blog?.tags}
+                  />
+                </Paper>
 
-            <MultiSelect
-              label="Tags"
-              value={formData.tags.map(tag => tag.id.toString())}
-              onChange={(values) => {
-                const selectedTags = tags.filter(tag =>
-                  values.includes(tag.id.toString())
-                );
-                setFormData(prev => ({
-                  ...prev,
-                  tags: selectedTags
-                }));
-              }}
-              data={tags.map(tag => ({
-                value: tag.id.toString(),
-                label: tag.name
-              }))}
-              searchable
-              clearable
-            />
-
-            <RichTextEditor editor={editor}>
-              <RichTextEditor.Toolbar sticky stickyOffset={60}>
-                <RichTextEditor.ControlsGroup>
-                  <RichTextEditor.Bold />
-                  <RichTextEditor.Italic />
-                  <RichTextEditor.Underline />
-                  <RichTextEditor.Strikethrough />
-                  <RichTextEditor.ClearFormatting />
-                  <RichTextEditor.Highlight />
-                  <RichTextEditor.Code />
-                </RichTextEditor.ControlsGroup>
-
-                <RichTextEditor.ControlsGroup>
-                  <RichTextEditor.H1 />
-                  <RichTextEditor.H2 />
-                  <RichTextEditor.H3 />
-                  <RichTextEditor.H4 />
-                </RichTextEditor.ControlsGroup>
-
-                <RichTextEditor.ControlsGroup>
-                  <RichTextEditor.Blockquote />
-                  <RichTextEditor.Hr />
-                  <RichTextEditor.BulletList />
-                  <RichTextEditor.OrderedList />
-                </RichTextEditor.ControlsGroup>
-
-                <RichTextEditor.ControlsGroup>
-                  <RichTextEditor.Link />
-                  <RichTextEditor.Unlink />
-                  <Button
-                    variant="light"
-                    size="sm"
-                    onClick={() => {
-                      const input = document.createElement('input');
-                      input.type = 'file';
-                      input.accept = 'image/*';
-                      input.onchange = async () => {
-                        const file = input.files?.[0];
-                        if (file) {
-                          try {
-                            const formData = new FormData();
-                            formData.append('file', file);
-
-                            const response = await fetch('/api/upload', {
-                              method: 'POST',
-                              body: formData,
-                            });
-
-                            if (!response.ok) throw new Error('Upload failed');
-
-                            const { url } = await response.json();
-                            editor?.commands.setImage({ src: url });
-                          } catch (error) {
-                            console.error('Error uploading image:', error);
-                            notifications.show({
-                              title: 'Error',
-                              message: 'Failed to upload image',
-                              color: 'red',
-                            });
-                          }
-                        }
-                      };
-                      input.click();
-                    }}
-                  >
-                    Upload Image
-                  </Button>
-                </RichTextEditor.ControlsGroup>
-
-                <RichTextEditor.ControlsGroup>
-                  <RichTextEditor.AlignLeft />
-                  <RichTextEditor.AlignCenter />
-                  <RichTextEditor.AlignRight />
-                  <RichTextEditor.AlignJustify />
-                </RichTextEditor.ControlsGroup>
-              </RichTextEditor.Toolbar>
-
-              <RichTextEditor.Content />
-            </RichTextEditor>
-
-            <Textarea
-              label="Meta Description"
-              value={formData.metaDescription}
-              onChange={(e) => setFormData(prev => ({
-                ...prev,
-                metaDescription: e.target.value,
-              }))}
-            />
-
-            <TextInput
-              label="OG Title"
-              value={formData.ogTitle}
-              onChange={(e) => setFormData(prev => ({
-                ...prev,
-                ogTitle: e.target.value,
-              }))}
-            />
-
-            <Textarea
-              label="OG Description"
-              value={formData.ogDescription}
-              onChange={(e) => setFormData(prev => ({
-                ...prev,
-                ogDescription: e.target.value,
-              }))}
-            />
-          </Stack>
-        </Grid.Col>
-
-        {showPreview && (
-          <Grid.Col span={6} style={{ position: 'sticky', top: 0 }}>
-            <BlogPreview />
-          </Grid.Col>
-        )}
-      </Grid>
-
-      <style jsx global>{`
-        .blog-content {
-          font-size: 1.1rem;
-          line-height: 1.7;
-        }
-
-        .blog-content h1,
-        .blog-content h2,
-        .blog-content h3,
-        .blog-content h4 {
-          margin-top: 2rem;
-          margin-bottom: 1rem;
-        }
-
-        .blog-content p {
-          margin-bottom: 1.5rem;
-        }
-
-        .blog-content img {
-          max-width: 100%;
-          height: auto;
-          border-radius: 8px;
-          margin: 2rem 0;
-        }
-
-        .blog-content blockquote {
-          border-left: 4px solid var(--mantine-color-blue-6);
-          margin: 2rem 0;
-          padding: 1rem 2rem;
-          background: var(--mantine-color-gray-0);
-          font-style: italic;
-        }
-
-        .blog-content pre {
-          background: var(--mantine-color-dark-8);
-          padding: 1rem;
-          border-radius: 8px;
-          overflow-x: auto;
-        }
-
-        .blog-content code {
-          background: var(--mantine-color-dark-8);
-          padding: 0.2rem 0.4rem;
-          border-radius: 4px;
-          font-size: 0.9em;
-        }
-      `}</style>
-    </Container>
+                <Paper shadow="sm" p="sm" withBorder>
+                  <Stack gap="md">
+                    <Title order={4}>Publishing Settings</Title>
+                    <Select
+                      label="Status"
+                      value={blog?.status}
+                      onChange={(value) => setBlog({ ...blog!, status: value || 'draft' })}
+                      data={[
+                        { value: 'draft', label: 'Draft' },
+                        { value: 'published', label: 'Published' },
+                        { value: 'archived', label: 'Archived' },
+                      ]}
+                    />
+                    <Select
+                      label="Category"
+                      value={blog?.category?.id.toString()}
+                      onChange={(value) => setBlog({
+                        ...blog!,
+                        category: {
+                          id: parseInt(value || '0'),
+                          name: categories.find((c: Category) => c.id.toString() === value)?.name || ''
+                        },
+                        categoryId: parseInt(value || '0')
+                      })}
+                      data={categories.map((cat: Category) => ({
+                        value: cat.id.toString(),
+                        label: cat.name
+                      }))}
+                    />
+                    <MultiSelect
+                      label="Tags"
+                      value={blog?.tags.map(tag => tag.id.toString())}
+                      onChange={(values) => setBlog({
+                        ...blog!,
+                        tags: values.map(v => ({
+                          id: parseInt(v),
+                          name: tags.find((t: Tag) => t.id.toString() === v)?.name || ''
+                        }))
+                      })}
+                      data={tags.map((tag: Tag) => ({
+                        value: tag.id.toString(),
+                        label: tag.name,
+                        key: `tag-${tag.id}`
+                      }))}
+                    />
+                  </Stack>
+                </Paper>
+              </Stack>
+            </Grid.Col>
+          </Grid>
+        </form>
+      </div>
+    </div>
   );
 } 

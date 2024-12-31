@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
 
-const s3Client = new S3Client({
+const s3 = new S3Client({
   region: process.env.AWS_REGION!,
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
@@ -23,27 +23,31 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const fileExtension = file.name.split('.').pop();
-    const fileName = `${uuidv4()}.${fileExtension}`;
+    const key = `uploads/${uuidv4()}-${file.name}`;
 
-    await s3Client.send(
+    await s3.send(
       new PutObjectCommand({
-        Bucket: process.env.AWS_S3_BUCKET!,
-        Key: `blog-images/${fileName}`,
+        Bucket: process.env.AWS_BUCKET_NAME,
+        Key: key,
         Body: buffer,
         ContentType: file.type,
-        ACL: 'public-read',
       })
     );
 
-    const imageUrl = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/blog-images/${fileName}`;
+    const url = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
 
-    return NextResponse.json({ url: imageUrl });
+    return NextResponse.json({ url });
   } catch (error) {
-    console.error('Error uploading image:', error);
+    console.error('Error uploading file:', error);
     return NextResponse.json(
-      { error: 'Failed to upload image' },
+      { error: 'Failed to upload file' },
       { status: 500 }
     );
   }
-} 
+}
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+}; 

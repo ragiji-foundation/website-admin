@@ -39,6 +39,7 @@ model Blog {
   title           String
   content         String    @db.Text
   status          String    // 'draft', 'published', 'archived'
+  authorName      String
   metaDescription String?   @db.Text
   ogTitle         String?
   ogDescription   String?   @db.Text
@@ -57,6 +58,7 @@ model User {
   id        Int      @id @default(autoincrement())
   name      String
   email     String   @unique
+  username  String   @unique
   image     String?
   blogs     Blog[]
   createdAt DateTime @default(now())

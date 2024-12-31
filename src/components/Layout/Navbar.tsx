@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { IconLayoutBottombarFilled, IconLayoutNavbar, IconLayoutNavbarFilled, IconProps, IconPyramid, IconMailbox, IconQuote } from '@tabler/icons-react';
+import { IconLayoutBottombarFilled, IconLayoutNavbar, IconLayoutNavbarFilled, IconProps, IconPyramid, IconMailbox, IconQuote, IconTags } from '@tabler/icons-react';
 import {
   IconDashboard,
   IconFileText,
@@ -103,6 +103,28 @@ export function Navbar() {
               leftSection={<IconList size={16} />}
             />
           </Link>
+
+          {/* Add Taxonomy section within Blogs */}
+          <NavLink
+            label="Taxonomy"
+            leftSection={<IconTags size={16} />}
+            childrenOffset={28}
+          >
+            <Link href="/blogs/taxonomy?type=categories" passHref legacyBehavior>
+              <NavLink
+                component="a"
+                label="Categories"
+                leftSection={<IconList size={16} />}
+              />
+            </Link>
+            <Link href="/blogs/taxonomy?type=tags" passHref legacyBehavior>
+              <NavLink
+                component="a"
+                label="Tags"
+                leftSection={<IconList size={16} />}
+              />
+            </Link>
+          </NavLink>
         </NavLink>
 
         {/* Pages with Nested Navigation */}
