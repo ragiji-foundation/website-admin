@@ -13,47 +13,51 @@ import {
   Image,
   ActionIcon,
   Text,
-  NumberInput,
+  FileButton,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconTrash, IconEdit, IconArrowUp, IconArrowDown } from '@tabler/icons-react';
-import { FileButton } from '@mantine/core';
+import { IconTrash, IconEdit } from '@tabler/icons-react';
 import { AdminPageLayout } from '@/components/Layout/AdminPageLayout';
 import { handleImageUpload } from '@/utils/imageUpload';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
-interface Initiative {
+interface Center {
   id: number;
-  title: string;
+  name: string;
+  location: string;
   description: string;
   imageUrl?: string;
-  order: number;
+  contactInfo?: string;
 }
 
-export default function InitiativesAdmin() {
-  const [initiatives, setInitiatives] = useState<Initiative[]>([]);
+export default function CentersAdmin() {
+  const [centers, setCenters] = useState<Center[]>([]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    title: '',
+    name: '',
+    location: '',
     description: '',
     imageUrl: '',
-    order: 0
+    contactInfo: ''
   });
 
   useEffect(() => {
-    fetchInitiatives();
+    fetchCenters();
   }, []);
 
-  const fetchInitiatives = async () => {
+  const fetchCenters = async () => {
     try {
-      const response = await fetch('/api/initiatives');
+      const response = await fetch('/api/centers');
+      if (!response.ok) {
+        throw new Error('Failed to fetch centers');
+      }
       const data = await response.json();
-      setInitiatives(data);
+      setCenters(data);
     } catch (error) {
-      console.error('Error fetching initiatives:', error);
+      console.error('Error fetching centers:', error);
       notifications.show({
         title: 'Error',
-        message: 'Failed to fetch initiatives',
+        message: 'Failed to fetch centers',
         color: 'red'
       });
     }
@@ -84,7 +88,7 @@ export default function InitiativesAdmin() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/initiatives', {
+      const response = await fetch('/api/centers', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -93,28 +97,29 @@ export default function InitiativesAdmin() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create initiative');
+        throw new Error('Failed to create center');
       }
 
       notifications.show({
         title: 'Success',
-        message: 'Initiative created successfully',
+        message: 'Center created successfully',
         color: 'green'
       });
 
       setFormData({
-        title: '',
+        name: '',
+        location: '',
         description: '',
         imageUrl: '',
-        order: 0
+        contactInfo: ''
       });
 
-      fetchInitiatives();
+      fetchCenters();
     } catch (error) {
-      console.error('Error creating initiative:', error);
+      console.error('Error creating center:', error);
       notifications.show({
         title: 'Error',
-        message: 'Failed to create initiative',
+        message: 'Failed to create center',
         color: 'red'
       });
     } finally {
@@ -124,59 +129,26 @@ export default function InitiativesAdmin() {
 
   const handleDelete = async (id: number) => {
     try {
-      const response = await fetch(`/api/initiatives/${id}`, {
+      const response = await fetch(`/api/centers/${id}`, {
         method: 'DELETE',
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete initiative');
+        throw new Error('Failed to delete center');
       }
 
       notifications.show({
         title: 'Success',
-        message: 'Initiative deleted successfully',
+        message: 'Center deleted successfully',
         color: 'green'
       });
 
-      fetchInitiatives();
+      fetchCenters();
     } catch (error) {
-      console.error('Error deleting initiative:', error);
+      console.error('Error deleting center:', error);
       notifications.show({
         title: 'Error',
-        message: 'Failed to delete initiative',
-        color: 'red'
-      });
-    }
-  };
-
-  const handleReorder = async (id: number, direction: 'up' | 'down') => {
-    const currentIndex = initiatives.findIndex(i => i.id === id);
-    if (
-      (direction === 'up' && currentIndex === 0) ||
-      (direction === 'down' && currentIndex === initiatives.length - 1)
-    ) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/initiatives/${id}/reorder`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ direction }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to reorder initiative');
-      }
-
-      fetchInitiatives();
-    } catch (error) {
-      console.error('Error reordering initiative:', error);
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to reorder initiative',
+        message: 'Failed to delete center',
         color: 'red'
       });
     }
@@ -185,7 +157,7 @@ export default function InitiativesAdmin() {
   return (
     <ErrorBoundary>
       <AdminPageLayout>
-        <Title order={2} mb="lg">Manage Initiatives</Title>
+        <Title order={2} mb="lg">Manage Centers</Title>
 
         <Grid>
           <Grid.Col span={7}>
@@ -193,10 +165,16 @@ export default function InitiativesAdmin() {
               <form onSubmit={handleSubmit}>
                 <Stack>
                   <TextInput
-                    label="Title"
+                    label="Center Name"
                     required
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  />
+                  <TextInput
+                    label="Location"
+                    required
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                   />
                   <Textarea
                     label="Description"
@@ -223,14 +201,14 @@ export default function InitiativesAdmin() {
                       )}
                     </FileButton>
                   </Group>
-                  <NumberInput
-                    label="Order"
-                    value={formData.order}
-                    onChange={(value) => setFormData({ ...formData, order: Number(value) || 0 })}
+                  <TextInput
+                    label="Contact Info"
+                    value={formData.contactInfo}
+                    onChange={(e) => setFormData({ ...formData, contactInfo: e.target.value })}
                   />
                   <Group justify="flex-end">
                     <Button type="submit" loading={loading}>
-                      Add Initiative
+                      Add Center
                     </Button>
                   </Group>
                 </Stack>
@@ -240,28 +218,19 @@ export default function InitiativesAdmin() {
 
           <Grid.Col span={5}>
             <Paper shadow="sm" p="md">
-              <Title order={3} mb="md">Initiatives List</Title>
+              <Title order={3} mb="md">Centers List</Title>
               <Stack>
-                {initiatives.map((item) => (
+                {centers.map((item) => (
                   <Paper key={item.id} shadow="xs" p="sm">
                     <Group justify="space-between" mb="xs">
-                      <Title order={4}>{item.title}</Title>
+                      <div>
+                        <Title order={4}>{item.name}</Title>
+                        <Text size="sm" color="dimmed">{item.location}</Text>
+                      </div>
                       <Group gap="xs">
                         <ActionIcon
-                          color="gray"
-                          onClick={() => handleReorder(item.id, 'up')}
-                        >
-                          <IconArrowUp size={16} />
-                        </ActionIcon>
-                        <ActionIcon
-                          color="gray"
-                          onClick={() => handleReorder(item.id, 'down')}
-                        >
-                          <IconArrowDown size={16} />
-                        </ActionIcon>
-                        <ActionIcon
                           color="blue"
-                          onClick={() => {/* Implement edit */ }}
+                          onClick={() => {/* TODO: Implement edit */ }}
                         >
                           <IconEdit size={16} />
                         </ActionIcon>
@@ -276,7 +245,7 @@ export default function InitiativesAdmin() {
                     {item.imageUrl && (
                       <Image
                         src={item.imageUrl}
-                        alt={item.title}
+                        alt={item.name}
                         height={120}
                         fit="cover"
                         mb="xs"
@@ -285,6 +254,11 @@ export default function InitiativesAdmin() {
                     <Text size="sm" lineClamp={3}>
                       {item.description}
                     </Text>
+                    {item.contactInfo && (
+                      <Text size="sm" mt="xs" color="dimmed">
+                        Contact: {item.contactInfo}
+                      </Text>
+                    )}
                   </Paper>
                 ))}
               </Stack>

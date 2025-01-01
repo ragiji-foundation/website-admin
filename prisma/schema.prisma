@@ -85,3 +85,69 @@ model Tag {
   updatedAt   DateTime @updatedAt
 }
 
+model ElectronicMedia {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?  @db.Text
+  videoUrl    String
+  thumbnail   String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model NewsArticle {
+  id          Int      @id @default(autoincrement())
+  title       String
+  source      String
+  date        DateTime
+  imageUrl    String?
+  link        String?
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Initiative {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String   @db.Text
+  imageUrl    String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Center {
+  id          Int      @id @default(autoincrement())
+  name        String
+  location    String
+  description String   @db.Text
+  imageUrl    String?
+  contactInfo String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Career {
+  id           Int      @id @default(autoincrement())
+  title        String
+  location     String
+  type         String
+  description  String   @db.Text
+  requirements String   @db.Text
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Gallery {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?  @db.Text
+  imageUrl    String
+  category    String   // Event, Center, Initiative etc.
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+

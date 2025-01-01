@@ -1,36 +1,32 @@
 .navbar {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  padding: 1rem;
-  overflow-y: auto; /* Enables vertical scrolling */
+  height: 100vh;
+  padding: var(--mantine-spacing-md);
+  background-color: var(--mantine-color-white);
+  border-right: rem(1px) solid var(--mantine-color-gray-3);
+  width: 300px;
 }
 
 .header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 1rem;
+  padding-bottom: var(--mantine-spacing-md);
+  border-bottom: rem(1px) solid var(--mantine-color-gray-3);
 }
 
 .navLinks {
-  flex-grow: 1;
+  padding-top: var(--mantine-spacing-md);
 }
 
 .navButton {
-  justify-content: flex-start;
-  color: var(--mantine-color-gray-7);
-  transition: background-color 0.2s ease;
+  &:hover {
+    background-color: var(--mantine-color-gray-0);
+  }
 }
 
-.navButton:hover {
-  background-color: var(--mantine-color-gray-1);
+.link {
+  text-decoration: none;
+  color: inherit;
 }
 
-
-
-
-.navLinks {
-  max-height: calc(100vh - 80px); /* Adjust based on the header height */
-  overflow-y: auto;
+.active {
+  background-color: var(--mantine-color-blue-0);
+  color: var(--mantine-color-blue-7);
 }

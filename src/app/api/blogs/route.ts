@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 import slugify from 'slugify';
+import { isApiError } from '@/types/api';
 
 const logError = (error: unknown, context: string) => {
   if (error instanceof Error) {
@@ -22,18 +23,12 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    // Build the where clause
     const where = {
       locale,
       ...(status && { status }),
-      ...(category && {
-        category: {
-          slug: category
-        }
-      }),
+      ...(category && { category: { slug: category } }),
     };
 
-    // Get total count and blogs with proper relations
     const [blogs, total] = await Promise.all([
       prisma.blog.findMany({
         where,
@@ -52,19 +47,10 @@ export async function GET(request: NextRequest) {
         },
       }),
       prisma.blog.count({ where }),
-    ]);
-
-    if (!blogs) {
-      return NextResponse.json({
-        blogs: [],
-        pagination: {
-          total: 0,
-          pages: 0,
-          page,
-          limit,
-        }
-      });
-    }
+    ]).catch((error) => {
+      console.error('Database error:', error);
+      throw new Error('Failed to fetch blogs');
+    });
 
     return NextResponse.json({
       blogs,
@@ -76,9 +62,9 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    logError(error, 'Error fetching blogs');
+    console.error('Error in GET /api/blogs:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch blogs' },
+      { error: error instanceof Error ? error.message : 'Failed to fetch blogs' },
       { status: 500 }
     );
   }

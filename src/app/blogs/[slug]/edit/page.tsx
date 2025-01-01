@@ -21,7 +21,7 @@ import {
   Text,
 } from '@mantine/core';
 import { IconArrowLeft, IconClock, IconCalendar } from '@tabler/icons-react';
-import { Editor } from '@/components/Editor/index';
+import { Editor } from '@/components/Editor';
 import { BlogPreview } from '@/components/BlogPreview';
 import TextAlign from '@tiptap/extension-text-align';
 import Subscript from '@tiptap/extension-subscript';
@@ -67,7 +67,11 @@ export default function EditBlog() {
     extensions: [
       StarterKit,
       Underline,
-      Image,
+      Image.configure({
+        HTMLAttributes: {
+          class: 'max-w-full h-auto',
+        },
+      }),
       TextAlign.configure({
         types: ['heading', 'paragraph'],
       }),
@@ -129,28 +133,26 @@ export default function EditBlog() {
     }
   }, [params.slug, editor]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+    setLoading(true);
     try {
-      const blogData = {
-        title: blog?.title,
-        content: editor?.getHTML() || '',
-        status: blog?.status,
-        metaDescription: blog?.metaDescription,
-        ogTitle: blog?.ogTitle,
-        ogDescription: blog?.ogDescription,
-        categoryId: blog?.category?.id,
-        locale: blog?.locale || 'en',
-        authorName: blog?.authorName || 'Admin',
-        tags: blog?.tags.map(tag => ({ id: tag.id }))
-      };
-
       const response = await fetch(`/api/blogs/${params.slug}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(blogData),
+        body: JSON.stringify({
+          title: blog?.title,
+          content: editor?.getHTML() || '',
+          status: blog?.status,
+          metaDescription: blog?.metaDescription,
+          ogTitle: blog?.ogTitle,
+          ogDescription: blog?.ogDescription,
+          categoryId: blog?.category?.id,
+          locale: blog?.locale || 'en',
+          authorName: blog?.authorName || 'Admin',
+          tags: blog?.tags.map(tag => ({ id: tag.id }))
+        }),
       });
 
       if (!response.ok) {
@@ -164,7 +166,7 @@ export default function EditBlog() {
         color: 'green'
       });
 
-      router.push('/blogs');
+      router.push(`/blogs/${params.slug}`);
     } catch (error) {
       console.error('Error updating blog:', error);
       notifications.show({
@@ -172,6 +174,8 @@ export default function EditBlog() {
         message: error instanceof Error ? error.message : 'Failed to update blog',
         color: 'red'
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -212,14 +216,19 @@ export default function EditBlog() {
               >
                 Preview
               </Button>
-              <Button type="submit">Publish Changes</Button>
+              <Button
+                onClick={handleSubmit}
+                loading={loading}
+              >
+                Publish Changes
+              </Button>
             </Group>
           </Group>
         </div>
       </header>
 
       <div className="w-full px-[5%] py-4">
-        <form onSubmit={handleSubmit}>
+        <div>
           <Grid gutter="md">
             <Grid.Col span={7} p="xs">
               <Stack gap="md">
@@ -326,7 +335,7 @@ export default function EditBlog() {
               </Stack>
             </Grid.Col>
           </Grid>
-        </form>
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,13 @@
 import Link from 'next/link';
-import { IconLayoutBottombarFilled, IconLayoutNavbar, IconLayoutNavbarFilled, IconProps, IconPyramid, IconMailbox, IconQuote, IconTags } from '@tabler/icons-react';
 import {
+  IconLayoutBottombarFilled,
+  IconLayoutNavbar,
+  IconLayoutNavbarFilled,
+  IconProps,
+  IconPyramid,
+  IconMailbox,
+  IconQuote,
+  IconTags,
   IconDashboard,
   IconFileText,
   IconSettings,
@@ -12,11 +19,13 @@ import {
   IconUsers,
   IconNews,
   IconMessage,
+  IconBuildingCommunity,
+  IconBriefcase,
+  IconPhotoPlus,
 } from '@tabler/icons-react';
 import { Stack, Divider, Text } from '@mantine/core';
 import { NavLink } from '@mantine/core';
 import classes from './Navbar.module.css';
-
 
 // Define the PageLink type
 export type PageLink = {
@@ -31,10 +40,11 @@ const pagesLinks: PageLink[] = [
   {
     link: '#1',
     label: 'ABOUT US',
-    icon: IconUsers,
+    icon: IconBuildingCommunity,
     links: [
       { link: '/pages/the-need', label: 'THE NEED' },
       { link: '/pages/our-story', label: 'OUR STORY' },
+      { link: '/pages/our-centers', label: 'OUR CENTERS' },
       { link: '/pages/our-initiatives', label: 'OUR INITIATIVES' },
       { link: '/pages/success-stories', label: 'SUCCESS STORIES' },
     ],
@@ -48,11 +58,11 @@ const pagesLinks: PageLink[] = [
       { link: '/pages/news-coverage', label: 'NEWS COVERAGE' },
       { link: '/pages/blog', label: 'BLOGS' },
       { link: '/pages/electronic-media', label: 'ELECTRONIC MEDIA' },
+      { link: '/pages/gallery', label: 'GALLERY' },
     ],
   },
+  { link: '/pages/careers', label: 'CAREERS', icon: IconBriefcase },
   { link: '/pages/contact-us', label: 'CONTACT US', icon: IconMessage }
-
-
 ];
 
 export function Navbar() {
@@ -104,7 +114,7 @@ export function Navbar() {
             />
           </Link>
 
-          {/* Add Taxonomy section within Blogs */}
+          {/* Taxonomy section within Blogs */}
           <NavLink
             label="Taxonomy"
             leftSection={<IconTags size={16} />}
@@ -139,11 +149,10 @@ export function Navbar() {
           ))}
         </NavLink>
 
-
-        {/* Blogs with Nested Navigation */}
+        {/* Global Components */}
         <NavLink
           label="Global Components"
-          leftSection={<IconNews size={16} />}
+          leftSection={<IconLayoutNavbar size={16} />}
           childrenOffset={28}
           className={classes.navButton}
         >
@@ -177,7 +186,7 @@ export function Navbar() {
           </Link>
         </NavLink>
 
-        {/* Add this before the Settings nav link */}
+        {/* Enquiries */}
         <Link href="/enquiries" passHref legacyBehavior>
           <NavLink
             component="a"
@@ -187,7 +196,7 @@ export function Navbar() {
           />
         </Link>
 
-        {/* Add the new Testimonials nav link */}
+        {/* Testimonials */}
         <Link href="/testimonials" passHref legacyBehavior>
           <NavLink
             component="a"
@@ -215,7 +224,6 @@ function NavLinkWithChildren({ item }: { item: PageLink }) {
   const { link, label, icon: Icon, links } = item;
 
   if (links) {
-    // Parent link with children
     return (
       <NavLink
         label={label}
@@ -231,7 +239,6 @@ function NavLinkWithChildren({ item }: { item: PageLink }) {
     );
   }
 
-  // Standalone link
   return (
     <Link href={link} passHref legacyBehavior>
       <NavLink
@@ -242,3 +249,5 @@ function NavLinkWithChildren({ item }: { item: PageLink }) {
     </Link>
   );
 }
+
+export default Navbar;

@@ -10,6 +10,9 @@ import {
   Divider,
   FileButton,
   Menu,
+  Modal,
+  TextInput,
+  Button,
 } from '@mantine/core';
 import {
   IconBold,
@@ -36,189 +39,215 @@ import {
   IconPhotoUp,
   IconExternalLink,
 } from '@tabler/icons-react';
-import { handleImageUpload } from './ImageUpload';
+import { notifications } from '@mantine/notifications';
+import { useState } from 'react';
 
 interface EditorProps {
   editor: TiptapEditor | null;
 }
 
+interface LinkModalProps {
+  opened: boolean;
+  onClose: () => void;
+  onSubmit: (url: string) => void;
+  initialUrl?: string;
+}
+
+type Level = 1 | 2 | 3;
+
+const LinkModal = ({ opened, onClose, onSubmit, initialUrl = '' }: LinkModalProps) => {
+  const [url, setUrl] = useState(initialUrl);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(url);
+    onClose();
+    setUrl('');
+  };
+
+  return (
+    <Modal opened={opened} onClose={onClose} title="Insert Link" size="sm">
+      <form onSubmit={handleSubmit}>
+        <TextInput
+          label="URL"
+          placeholder="https://example.com"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          data-autofocus
+        />
+        <Group justify="flex-end" mt="md">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="submit">Save</Button>
+        </Group>
+      </form>
+    </Modal>
+  );
+};
+
 export function Editor({ editor }: EditorProps) {
+  const [linkModalOpened, setLinkModalOpened] = useState(false);
+  const [imageUrlModalOpened, setImageUrlModalOpened] = useState(false);
+
   if (!editor) return null;
 
-  const addImage = async (file: File) => {
+  const addImage = async (file: File | null) => {
+    if (!file) return;
+
+    const notificationId = notifications.show({
+      id: 'upload',
+      title: 'Uploading',
+      message: 'Uploading image...',
+      loading: true,
+      autoClose: false,
+      withCloseButton: false,
+    });
+
     try {
-      await handleImageUpload(file, editor);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Upload failed');
+      }
+
+      editor.chain().focus().setImage({ src: data.url }).run();
+
+      notifications.update({
+        id: notificationId,
+        title: 'Success',
+        message: 'Image uploaded successfully',
+        color: 'green',
+        loading: false,
+        autoClose: 2000,
+      });
     } catch (error) {
-      console.error('Failed to upload image:', error);
+      notifications.update({
+        id: notificationId,
+        title: 'Error',
+        message: error instanceof Error ? error.message : 'Failed to upload image',
+        color: 'red',
+        loading: false,
+        autoClose: 2000,
+      });
     }
   };
 
-  const addImageUrl = () => {
-    const url = window.prompt('Enter image URL');
+  const handleSetLink = (url: string) => {
+    if (url === '') {
+      editor.chain().focus().unsetLink().run();
+      return;
+    }
+    editor.chain().focus().setLink({ href: url }).run();
+  };
+
+  const handleSetImageUrl = (url: string) => {
     if (url) {
       editor.chain().focus().setImage({ src: url }).run();
     }
   };
 
-  const setLink = () => {
-    const previousUrl = editor.getAttributes('link').href;
-    const url = window.prompt('Enter URL', previousUrl);
+  const renderToolbarButton = (
+    label: string,
+    icon: React.ReactNode,
+    action: () => void,
+    isActive?: boolean
+  ) => (
+    <Tooltip label={label}>
+      <ActionIcon
+        variant={isActive ? 'filled' : 'subtle'}
+        onClick={action}
+      >
+        {icon}
+      </ActionIcon>
+    </Tooltip>
+  );
 
-    if (url === null) {
-      return;
-    }
-
-    if (url === '') {
-      editor.chain().focus().unsetLink().run();
-      return;
-    }
-
-    editor.chain().focus().setLink({ href: url }).run();
-  };
   return (
     <Stack gap="sm">
       <Paper shadow="sm" p="xs">
         <Group gap="xs" mb="xs">
           {/* Headings */}
           <Group gap={2}>
-            <Tooltip label="Heading 1">
-              <ActionIcon
-                variant={editor.isActive('heading', { level: 1 }) ? 'filled' : 'subtle'}
-                onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-              >
-                <IconH1 size={16} />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label="Heading 2">
-              <ActionIcon
-                variant={editor.isActive('heading', { level: 2 }) ? 'filled' : 'subtle'}
-                onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-              >
-                <IconH2 size={16} />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label="Heading 3">
-              <ActionIcon
-                variant={editor.isActive('heading', { level: 3 }) ? 'filled' : 'subtle'}
-                onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-              >
-                <IconH3 size={16} />
-              </ActionIcon>
-            </Tooltip>
+            {([1, 2, 3] as Level[]).map((level) => (
+              <Tooltip key={level} label={`Heading ${level}`}>
+                <ActionIcon
+                  variant={editor.isActive('heading', { level }) ? 'filled' : 'subtle'}
+                  onClick={() => editor.chain().focus().toggleHeading({ level }).run()}
+                >
+                  {level === 1 ? <IconH1 size={16} /> : level === 2 ? <IconH2 size={16} /> : <IconH3 size={16} />}
+                </ActionIcon>
+              </Tooltip>
+            ))}
           </Group>
 
           <Divider orientation="vertical" />
 
           {/* Text formatting */}
           <Group gap={2}>
-            <Tooltip label="Bold">
-              <ActionIcon
-                variant={editor.isActive('bold') ? 'filled' : 'subtle'}
-                onClick={() => editor.chain().focus().toggleBold().run()}
-              >
-                <IconBold size={16} />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label="Italic">
-              <ActionIcon
-                variant={editor.isActive('italic') ? 'filled' : 'subtle'}
-                onClick={() => editor.chain().focus().toggleItalic().run()}
-              >
-                <IconItalic size={16} />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label="Underline">
-              <ActionIcon
-                variant={editor.isActive('underline') ? 'filled' : 'subtle'}
-                onClick={() => editor.chain().focus().toggleUnderline().run()}
-              >
-                <IconUnderline size={16} />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label="Strike">
-              <ActionIcon
-                variant={editor.isActive('strike') ? 'filled' : 'subtle'}
-                onClick={() => editor.chain().focus().toggleStrike().run()}
-              >
-                <IconStrikethrough size={16} />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label="Subscript">
-              <ActionIcon
-                variant={editor.isActive('subscript') ? 'filled' : 'subtle'}
-                onClick={() => editor.chain().focus().toggleSubscript().run()}
-              >
-                <IconSubscript size={16} />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label="Superscript">
-              <ActionIcon
-                variant={editor.isActive('superscript') ? 'filled' : 'subtle'}
-                onClick={() => editor.chain().focus().toggleSuperscript().run()}
-              >
-                <IconSuperscript size={16} />
-              </ActionIcon>
-            </Tooltip>
+            {renderToolbarButton('Bold', <IconBold size={16} />,
+              () => editor.chain().focus().toggleBold().run(),
+              editor.isActive('bold')
+            )}
+            {renderToolbarButton('Italic', <IconItalic size={16} />,
+              () => editor.chain().focus().toggleItalic().run(),
+              editor.isActive('italic')
+            )}
+            {renderToolbarButton('Underline', <IconUnderline size={16} />,
+              () => editor.chain().focus().toggleUnderline().run(),
+              editor.isActive('underline')
+            )}
+            {renderToolbarButton('Strike', <IconStrikethrough size={16} />,
+              () => editor.chain().focus().toggleStrike().run(),
+              editor.isActive('strike')
+            )}
+            {renderToolbarButton('Subscript', <IconSubscript size={16} />,
+              () => editor.chain().focus().toggleSubscript().run(),
+              editor.isActive('subscript')
+            )}
+            {renderToolbarButton('Superscript', <IconSuperscript size={16} />,
+              () => editor.chain().focus().toggleSuperscript().run(),
+              editor.isActive('superscript')
+            )}
           </Group>
 
           <Divider orientation="vertical" />
 
           {/* Alignment */}
           <Group gap={2}>
-            <Tooltip label="Align Left">
-              <ActionIcon
-                variant={editor.isActive({ textAlign: 'left' }) ? 'filled' : 'subtle'}
-                onClick={() => editor.chain().focus().setTextAlign('left').run()}
-              >
-                <IconAlignLeft size={16} />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label="Align Center">
-              <ActionIcon
-                variant={editor.isActive({ textAlign: 'center' }) ? 'filled' : 'subtle'}
-                onClick={() => editor.chain().focus().setTextAlign('center').run()}
-              >
-                <IconAlignCenter size={16} />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label="Align Right">
-              <ActionIcon
-                variant={editor.isActive({ textAlign: 'right' }) ? 'filled' : 'subtle'}
-                onClick={() => editor.chain().focus().setTextAlign('right').run()}
-              >
-                <IconAlignRight size={16} />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label="Justify">
-              <ActionIcon
-                variant={editor.isActive({ textAlign: 'justify' }) ? 'filled' : 'subtle'}
-                onClick={() => editor.chain().focus().setTextAlign('justify').run()}
-              >
-                <IconAlignJustified size={16} />
-              </ActionIcon>
-            </Tooltip>
+            {['left', 'center', 'right', 'justify'].map((align) => (
+              <Tooltip key={align} label={`Align ${align}`}>
+                <ActionIcon
+                  variant={editor.isActive({ textAlign: align }) ? 'filled' : 'subtle'}
+                  onClick={() => editor.chain().focus().setTextAlign(align as any).run()}
+                >
+                  {align === 'left' ? <IconAlignLeft size={16} /> :
+                    align === 'center' ? <IconAlignCenter size={16} /> :
+                      align === 'right' ? <IconAlignRight size={16} /> :
+                        <IconAlignJustified size={16} />}
+                </ActionIcon>
+              </Tooltip>
+            ))}
           </Group>
 
           <Divider orientation="vertical" />
 
           {/* Lists */}
           <Group gap={2}>
-            <Tooltip label="Bullet List">
-              <ActionIcon
-                variant={editor.isActive('bulletList') ? 'filled' : 'subtle'}
-                onClick={() => editor.chain().focus().toggleBulletList().run()}
-              >
-                <IconList size={16} />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label="Numbered List">
-              <ActionIcon
-                variant={editor.isActive('orderedList') ? 'filled' : 'subtle'}
-                onClick={() => editor.chain().focus().toggleOrderedList().run()}
-              >
-                <IconListNumbers size={16} />
-              </ActionIcon>
-            </Tooltip>
+            {renderToolbarButton('Bullet List', <IconList size={16} />,
+              () => editor.chain().focus().toggleBulletList().run(),
+              editor.isActive('bulletList')
+            )}
+            {renderToolbarButton('Numbered List', <IconListNumbers size={16} />,
+              () => editor.chain().focus().toggleOrderedList().run(),
+              editor.isActive('orderedList')
+            )}
           </Group>
 
           <Divider orientation="vertical" />
@@ -234,7 +263,7 @@ export function Editor({ editor }: EditorProps) {
                 </Tooltip>
               </Menu.Target>
               <Menu.Dropdown>
-                <FileButton onChange={(file) => file && addImage(file)} accept="image/*">
+                <FileButton onChange={addImage} accept="image/png,image/jpeg,image/gif,image/webp">
                   {(props) => (
                     <Menu.Item leftSection={<IconPhotoUp size={14} />} {...props}>
                       Upload Image
@@ -243,56 +272,56 @@ export function Editor({ editor }: EditorProps) {
                 </FileButton>
                 <Menu.Item
                   leftSection={<IconExternalLink size={14} />}
-                  onClick={addImageUrl}
+                  onClick={() => setImageUrlModalOpened(true)}
                 >
                   Insert from URL
                 </Menu.Item>
               </Menu.Dropdown>
             </Menu>
 
-            <Tooltip label={editor.isActive('link') ? 'Unlink' : 'Add Link'}>
-              <ActionIcon
-                variant={editor.isActive('link') ? 'filled' : 'subtle'}
-                onClick={() => (editor.isActive('link') ? editor.chain().focus().unsetLink().run() : setLink())}
-              >
-                {editor.isActive('link') ? <IconUnlink size={16} /> : <IconLink size={16} />}
-              </ActionIcon>
-            </Tooltip>
+            {renderToolbarButton(
+              editor.isActive('link') ? 'Unlink' : 'Add Link',
+              editor.isActive('link') ? <IconUnlink size={16} /> : <IconLink size={16} />,
+              () => editor.isActive('link') ?
+                editor.chain().focus().unsetLink().run() :
+                setLinkModalOpened(true),
+              editor.isActive('link')
+            )}
           </Group>
 
           <Divider orientation="vertical" />
 
           {/* Misc */}
           <Group gap={2}>
-            <Tooltip label="Blockquote">
-              <ActionIcon
-                variant={editor.isActive('blockquote') ? 'filled' : 'subtle'}
-                onClick={() => editor.chain().focus().toggleBlockquote().run()}
-              >
-                <IconQuote size={16} />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label="Horizontal Rule">
-              <ActionIcon
-                variant="subtle"
-                onClick={() => editor.chain().focus().setHorizontalRule().run()}
-              >
-                <IconSeparator size={16} />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label="Clear Formatting">
-              <ActionIcon
-                variant="subtle"
-                onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()}
-              >
-                <IconClearFormatting size={16} />
-              </ActionIcon>
-            </Tooltip>
+            {renderToolbarButton('Blockquote', <IconQuote size={16} />,
+              () => editor.chain().focus().toggleBlockquote().run(),
+              editor.isActive('blockquote')
+            )}
+            {renderToolbarButton('Horizontal Rule', <IconSeparator size={16} />,
+              () => editor.chain().focus().setHorizontalRule().run()
+            )}
+            {renderToolbarButton('Clear Formatting', <IconClearFormatting size={16} />,
+              () => editor.chain().focus().clearNodes().unsetAllMarks().run()
+            )}
           </Group>
         </Group>
       </Paper>
 
       <EditorContent editor={editor} className="min-h-[200px] prose max-w-none" />
+
+      <LinkModal
+        opened={linkModalOpened}
+        onClose={() => setLinkModalOpened(false)}
+        onSubmit={handleSetLink}
+        initialUrl={editor.getAttributes('link').href}
+      />
+
+      <LinkModal
+        opened={imageUrlModalOpened}
+        onClose={() => setImageUrlModalOpened(false)}
+        onSubmit={handleSetImageUrl}
+        initialUrl=""
+      />
     </Stack>
   );
 }
