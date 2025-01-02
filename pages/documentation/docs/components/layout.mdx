@@ -1,0 +1,35 @@
+# Layout Components
+
+Core layout components for page structure.
+
+## AdminLayout
+
+Main layout wrapper for admin pages.
+
+```tsx
+import { AdminLayout } from '@/components/Layout'
+
+function Page() {
+  return (
+    <AdminLayout>
+      <div>Content</div>
+    </AdminLayout>
+  )
+}
+```
+
+## PageLayout
+
+Individual page layout with header.
+
+```tsx
+import { PageLayout } from '@/components/Layout'
+
+function BlogPage() {
+  return (
+    <PageLayout title="Blog">
+      <div>Blog content</div>
+    </PageLayout>
+  )
+}
+``` 

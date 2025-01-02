@@ -59,10 +59,15 @@ model User {
   name      String
   email     String   @unique
   username  String   @unique
-  image     String?
+  password  String
+  image     String?  @db.Text
+  bio       String?  @db.Text
+  role      String   @default("admin")
   blogs     Blog[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("users")
 }
 
 model Category {
@@ -149,5 +154,17 @@ model Gallery {
   category    String   // Event, Center, Initiative etc.
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Settings {
+  id              Int      @id @default(1)
+  siteName        String   @default("CMS")
+  siteDescription String   @default("Content Management System")
+  primaryColor    String   @default("#228BE6")
+  logoUrl         String?
+  contactEmail    String
+  socialLinks     Json     @default("{\"twitter\":\"\",\"facebook\":\"\",\"instagram\":\"\"}")
+  maintenance     Boolean  @default(false)
+  updatedAt       DateTime @updatedAt
 }
 

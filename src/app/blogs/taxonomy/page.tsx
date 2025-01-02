@@ -26,7 +26,7 @@ interface TaxonomyItem {
 // Create a separate component for the main content
 function TaxonomyContent() {
   const searchParams = useSearchParams();
-  const type = searchParams.get('type') || 'categories';
+  const type = searchParams?.get('type') || 'categories';
   const [items, setItems] = useState<TaxonomyItem[]>([]);
   const [newItem, setNewItem] = useState({ name: '', slug: '' });
   const [isLoading, setIsLoading] = useState(true);

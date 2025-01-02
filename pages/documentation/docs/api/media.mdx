@@ -1,0 +1,44 @@
+---
+title: Media API
+description: Media upload and management API documentation
+---
+
+# Media API
+
+## Endpoints
+
+### Electronic Media
+
+#### GET /api/electronic-media
+Retrieves all electronic media items.
+
+#### POST /api/electronic-media
+Creates a new electronic media entry.
+
+#### PUT /api/electronic-media/[id]
+Updates an electronic media entry.
+
+#### DELETE /api/electronic-media/[id]
+Deletes an electronic media entry.
+
+### News Coverage
+
+#### GET /api/news
+Retrieves all news coverage items.
+
+#### POST /api/news
+Creates a new news coverage entry.
+
+## Request/Response Format
+
+### Electronic Media Object
+```json
+{
+  "id": "number",
+  "title": "string",
+  "description": "string",
+  "videoUrl": "string",
+  "thumbnail": "string",
+  "order": "number"
+}
+```

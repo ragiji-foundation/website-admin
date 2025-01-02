@@ -1,0 +1,33 @@
+# Blog API
+
+## Endpoints
+
+### GET /api/blogs
+Retrieves a list of blog posts.
+
+### GET /api/blogs/[id]
+Retrieves a specific blog post.
+
+### POST /api/blogs
+Creates a new blog post.
+
+### PUT /api/blogs/[id]
+Updates an existing blog post.
+
+### DELETE /api/blogs/[id]
+Deletes a blog post.
+
+## Request/Response Format
+
+### Blog Post Object
+```json
+{
+  "id": "string",
+  "title": "string",
+  "content": "string",
+  "slug": "string",
+  "published": boolean,
+  "createdAt": "datetime",
+  "updatedAt": "datetime"
+}
+``` 

@@ -72,7 +72,7 @@ export function Header() {
             <Menu.Item leftSection={<IconUser size={14} />} component={Link} href="/profile">
               Profile
             </Menu.Item>
-            <Menu.Item leftSection={<IconSettings size={14} />} component={Link} href="/account-settings">
+            <Menu.Item leftSection={<IconSettings size={14} />} component={Link} href="/settings">
               Account Settings
             </Menu.Item>
             <Menu.Divider />

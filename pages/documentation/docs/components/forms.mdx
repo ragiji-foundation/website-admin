@@ -1,0 +1,34 @@
+# Form Components
+
+Reusable form components with validation.
+
+## Basic Components
+
+- TextInput
+- Select
+- Checkbox
+- RadioGroup
+- FileUpload
+
+## Usage
+
+```tsx
+import { TextInput, Select } from '@/components/Forms'
+
+function ProfileForm() {
+  return (
+    <form>
+      <TextInput name="name" label="Name" />
+      <Select 
+        name="role"
+        label="Role"
+        options={['Admin', 'Editor', 'Viewer']}
+      />
+    </form>
+  )
+}
+```
+
+## Validation
+
+Uses Zod schemas for form validation. 

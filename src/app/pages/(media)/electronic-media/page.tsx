@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react';
 import {
   TextInput,
   Textarea,
@@ -32,7 +33,8 @@ interface ElectronicMedia {
 }
 
 export default function ElectronicMediaAdmin() {
-  const [media, setMedia] = useState<ElectronicMedia[]>([]);
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -40,26 +42,19 @@ export default function ElectronicMediaAdmin() {
     videoUrl: '',
     thumbnail: ''
   });
-  const router = useRouter();
 
-  useEffect(() => {
-    fetchMedia();
-  }, []);
-
-  const fetchMedia = async () => {
-    try {
+  const { data: mediaData, isLoading } = useQuery({
+    queryKey: ['electronic-media'],
+    queryFn: async () => {
       const response = await fetch('/api/electronic-media');
-      const data = await response.json();
-      setMedia(data);
-    } catch (error) {
-      console.error('Error fetching media:', error);
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to fetch media',
-        color: 'red'
-      });
+      if (!response.ok) throw new Error('Failed to fetch data');
+      return response.json();
     }
-  };
+  });
+
+  if (isLoading) return <div>Loading...</div>;
+
+  const media = mediaData || [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,7 +86,9 @@ export default function ElectronicMediaAdmin() {
         thumbnail: ''
       });
 
-      fetchMedia();
+      // Refresh data by invalidating the query
+      queryClient.invalidateQueries({ queryKey: ['electronic-media'] });
+      router.refresh();
     } catch (error) {
       console.error('Error creating media:', error);
       notifications.show({
@@ -112,7 +109,7 @@ export default function ElectronicMediaAdmin() {
         body: JSON.stringify({ direction: 'up' }),
       });
       if (!response.ok) throw new Error('Failed to reorder');
-      await fetchMedia();
+      queryClient.invalidateQueries({ queryKey: ['electronic-media'] });
     } catch (error) {
       notifications.show({
         title: 'Error',
@@ -130,7 +127,7 @@ export default function ElectronicMediaAdmin() {
         body: JSON.stringify({ direction: 'down' }),
       });
       if (!response.ok) throw new Error('Failed to reorder');
-      await fetchMedia();
+      queryClient.invalidateQueries({ queryKey: ['electronic-media'] });
     } catch (error) {
       notifications.show({
         title: 'Error',
@@ -148,7 +145,7 @@ export default function ElectronicMediaAdmin() {
         method: 'DELETE',
       });
       if (!response.ok) throw new Error('Failed to delete');
-      await fetchMedia();
+      queryClient.invalidateQueries({ queryKey: ['electronic-media'] });
       notifications.show({
         title: 'Success',
         message: 'Media deleted successfully',
@@ -208,7 +205,7 @@ export default function ElectronicMediaAdmin() {
           <Grid.Col span={5}>
             <Paper shadow="sm" p="md">
               <Title order={3} mb="md">Preview</Title>
-              {media.map((item) => (
+              {media.map((item: ElectronicMedia) => (
                 <Paper key={item.id} shadow="xs" p="sm" mb="sm">
                   <Group justify="apart">
                     <Title order={4}>{item.title}</Title>

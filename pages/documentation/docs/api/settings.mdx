@@ -1,0 +1,54 @@
+# Settings API Reference
+
+## Get Settings
+
+Fetch global application settings.
+
+### Request
+```http
+GET /api/settings
+```
+
+### Response
+```typescript
+{
+  id: number;
+  siteName: string;
+  siteDescription: string;
+  primaryColor: string;
+  logoUrl: string | null;
+  contactEmail: string;
+  socialLinks: {
+    twitter: string;
+    facebook: string;
+    instagram: string;
+  };
+  maintenance: boolean;
+}
+```
+
+## Update Settings
+
+Update global settings.
+
+### Request
+```http
+PUT /api/settings
+```
+
+### Request Body
+```typescript
+{
+  siteName?: string;
+  siteDescription?: string;
+  primaryColor?: string;
+  logoUrl?: string;
+  contactEmail?: string;
+  socialLinks?: {
+    twitter?: string;
+    facebook?: string;
+    instagram?: string;
+  };
+  maintenance?: boolean;
+}
+```

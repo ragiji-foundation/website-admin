@@ -66,7 +66,7 @@ interface Tag {
 function BlogListPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [activeLocale, setActiveLocale] = useState(searchParams.get('locale') || 'en');
+  const [activeLocale, setActiveLocale] = useState(searchParams?.get('locale') || 'en');
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

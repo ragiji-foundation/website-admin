@@ -1,0 +1,62 @@
+---
+title: Initiatives API
+description: Initiatives management API documentation
+---
+
+# Initiatives API
+
+Manage foundation initiatives and their ordering.
+
+## List Initiatives
+
+Retrieve all initiatives ordered by their position.
+
+### Request
+```http
+GET /api/initiatives
+```
+
+### Response
+```typescript
+Array<{
+  id: number;
+  title: string;
+  description: string;
+  imageUrl?: string;
+  order: number;
+}>
+```
+
+## Create Initiative
+
+Create a new initiative.
+
+### Request
+```http
+POST /api/initiatives
+```
+
+### Request Body
+```typescript
+{
+  title: string;
+  description: string;
+  imageUrl?: string;
+}
+```
+
+## Reorder Initiative
+
+Change the order of initiatives.
+
+### Request
+```http
+PUT /api/initiatives/{id}/reorder
+```
+
+### Request Body
+```typescript
+{
+  direction: 'up' | 'down'
+}
+``` 

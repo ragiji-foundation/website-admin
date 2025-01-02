@@ -1,0 +1,100 @@
+---
+title: Centers API
+description: Centers management API documentation
+---
+
+# Centers API
+
+Manage foundation centers and their information.
+
+## List Centers
+
+Retrieve all centers.
+
+### Request
+```http
+GET /api/centers
+```
+
+### Response
+```typescript
+Array<{
+  id: number;
+  name: string;
+  location: string;
+  description: string;
+  imageUrl?: string;
+  contactInfo?: string;
+  createdAt: string;
+}>
+```
+
+## Create Center
+
+Create a new center.
+
+### Request
+```http
+POST /api/centers
+```
+
+### Request Body
+```typescript
+{
+  name: string;
+  location: string;
+  description: string;
+  imageUrl?: string;
+  contactInfo?: string;
+}
+```
+
+## Update Center
+
+Update an existing center's information.
+
+### Request
+```http
+PUT /api/centers/{id}
+```
+
+### Request Body
+```typescript
+{
+  name?: string;
+  location?: string;
+  description?: string;
+  imageUrl?: string;
+  contactInfo?: string;
+}
+```
+
+## Delete Center
+
+Remove a center.
+
+### Request
+```http
+DELETE /api/centers/{id}
+```
+
+### Response
+```typescript
+{
+  message: "Center deleted successfully"
+}
+```
+
+## Error Responses
+
+```typescript
+{
+  error: string;
+  status: number;
+}
+```
+
+Common error codes:
+- 400: Invalid request data
+- 404: Center not found
+- 500: Server error 

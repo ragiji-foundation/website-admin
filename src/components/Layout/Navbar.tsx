@@ -22,6 +22,7 @@ import {
   IconBuildingCommunity,
   IconBriefcase,
   IconPhotoPlus,
+  IconPhoto,
 } from '@tabler/icons-react';
 import { Stack, Divider, Text } from '@mantine/core';
 import { NavLink } from '@mantine/core';
@@ -206,12 +207,32 @@ export function Navbar() {
           />
         </Link>
 
+        {/* Photo Library */}
+        <Link href="/photo-library" passHref legacyBehavior>
+          <NavLink
+            component="a"
+            label="Photo Library"
+            leftSection={<IconPhoto size={16} />}
+            className={classes.navButton}
+          />
+        </Link>
+
         {/* Settings */}
         <Link href="/settings" passHref legacyBehavior>
           <NavLink
             component="a"
             label="Settings"
             leftSection={<IconSettings size={16} />}
+            className={classes.navButton}
+          />
+        </Link>
+
+        {/* Docs */}
+        <Link href="/documentation" passHref legacyBehavior>
+          <NavLink
+            component="a"
+            label="Documentation"
+            leftSection={<IconFileText size={16} />}
             className={classes.navButton}
           />
         </Link>

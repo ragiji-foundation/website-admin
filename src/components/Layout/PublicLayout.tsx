@@ -2,10 +2,10 @@
 
 import { AppShell, Loader, Center } from '@mantine/core';
 import { AdminHeader } from './AdminHeader';
-import { Navbar } from './Navbar';
+import { PublicFooter } from './PublicFooter';
 import { useSettings } from '@/hooks/useSettings';
 
-export function AdminPageLayout({ children }: { children: React.ReactNode }) {
+export function PublicLayout({ children }: { children: React.ReactNode }) {
   const { data: settings, isLoading } = useSettings();
 
   if (isLoading) {
@@ -19,7 +19,7 @@ export function AdminPageLayout({ children }: { children: React.ReactNode }) {
   return (
     <AppShell
       header={{ height: 60 }}
-      navbar={{ width: 300, breakpoint: 'sm' }}
+      footer={{ height: 60 }}
       padding="md"
     >
       <AppShell.Header>
@@ -28,14 +28,16 @@ export function AdminPageLayout({ children }: { children: React.ReactNode }) {
           logoUrl={settings?.logoUrl}
         />
       </AppShell.Header>
-      <AppShell.Navbar>
-        <Navbar />
-      </AppShell.Navbar>
       <AppShell.Main>
         {children}
       </AppShell.Main>
+      <AppShell.Footer>
+        <PublicFooter
+          siteName={settings?.siteName}
+          socialLinks={settings?.socialLinks}
+          contactEmail={settings?.contactEmail}
+        />
+      </AppShell.Footer>
     </AppShell>
   );
-}
-
-export default AdminPageLayout; 
+} 

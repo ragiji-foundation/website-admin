@@ -5,7 +5,7 @@ import { useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Image from '@tiptap/extension-image';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { notifications } from '@mantine/notifications';
 import {
   TextInput,
@@ -56,8 +56,8 @@ interface Blog {
 }
 
 export default function EditBlog() {
-  const params = useParams();
   const router = useRouter();
+  const params = useParams() as { slug: string };
   const [blog, setBlog] = useState<Blog | null>(null);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -98,6 +98,8 @@ export default function EditBlog() {
   });
 
   useEffect(() => {
+    if (!params?.slug) return;
+
     const fetchData = async () => {
       try {
         const [blogRes, categoriesRes, tagsRes] = await Promise.all([
@@ -128,10 +130,8 @@ export default function EditBlog() {
       }
     };
 
-    if (params.slug) {
-      fetchData();
-    }
-  }, [params.slug, editor]);
+    fetchData();
+  }, [params?.slug, editor]);
 
   const handleSubmit = async () => {
     setLoading(true);

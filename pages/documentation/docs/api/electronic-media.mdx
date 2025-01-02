@@ -1,0 +1,64 @@
+---
+title: Electronic Media API
+description: Electronic media management API documentation
+---
+
+# Electronic Media API
+
+Manage electronic media content like videos and presentations.
+
+## List Media Items
+
+Retrieve all electronic media items.
+
+### Request
+```http
+GET /api/electronic-media
+```
+
+### Response
+```typescript
+Array<{
+  id: number;
+  title: string;
+  description: string;
+  videoUrl: string;
+  thumbnail?: string;
+  order: number;
+}>
+```
+
+## Create Media Item
+
+Add a new electronic media item.
+
+### Request
+```http
+POST /api/electronic-media
+```
+
+### Request Body
+```typescript
+{
+  title: string;
+  description: string;
+  videoUrl: string;
+  thumbnail?: string;
+}
+```
+
+## Reorder Media Item
+
+Change the order of media items.
+
+### Request
+```http
+PUT /api/electronic-media/{id}/reorder
+```
+
+### Request Body
+```typescript
+{
+  direction: 'up' | 'down'
+}
+``` 

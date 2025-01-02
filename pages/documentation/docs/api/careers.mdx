@@ -1,0 +1,81 @@
+---
+title: Careers API
+description: Career opportunities management API documentation
+---
+
+# Careers API
+
+Manage job postings and career opportunities.
+
+## List Career Opportunities
+
+Retrieve all active career opportunities.
+
+### Request
+```http
+GET /api/careers
+```
+
+### Response
+```typescript
+Array<{
+  id: number;
+  title: string;
+  location: string;
+  type: string;
+  description: string;
+  requirements: string;
+  isActive: boolean;
+  createdAt: string;
+}>
+```
+
+## Create Career Opportunity
+
+Create a new job posting.
+
+### Request
+```http
+POST /api/careers
+```
+
+### Request Body
+```typescript
+{
+  title: string;
+  location: string;
+  type: string;
+  description: string;
+  requirements: string;
+}
+```
+
+## Update Career Opportunity
+
+Update an existing job posting.
+
+### Request
+```http
+PUT /api/careers/{id}
+```
+
+### Request Body
+```typescript
+{
+  title?: string;
+  location?: string;
+  type?: string;
+  description?: string;
+  requirements?: string;
+  isActive?: boolean;
+}
+```
+
+## Delete Career Opportunity
+
+Remove a job posting.
+
+### Request
+```http
+DELETE /api/careers/{id}
+``` 

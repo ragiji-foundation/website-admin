@@ -49,9 +49,9 @@ interface BlogPost {
 
 export default function BlogDetailPage() {
   const router = useRouter();
-  const { slug } = useParams();
+  const params = useParams() as { slug: string };
   const searchParams = useSearchParams();
-  const [activeLocale, setActiveLocale] = useState(searchParams.get('locale') || 'en');
+  const [activeLocale, setActiveLocale] = useState(searchParams?.get('locale') || 'en');
   const [blog, setBlog] = useState<BlogPost | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +61,7 @@ export default function BlogDetailPage() {
       try {
         setIsLoading(true);
         setError(null);
-        const response = await fetch(`/api/blogs/${slug}?locale=${activeLocale}`);
+        const response = await fetch(`/api/blogs/${params.slug}?locale=${activeLocale}`);
 
         if (!response.ok) {
           throw new Error('Failed to fetch blog post');
@@ -80,10 +80,10 @@ export default function BlogDetailPage() {
       }
     };
 
-    if (slug) {
+    if (params.slug) {
       fetchBlog();
     }
-  }, [slug, activeLocale]);
+  }, [params.slug, activeLocale]);
 
   if (isLoading) {
     return (
@@ -132,7 +132,7 @@ export default function BlogDetailPage() {
             <Button
               variant="light"
               leftSection={<IconEdit size={16} />}
-              onClick={() => router.push(`/blogs/${slug}/edit?locale=${activeLocale}`)}
+              onClick={() => router.push(`/blogs/${params.slug}/edit?locale=${activeLocale}`)}
             >
               Edit
             </Button>

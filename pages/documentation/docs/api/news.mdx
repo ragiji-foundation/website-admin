@@ -1,0 +1,73 @@
+---
+title: News API
+description: News articles management API documentation
+---
+
+# News API
+
+Manage news articles and their ordering.
+
+## List News Articles
+
+Retrieve all news articles ordered by date.
+
+### Request
+```http
+GET /api/news
+```
+
+### Response
+```typescript
+Array<{
+  id: number;
+  title: string;
+  content: string;
+  date: string;
+  imageUrl?: string;
+  link?: string;
+  description?: string;
+}>
+```
+
+## Create News Article
+
+Create a new news article.
+
+### Request
+```http
+POST /api/news
+```
+
+### Request Body
+```typescript
+{
+  title: string;
+  content: string;
+  date: string; // ISO date string
+  imageUrl?: string;
+  link?: string;
+  description?: string;
+}
+```
+
+## Reorder News Article
+
+Change the order of news articles.
+
+### Request
+```http
+PUT /api/news/{id}/reorder
+```
+
+### Request Body
+```typescript
+{
+  direction: 'up' | 'down'
+}
+```
+
+### Response
+```typescript
+{
+  success: true
+} 

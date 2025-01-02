@@ -54,7 +54,7 @@ interface PaginationData {
 function DraftsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [activeLocale, _setActiveLocale] = useState(searchParams.get('locale') || 'en');
+  const [activeLocale, _setActiveLocale] = useState(searchParams?.get('locale') || 'en');
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

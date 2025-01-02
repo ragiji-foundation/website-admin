@@ -1,0 +1,28 @@
+# Authentication
+
+The Ragiji Foundation Admin uses JWT-based authentication.
+
+## Login Flow
+
+1. User submits credentials
+2. Server validates and generates JWT token
+3. Token is stored in HTTP-only cookie
+4. Token is refreshed automatically
+
+## API Endpoints
+
+### POST /api/auth/login
+Login endpoint that accepts email and password.
+
+### POST /api/auth/logout
+Clears the authentication cookie.
+
+### GET /api/auth/session
+Returns the current session information.
+
+## Security Features
+
+- HTTP-only cookies
+- JWT token expiration
+- Secure cookie settings in production
+- CSRF protection 

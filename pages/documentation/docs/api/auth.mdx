@@ -1,0 +1,68 @@
+
+
+# Authentication API
+
+## Login
+
+Authenticate a user and receive a JWT token.
+
+```typescript
+POST /api/login
+
+// Request
+{
+  "email": string,
+  "password": string
+}
+
+// Response
+{
+  "token": string,
+  "user": {
+    "id": number,
+    "name": string,
+    "email": string,
+    "role": string
+  }
+}
+```
+
+## Profile
+
+Get current user profile information.
+
+```typescript
+GET /api/profile
+
+// Response
+{
+  "id": number,
+  "name": string,
+  "email": string,
+  "bio": string,
+  "image": string,
+  "role": string
+}
+```
+
+## Update Profile
+
+Update user profile information.
+
+```typescript
+PUT /api/profile
+
+// Request
+{
+  "name": string,
+  "bio": string,
+  "image": string
+}
+```
+
+## Security
+
+- All API routes except public endpoints require authentication
+- JWT tokens expire after 24 hours
+- Password must be at least 8 characters
+
