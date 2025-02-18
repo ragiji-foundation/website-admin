@@ -19,7 +19,7 @@ import {
 import { notifications } from '@mantine/notifications';
 import { IconTrash, IconEdit, IconArrowUp, IconArrowDown } from '@tabler/icons-react';
 import { FileButton } from '@mantine/core';
-import { AdminPageLayout } from '@/components/Layout/AdminPageLayout';
+
 import { useRouter } from 'next/navigation';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -162,76 +162,85 @@ export default function ElectronicMediaAdmin() {
 
   return (
     <ErrorBoundary>
-      <AdminPageLayout>
-        <Title order={2} mb="lg">Manage Electronic Media</Title>
 
-        <Grid>
-          <Grid.Col span={7}>
-            <Paper shadow="sm" p="md">
-              <form onSubmit={handleSubmit}>
-                <Stack>
-                  <TextInput
-                    label="Title"
-                    required
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  />
-                  <Textarea
-                    label="Description"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  />
-                  <TextInput
-                    label="Video URL"
-                    required
-                    value={formData.videoUrl}
-                    onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
-                  />
-                  <TextInput
-                    label="Thumbnail URL"
-                    value={formData.thumbnail}
-                    onChange={(e) => setFormData({ ...formData, thumbnail: e.target.value })}
-                  />
-                  <Group justify="flex-end">
-                    <Button type="submit" loading={loading}>
-                      Add Media
-                    </Button>
-                  </Group>
-                </Stack>
-              </form>
-            </Paper>
-          </Grid.Col>
+      <Title order={2} mb="lg">Manage Electronic Media</Title>
 
-          <Grid.Col span={5}>
-            <Paper shadow="sm" p="md">
-              <Title order={3} mb="md">Preview</Title>
-              {media.map((item: ElectronicMedia) => (
-                <Paper key={item.id} shadow="xs" p="sm" mb="sm">
-                  <Group justify="apart">
-                    <Title order={4}>{item.title}</Title>
-                    <Group>
-                      <ActionIcon onClick={() => handleMoveUp(item.id)}>
-                        <IconArrowUp size={16} />
-                      </ActionIcon>
-                      <ActionIcon onClick={() => handleMoveDown(item.id)}>
-                        <IconArrowDown size={16} />
-                      </ActionIcon>
-                      <ActionIcon color="red" onClick={() => handleDelete(item.id)}>
-                        <IconTrash size={16} />
-                      </ActionIcon>
-                      <ActionIcon onClick={() => router.push(`/electronic-media/${item.id}/edit`)}>
-                        <IconEdit size={16} />
-                      </ActionIcon>
-                    </Group>
+      <Grid>
+        <Grid.Col span={7}>
+          <Paper shadow="sm" p="md">
+            <form onSubmit={handleSubmit}>
+              <Stack>
+                <TextInput
+                  label="Title"
+                  required
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                />
+                <Textarea
+                  label="Description"
+                  required
+                  minRows={4}
+                  maxRows={8}
+                  styles={{
+                    input: {
+                      height: '120px',
+                      minHeight: '120px',
+                      resize: 'vertical',
+                    },
+                  }}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />                  <TextInput
+                  label="Video URL"
+                  required
+                  value={formData.videoUrl}
+                  onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
+                />
+                <TextInput
+                  label="Thumbnail URL"
+                  value={formData.thumbnail}
+                  onChange={(e) => setFormData({ ...formData, thumbnail: e.target.value })}
+                />
+                <Group justify="flex-end">
+                  <Button type="submit" loading={loading}>
+                    Add Media
+                  </Button>
+                </Group>
+              </Stack>
+            </form>
+          </Paper>
+        </Grid.Col>
+
+        <Grid.Col span={5}>
+          <Paper shadow="sm" p="md">
+            <Title order={3} mb="md">Preview</Title>
+            {media.map((item: ElectronicMedia) => (
+              <Paper key={item.id} shadow="xs" p="sm" mb="sm">
+                <Group justify="apart">
+                  <Title order={4}>{item.title}</Title>
+                  <Group>
+                    <ActionIcon onClick={() => handleMoveUp(item.id)}>
+                      <IconArrowUp size={16} />
+                    </ActionIcon>
+                    <ActionIcon onClick={() => handleMoveDown(item.id)}>
+                      <IconArrowDown size={16} />
+                    </ActionIcon>
+                    <ActionIcon color="red" onClick={() => handleDelete(item.id)}>
+                      <IconTrash size={16} />
+                    </ActionIcon>
+                    <ActionIcon onClick={() => router.push(`/electronic-media/${item.id}/edit`)}>
+                      <IconEdit size={16} />
+                    </ActionIcon>
                   </Group>
-                  <p>{item.description}</p>
-                  {item.thumbnail && <Image src={item.thumbnail} alt={item.title} />}
-                </Paper>
-              ))}
-            </Paper>
-          </Grid.Col>
-        </Grid>
-      </AdminPageLayout>
+                </Group>
+                <p>{item.description}</p>
+                {item.thumbnail && <Image src={item.thumbnail} alt={item.title} />}
+              </Paper>
+            ))}
+          </Paper>
+        </Grid.Col>
+      </Grid>
+
     </ErrorBoundary>
   );
 } 

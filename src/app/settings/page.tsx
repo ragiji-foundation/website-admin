@@ -18,7 +18,7 @@ import {
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconLock, IconMail, IconPalette, IconBrandTwitter } from '@tabler/icons-react';
-import { AdminPageLayout } from '@/components/Layout/AdminPageLayout';
+
 
 interface Settings {
   siteName: string;
@@ -133,7 +133,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <AdminPageLayout>
+
       <Container size="md" py="xl">
         <Title order={2} mb="xl">Settings</Title>
 
@@ -285,6 +285,6 @@ export default function SettingsPage() {
           </Tabs.Panel>
         </Tabs>
       </Container>
-    </AdminPageLayout>
+
   );
 } 

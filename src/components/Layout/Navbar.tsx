@@ -69,13 +69,13 @@ const pagesLinks: PageLink[] = [
 export function Navbar() {
   return (
     <div className={classes.navbar}>
-      <div className={classes.header}>
+      {/* <div className={classes.header}>
         <Text fw={700} size="lg">
           Admin Panel
         </Text>
       </div>
-      <Divider my="sm" />
-      <Stack gap="md" className={classes.navLinks}>
+      <Divider my="sm" /> */}
+      <Stack gap="md" className={classes.navLinks} p="md">
         {/* Dashboard */}
         <Link href="/" passHref legacyBehavior>
           <NavLink

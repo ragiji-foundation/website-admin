@@ -23,8 +23,10 @@ const nextConfig = {
         fs: false,
         module: false,
         path: false
-      }
+      },
+      config.optimization.minimize = true;
     }
+   
     return config
   }
 }

@@ -18,7 +18,7 @@ import {
 import { notifications } from '@mantine/notifications';
 import { IconTrash, IconEdit, IconArrowUp, IconArrowDown } from '@tabler/icons-react';
 import { FileButton } from '@mantine/core';
-import { AdminPageLayout } from '@/components/Layout/AdminPageLayout';
+
 import { handleImageUpload } from '@/utils/imageUpload';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -184,114 +184,121 @@ export default function InitiativesAdmin() {
 
   return (
     <ErrorBoundary>
-      <AdminPageLayout>
-        <Title order={2} mb="lg">Manage Initiatives</Title>
 
-        <Grid>
-          <Grid.Col span={7}>
-            <Paper shadow="sm" p="md">
-              <form onSubmit={handleSubmit}>
-                <Stack>
-                  <TextInput
-                    label="Title"
-                    required
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  />
-                  <Textarea
-                    label="Description"
-                    required
-                    minRows={4}
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  />
-                  <Group align="flex-end">
-                    <TextInput
-                      label="Image URL"
-                      style={{ flex: 1 }}
-                      value={formData.imageUrl}
-                      onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                    />
-                    <FileButton
-                      onChange={onImageUpload}
-                      accept="image/png,image/jpeg,image/gif,image/webp"
-                    >
-                      {(props) => (
-                        <Button {...props}>
-                          Upload Image
-                        </Button>
-                      )}
-                    </FileButton>
-                  </Group>
-                  <NumberInput
-                    label="Order"
-                    value={formData.order}
-                    onChange={(value) => setFormData({ ...formData, order: Number(value) || 0 })}
-                  />
-                  <Group justify="flex-end">
-                    <Button type="submit" loading={loading}>
-                      Add Initiative
-                    </Button>
-                  </Group>
-                </Stack>
-              </form>
-            </Paper>
-          </Grid.Col>
+      <Title order={2} mb="lg">Manage Initiatives</Title>
 
-          <Grid.Col span={5}>
-            <Paper shadow="sm" p="md">
-              <Title order={3} mb="md">Initiatives List</Title>
+      <Grid>
+        <Grid.Col span={7}>
+          <Paper shadow="sm" p="md">
+            <form onSubmit={handleSubmit}>
               <Stack>
-                {initiatives.map((item) => (
-                  <Paper key={item.id} shadow="xs" p="sm">
-                    <Group justify="space-between" mb="xs">
-                      <Title order={4}>{item.title}</Title>
-                      <Group gap="xs">
-                        <ActionIcon
-                          color="gray"
-                          onClick={() => handleReorder(item.id, 'up')}
-                        >
-                          <IconArrowUp size={16} />
-                        </ActionIcon>
-                        <ActionIcon
-                          color="gray"
-                          onClick={() => handleReorder(item.id, 'down')}
-                        >
-                          <IconArrowDown size={16} />
-                        </ActionIcon>
-                        <ActionIcon
-                          color="blue"
-                          onClick={() => {/* Implement edit */ }}
-                        >
-                          <IconEdit size={16} />
-                        </ActionIcon>
-                        <ActionIcon
-                          color="red"
-                          onClick={() => handleDelete(item.id)}
-                        >
-                          <IconTrash size={16} />
-                        </ActionIcon>
-                      </Group>
-                    </Group>
-                    {item.imageUrl && (
-                      <Image
-                        src={item.imageUrl}
-                        alt={item.title}
-                        height={120}
-                        fit="cover"
-                        mb="xs"
-                      />
+                <TextInput
+                  label="Title"
+                  required
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                />
+                <Textarea
+                  label="Description"
+                  required
+                  minRows={4}
+                  maxRows={8}
+                  styles={{
+                    input: {
+                      height: '120px',
+                      minHeight: '120px',
+                      resize: 'vertical',
+                    },
+                  }}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />                  <Group align="flex-end">
+                  <TextInput
+                    label="Image URL"
+                    style={{ flex: 1 }}
+                    value={formData.imageUrl}
+                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                  />
+                  <FileButton
+                    onChange={onImageUpload}
+                    accept="image/png,image/jpeg,image/gif,image/webp"
+                  >
+                    {(props) => (
+                      <Button {...props}>
+                        Upload Image
+                      </Button>
                     )}
-                    <Text size="sm" lineClamp={3}>
-                      {item.description}
-                    </Text>
-                  </Paper>
-                ))}
+                  </FileButton>
+                </Group>
+                <NumberInput
+                  label="Order"
+                  value={formData.order}
+                  onChange={(value) => setFormData({ ...formData, order: Number(value) || 0 })}
+                />
+                <Group justify="flex-end">
+                  <Button type="submit" loading={loading}>
+                    Add Initiative
+                  </Button>
+                </Group>
               </Stack>
-            </Paper>
-          </Grid.Col>
-        </Grid>
-      </AdminPageLayout>
+            </form>
+          </Paper>
+        </Grid.Col>
+
+        <Grid.Col span={5}>
+          <Paper shadow="sm" p="md">
+            <Title order={3} mb="md">Initiatives List</Title>
+            <Stack>
+              {initiatives.map((item) => (
+                <Paper key={item.id} shadow="xs" p="sm">
+                  <Group justify="space-between" mb="xs">
+                    <Title order={4}>{item.title}</Title>
+                    <Group gap="xs">
+                      <ActionIcon
+                        color="gray"
+                        onClick={() => handleReorder(item.id, 'up')}
+                      >
+                        <IconArrowUp size={16} />
+                      </ActionIcon>
+                      <ActionIcon
+                        color="gray"
+                        onClick={() => handleReorder(item.id, 'down')}
+                      >
+                        <IconArrowDown size={16} />
+                      </ActionIcon>
+                      <ActionIcon
+                        color="blue"
+                        onClick={() => {/* Implement edit */ }}
+                      >
+                        <IconEdit size={16} />
+                      </ActionIcon>
+                      <ActionIcon
+                        color="red"
+                        onClick={() => handleDelete(item.id)}
+                      >
+                        <IconTrash size={16} />
+                      </ActionIcon>
+                    </Group>
+                  </Group>
+                  {item.imageUrl && (
+                    <Image
+                      src={item.imageUrl}
+                      alt={item.title}
+                      height={120}
+                      fit="cover"
+                      mb="xs"
+                    />
+                  )}
+                  <Text size="sm" lineClamp={3}>
+                    {item.description}
+                  </Text>
+                </Paper>
+              ))}
+            </Stack>
+          </Paper>
+        </Grid.Col>
+      </Grid>
+
     </ErrorBoundary>
   );
 } 

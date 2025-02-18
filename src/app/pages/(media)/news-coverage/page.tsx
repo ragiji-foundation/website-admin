@@ -19,7 +19,6 @@ import { DateInput } from '@mantine/dates';
 import { notifications } from '@mantine/notifications';
 import { IconTrash, IconEdit } from '@tabler/icons-react';
 import { formatDate } from '@/utils/formatDate';
-import { AdminPageLayout } from '@/components/Layout/AdminPageLayout';
 import { handleImageUpload } from '@/utils/imageUpload';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -158,105 +157,114 @@ export default function NewsCoverage() {
 
   return (
     <ErrorBoundary>
-      <AdminPageLayout>
-        <Title order={2} mb="lg">Manage News Coverage</Title>
 
-        <Grid>
-          <Grid.Col span={7}>
-            <Paper shadow="sm" p="md">
-              <form onSubmit={handleSubmit}>
-                <Stack>
-                  <TextInput
-                    label="Title"
-                    required
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  />
-                  <TextInput
-                    label="Source"
-                    required
-                    value={formData.source}
-                    onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                  />
-                  <DateInput
-                    label="Date"
-                    required
-                    value={formData.date}
-                    onChange={(date) => setFormData({ ...formData, date: date || new Date() })}
-                  />
-                  <FileButton
-                    onChange={onImageUpload}
-                    accept="image/png,image/jpeg,image/gif,image/webp"
-                  >
-                    {(props) => <Button {...props}>Upload Image</Button>}
-                  </FileButton>
-                  <TextInput
-                    label="Link"
-                    value={formData.link}
-                    onChange={(e) => setFormData({ ...formData, link: e.target.value })}
-                  />
-                  <Textarea
-                    label="Description"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  />
-                  <Group justify="flex-end">
-                    <Button type="submit" loading={loading}>
-                      Add News
-                    </Button>
-                  </Group>
-                </Stack>
-              </form>
-            </Paper>
-          </Grid.Col>
+      <Title order={2} mb="lg">Manage News Coverage</Title>
 
-          <Grid.Col span={5}>
-            <Paper shadow="sm" p="md">
-              <Title order={3} mb="md">News List</Title>
+      <Grid>
+        <Grid.Col span={7}>
+          <Paper shadow="sm" p="md">
+            <form onSubmit={handleSubmit}>
               <Stack>
-                {news.map((item) => (
-                  <Paper key={item.id} shadow="xs" p="sm">
-                    <Group justify="space-between" mb="xs">
-                      <Title order={4}>{item.title}</Title>
-                      <Group gap="xs">
-                        <ActionIcon
-                          color="blue"
-                          onClick={() => {/* Implement edit */ }}
-                        >
-                          <IconEdit size={16} />
-                        </ActionIcon>
-                        <ActionIcon
-                          color="red"
-                          onClick={() => handleDelete(item.id)}
-                        >
-                          <IconTrash size={16} />
-                        </ActionIcon>
-                      </Group>
-                    </Group>
-                    <Text size="sm" c="dimmed" mb="xs">
-                      {item.source} - {formatDate(new Date(item.date))}
-                    </Text>
-                    {item.imageUrl && (
-                      <Image
-                        src={item.imageUrl}
-                        alt={item.title}
-                        height={120}
-                        fit="cover"
-                        mb="xs"
-                      />
-                    )}
-                    {item.description && (
-                      <Text size="sm" lineClamp={3}>
-                        {item.description}
-                      </Text>
-                    )}
-                  </Paper>
-                ))}
+                <TextInput
+                  label="Title"
+                  required
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                />
+                <TextInput
+                  label="Source"
+                  required
+                  value={formData.source}
+                  onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+                />
+                <DateInput
+                  label="Date"
+                  required
+                  value={formData.date}
+                  onChange={(date) => setFormData({ ...formData, date: date || new Date() })}
+                />
+                <FileButton
+                  onChange={onImageUpload}
+                  accept="image/png,image/jpeg,image/gif,image/webp"
+                >
+                  {(props) => <Button {...props}>Upload Image</Button>}
+                </FileButton>
+                <TextInput
+                  label="Link"
+                  value={formData.link}
+                  onChange={(e) => setFormData({ ...formData, link: e.target.value })}
+                />
+                <Textarea
+                  label="Description"
+                  required
+                  minRows={4}
+                  maxRows={8}
+                  styles={{
+                    input: {
+                      height: '120px',
+                      minHeight: '120px',
+                      resize: 'vertical',
+                    },
+                  }}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />                  <Group justify="flex-end">
+                  <Button type="submit" loading={loading}>
+                    Add News
+                  </Button>
+                </Group>
               </Stack>
-            </Paper>
-          </Grid.Col>
-        </Grid>
-      </AdminPageLayout>
+            </form>
+          </Paper>
+        </Grid.Col>
+
+        <Grid.Col span={5}>
+          <Paper shadow="sm" p="md">
+            <Title order={3} mb="md">News List</Title>
+            <Stack>
+              {news.map((item) => (
+                <Paper key={item.id} shadow="xs" p="sm">
+                  <Group justify="space-between" mb="xs">
+                    <Title order={4}>{item.title}</Title>
+                    <Group gap="xs">
+                      <ActionIcon
+                        color="blue"
+                        onClick={() => {/* Implement edit */ }}
+                      >
+                        <IconEdit size={16} />
+                      </ActionIcon>
+                      <ActionIcon
+                        color="red"
+                        onClick={() => handleDelete(item.id)}
+                      >
+                        <IconTrash size={16} />
+                      </ActionIcon>
+                    </Group>
+                  </Group>
+                  <Text size="sm" c="dimmed" mb="xs">
+                    {item.source} - {formatDate(new Date(item.date))}
+                  </Text>
+                  {item.imageUrl && (
+                    <Image
+                      src={item.imageUrl}
+                      alt={item.title}
+                      height={120}
+                      fit="cover"
+                      mb="xs"
+                    />
+                  )}
+                  {item.description && (
+                    <Text size="sm" lineClamp={3}>
+                      {item.description}
+                    </Text>
+                  )}
+                </Paper>
+              ))}
+            </Stack>
+          </Paper>
+        </Grid.Col>
+      </Grid>
+
     </ErrorBoundary>
   );
 } 

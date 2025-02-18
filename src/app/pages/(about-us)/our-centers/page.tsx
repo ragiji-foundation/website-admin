@@ -17,7 +17,6 @@ import {
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconTrash, IconEdit } from '@tabler/icons-react';
-import { AdminPageLayout } from '@/components/Layout/AdminPageLayout';
 import { handleImageUpload } from '@/utils/imageUpload';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -156,116 +155,123 @@ export default function CentersAdmin() {
 
   return (
     <ErrorBoundary>
-      <AdminPageLayout>
-        <Title order={2} mb="lg">Manage Centers</Title>
 
-        <Grid>
-          <Grid.Col span={7}>
-            <Paper shadow="sm" p="md">
-              <form onSubmit={handleSubmit}>
-                <Stack>
-                  <TextInput
-                    label="Center Name"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  />
-                  <TextInput
-                    label="Location"
-                    required
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  />
-                  <Textarea
-                    label="Description"
-                    required
-                    minRows={4}
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  />
-                  <Group align="flex-end">
-                    <TextInput
-                      label="Image URL"
-                      style={{ flex: 1 }}
-                      value={formData.imageUrl}
-                      onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                    />
-                    <FileButton
-                      onChange={onImageUpload}
-                      accept="image/png,image/jpeg,image/gif,image/webp"
-                    >
-                      {(props) => (
-                        <Button {...props}>
-                          Upload Image
-                        </Button>
-                      )}
-                    </FileButton>
-                  </Group>
-                  <TextInput
-                    label="Contact Info"
-                    value={formData.contactInfo}
-                    onChange={(e) => setFormData({ ...formData, contactInfo: e.target.value })}
-                  />
-                  <Group justify="flex-end">
-                    <Button type="submit" loading={loading}>
-                      Add Center
-                    </Button>
-                  </Group>
-                </Stack>
-              </form>
-            </Paper>
-          </Grid.Col>
+      <Title order={2} mb="lg">Manage Centers</Title>
 
-          <Grid.Col span={5}>
-            <Paper shadow="sm" p="md">
-              <Title order={3} mb="md">Centers List</Title>
+      <Grid>
+        <Grid.Col span={7}>
+          <Paper shadow="sm" p="md">
+            <form onSubmit={handleSubmit}>
               <Stack>
-                {centers.map((item) => (
-                  <Paper key={item.id} shadow="xs" p="sm">
-                    <Group justify="space-between" mb="xs">
-                      <div>
-                        <Title order={4}>{item.name}</Title>
-                        <Text size="sm" color="dimmed">{item.location}</Text>
-                      </div>
-                      <Group gap="xs">
-                        <ActionIcon
-                          color="blue"
-                          onClick={() => {/* TODO: Implement edit */ }}
-                        >
-                          <IconEdit size={16} />
-                        </ActionIcon>
-                        <ActionIcon
-                          color="red"
-                          onClick={() => handleDelete(item.id)}
-                        >
-                          <IconTrash size={16} />
-                        </ActionIcon>
-                      </Group>
-                    </Group>
-                    {item.imageUrl && (
-                      <Image
-                        src={item.imageUrl}
-                        alt={item.name}
-                        height={120}
-                        fit="cover"
-                        mb="xs"
-                      />
+                <TextInput
+                  label="Center Name"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+                <TextInput
+                  label="Location"
+                  required
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                />
+                <Textarea
+                  label="Description"
+                  required
+                  minRows={4}
+                  maxRows={8}
+                  styles={{
+                    input: {
+                      height: '120px',
+                      minHeight: '120px',
+                      resize: 'vertical',
+                    },
+                  }}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />                  <Group align="flex-end">
+                  <TextInput
+                    label="Image URL"
+                    style={{ flex: 1 }}
+                    value={formData.imageUrl}
+                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                  />
+                  <FileButton
+                    onChange={onImageUpload}
+                    accept="image/png,image/jpeg,image/gif,image/webp"
+                  >
+                    {(props) => (
+                      <Button {...props}>
+                        Upload Image
+                      </Button>
                     )}
-                    <Text size="sm" lineClamp={3}>
-                      {item.description}
-                    </Text>
-                    {item.contactInfo && (
-                      <Text size="sm" mt="xs" color="dimmed">
-                        Contact: {item.contactInfo}
-                      </Text>
-                    )}
-                  </Paper>
-                ))}
+                  </FileButton>
+                </Group>
+                <TextInput
+                  label="Contact Info"
+                  value={formData.contactInfo}
+                  onChange={(e) => setFormData({ ...formData, contactInfo: e.target.value })}
+                />
+                <Group justify="flex-end">
+                  <Button type="submit" loading={loading}>
+                    Add Center
+                  </Button>
+                </Group>
               </Stack>
-            </Paper>
-          </Grid.Col>
-        </Grid>
-      </AdminPageLayout>
+            </form>
+          </Paper>
+        </Grid.Col>
+
+        <Grid.Col span={5}>
+          <Paper shadow="sm" p="md">
+            <Title order={3} mb="md">Centers List</Title>
+            <Stack>
+              {centers.map((item) => (
+                <Paper key={item.id} shadow="xs" p="sm">
+                  <Group justify="space-between" mb="xs">
+                    <div>
+                      <Title order={4}>{item.name}</Title>
+                      <Text size="sm" color="dimmed">{item.location}</Text>
+                    </div>
+                    <Group gap="xs">
+                      <ActionIcon
+                        color="blue"
+                        onClick={() => {/* TODO: Implement edit */ }}
+                      >
+                        <IconEdit size={16} />
+                      </ActionIcon>
+                      <ActionIcon
+                        color="red"
+                        onClick={() => handleDelete(item.id)}
+                      >
+                        <IconTrash size={16} />
+                      </ActionIcon>
+                    </Group>
+                  </Group>
+                  {item.imageUrl && (
+                    <Image
+                      src={item.imageUrl}
+                      alt={item.name}
+                      height={120}
+                      fit="cover"
+                      mb="xs"
+                    />
+                  )}
+                  <Text size="sm" lineClamp={3}>
+                    {item.description}
+                  </Text>
+                  {item.contactInfo && (
+                    <Text size="sm" mt="xs" color="dimmed">
+                      Contact: {item.contactInfo}
+                    </Text>
+                  )}
+                </Paper>
+              ))}
+            </Stack>
+          </Paper>
+        </Grid.Col>
+      </Grid>
+
     </ErrorBoundary>
   );
 } 

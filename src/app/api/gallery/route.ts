@@ -1,45 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import prisma from '@/lib/prisma';
 
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const category = searchParams.get('category');
+const s3 = new S3Client({
+  region: process.env.AWS_REGION!,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+});
 
-    const images = await prisma.gallery.findMany({
-      where: category ? { category } : undefined,
-      orderBy: { createdAt: 'desc' },
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const id = Number(params.id);
+    
+    // Get the gallery item
+    const item = await prisma.gallery.findUnique({
+      where: { id }
     });
 
-    return NextResponse.json(images);
+    if (!item) {
+      return NextResponse.json(
+        { error: 'Gallery item not found' },
+        { status: 404 }
+      );
+    }
+
+    // Extract the key from the imageUrl
+    const key = item.imageUrl.split('.amazonaws.com/')[1];
+
+    // Delete from S3
+    if (key) {
+      const deleteCommand = new DeleteObjectCommand({
+        Bucket: process.env.AWS_S3_BUCKET!,
+        Key: key,
+      });
+
+      await s3.send(deleteCommand);
+    }
+
+    // Delete from database
+    await prisma.gallery.delete({
+      where: { id }
+    });
+
+    return NextResponse.json({ 
+      success: true,
+      message: 'Gallery item deleted successfully' 
+    });
   } catch (error) {
-    console.error('Error fetching gallery:', error);
+    console.error('Error deleting gallery item:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch gallery' },
+      { error: 'Failed to delete gallery item' },
       { status: 500 }
     );
   }
 }
-
-export async function POST(request: NextRequest) {
-  try {
-    const data = await request.json();
-
-    const image = await prisma.gallery.create({
-      data: {
-        title: data.title,
-        description: data.description,
-        imageUrl: data.imageUrl,
-        category: data.category,
-      },
-    });
-
-    return NextResponse.json(image);
-  } catch (error) {
-    console.error('Error creating gallery item:', error);
-    return NextResponse.json(
-      { error: 'Failed to create gallery item' },
-      { status: 500 }
-    );
-  }
-} 

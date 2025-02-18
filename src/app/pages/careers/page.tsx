@@ -17,7 +17,6 @@ import {
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconTrash, IconEdit } from '@tabler/icons-react';
-import { AdminPageLayout } from '@/components/Layout/AdminPageLayout';
 import { formatDate } from '@/utils/formatDate';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { fetchWithError } from '@/utils/fetchWithError';
@@ -159,7 +158,7 @@ export default function CareersAdmin() {
 
   return (
     <ErrorBoundary>
-      <AdminPageLayout>
+     
         <Title order={2} mb="lg">Manage Careers</Title>
 
         <Grid>
@@ -186,13 +185,21 @@ export default function CareersAdmin() {
                     value={formData.type}
                     onChange={(value) => setFormData({ ...formData, type: value || '' })}
                   />
-                  <Textarea
-                    label="Description"
-                    required
-                    minRows={4}
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  />
+                 <Textarea
+              label="Description"
+              required
+              minRows={4}
+              maxRows={8}
+              styles={{
+                input: {
+                  height: '120px',
+                  minHeight: '120px',
+                  resize: 'vertical',
+                },
+              }}
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            />
                   <Textarea
                     label="Requirements"
                     required
@@ -254,7 +261,7 @@ export default function CareersAdmin() {
             </Paper>
           </Grid.Col>
         </Grid>
-      </AdminPageLayout>
+
     </ErrorBoundary>
   );
 } 

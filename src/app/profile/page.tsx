@@ -15,7 +15,7 @@ import {
   FileButton,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { AdminPageLayout } from '@/components/Layout/AdminPageLayout';
+
 import { handleImageUpload } from '@/utils/imageUpload';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -91,7 +91,7 @@ export default function ProfilePage() {
 
   return (
     <ErrorBoundary>
-      <AdminPageLayout>
+
         <Container size="md" py="xl">
           <Title order={2} mb="xl">Admin Profile</Title>
 
@@ -195,7 +195,7 @@ export default function ProfilePage() {
             </Button>
           </Paper>
         </Container>
-      </AdminPageLayout>
+
     </ErrorBoundary>
   );
 } 
