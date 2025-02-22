@@ -57,7 +57,7 @@
     "dayjs": "^1.11.13",
     "embla-carousel-react": "^7.1.0",
     "jose": "^5.9.6",
-    "next": "15.0.3",
+    "next": "^15.1.7",
     "next-auth": "^4.24.11",
     "nextra": "^3.3.1",
     "nextra-theme-docs": "^3.3.1",
