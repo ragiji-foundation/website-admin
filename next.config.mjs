@@ -23,11 +23,13 @@ const nextConfig = {
         fs: false,
         module: false,
         path: false
-      }
+      },
+      config.optimization.minimize = true;
     }
+   
     return config
   }
 }
 
 // Apply Nextra with the Next.js configuration
-export default withNextra(nextConfig)
+export default withNextra(nextConfig) 
