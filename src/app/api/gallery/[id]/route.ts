@@ -26,11 +26,12 @@ const s3 = new S3Client({
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    context: any
 ) {
   try {
     // Await params before accessing
-    const { id } = await params;
+    const { id } = await context.params;
 
     // Validate ID format
     if (!id || isNaN(Number(id))) {

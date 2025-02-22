@@ -1,18 +1,18 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { put } from '@vercel/blob';
-import { revalidatePath } from 'next/cache';
+import type { Carousel, CarouselCreateInput } from '@/types/carousel';
 
-export async function GET() {
+export async function GET(
+  request: NextRequest
+): Promise<NextResponse<Carousel[] | { error: string }>> {
   try {
     const items = await prisma.carousel.findMany({
-      where: { active: true },
       orderBy: [
         { order: 'asc' },
         { createdAt: 'desc' }
       ]
     });
-
     return NextResponse.json(items);
   } catch (error) {
     console.error('Error fetching carousel items:', error);
@@ -23,13 +23,15 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(
+  request: NextRequest
+): Promise<NextResponse<Carousel | { error: string }>> {
   try {
     const formData = await request.formData();
     const title = formData.get('title') as string;
     const link = formData.get('link') as string;
+    const active = formData.get('active') === 'true';
     const image = formData.get('image') as File;
-    const order = parseInt(formData.get('order') as string || '0');
 
     if (!title || !image) {
       return NextResponse.json(
@@ -38,22 +40,31 @@ export async function POST(request: Request) {
       );
     }
 
-    // Upload image
+    // Get max order value
+    const maxOrder = await prisma.carousel.findFirst({
+      orderBy: { order: 'desc' },
+      select: { order: true }
+    });
+    
+    const nextOrder = (maxOrder?.order ?? -1) + 1;
+
+    // Upload image to blob storage
     const blob = await put(image.name, image, {
       access: 'public',
     });
 
+    const createData: CarouselCreateInput = {
+      title,
+      imageUrl: blob.url,
+      link: link || '#',
+      active,
+      order: nextOrder,
+    };
+
     // Create carousel item
     const carouselItem = await prisma.carousel.create({
-      data: {
-        title,
-        imageUrl: blob.url,
-        link: link || '#',
-        order,
-      },
+      data: createData,
     });
-
-    revalidatePath('/api/carousel');
 
     return NextResponse.json(carouselItem, { status: 201 });
   } catch (error) {

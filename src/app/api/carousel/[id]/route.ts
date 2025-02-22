@@ -1,18 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { del } from '@vercel/blob';
-import { revalidatePath } from 'next/cache';
+import { put, del } from '@vercel/blob';
+import type { Carousel, CarouselUpdateInput } from '@/types/carousel';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+  { params }: { params: Promise<{ id: string }> } // Wrap params in a Promise
+): Promise<NextResponse<Carousel | { error: string }>> {
   try {
-    const { id } = params;
-    const carouselId = parseInt(id);
+    const { id } = await params; // Resolve the params promise
+    const parsedId = parseInt(id);
+    if (isNaN(parsedId)) {
+      return NextResponse.json(
+        { error: 'Invalid carousel item ID' },
+        { status: 400 }
+      );
+    }
 
     const item = await prisma.carousel.findUnique({
-      where: { id: carouselId }
+      where: { id: parsedId },
     });
 
     if (!item) {
@@ -23,8 +29,8 @@ export async function GET(
     }
 
     return NextResponse.json(item);
-  } catch (error) {
-    console.error('Error fetching carousel item:', error);
+  } catch (err) {
+    console.error('Error fetching carousel:', err);
     return NextResponse.json(
       { error: 'Failed to fetch carousel item' },
       { status: 500 }
@@ -34,24 +40,56 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+  { params }: { params: Promise<{ id: string }> } // Wrap params in a Promise
+): Promise<NextResponse<Carousel | { error: string }>> {
   try {
-    const { id } = params;
-    const carouselId = parseInt(id);
-    const body = await request.json();
+    const { id } = await params; // Resolve the params promise
+    const parsedId = parseInt(id);
+    if (isNaN(parsedId)) {
+      return NextResponse.json(
+        { error: 'Invalid carousel item ID' },
+        { status: 400 }
+      );
+    }
+
+    const formData = await request.formData();
+    const updateData: CarouselUpdateInput = {};
+
+    // Handle text fields
+    if (formData.has('title')) updateData.title = formData.get('title') as string;
+    if (formData.has('link')) updateData.link = formData.get('link') as string;
+    if (formData.has('active')) updateData.active = formData.get('active') === 'true';
+    if (formData.has('order')) updateData.order = parseInt(formData.get('order') as string);
+
+    // Handle image upload if provided
+    const image = formData.get('image') as File | null;
+    if (image) {
+      const blob = await put(image.name, image, {
+        access: 'public',
+      });
+      updateData.imageUrl = blob.url;
+
+      // Delete old image if it exists
+      const oldItem = await prisma.carousel.findUnique({
+        where: { id: parsedId },
+        select: { imageUrl: true },
+      });
+
+      if (oldItem?.imageUrl) {
+        try {
+          const oldUrl = new URL(oldItem.imageUrl);
+          await del(oldUrl.pathname);
+        } catch (deleteError) {
+          console.error('Error deleting old image:', deleteError);
+        }
+      }
+    }
 
     const updatedItem = await prisma.carousel.update({
-      where: { id: carouselId },
-      data: {
-        title: body.title,
-        link: body.link,
-        active: body.active,
-        order: body.order,
-      },
+      where: { id: parsedId },
+      data: updateData,
     });
 
-    revalidatePath('/api/carousel');
     return NextResponse.json(updatedItem);
   } catch (error) {
     console.error('Error updating carousel item:', error);
@@ -64,15 +102,21 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+  { params }: { params: Promise<{ id: string }> } // Wrap params in a Promise
+): Promise<NextResponse<{ success: boolean; message: string } | { error: string }>> {
   try {
-    const { id } = params;
-    const carouselId = parseInt(id);
+    const { id } = await params; // Resolve the params promise
+    const parsedId = parseInt(id);
+    if (isNaN(parsedId)) {
+      return NextResponse.json(
+        { error: 'Invalid carousel item ID' },
+        { status: 400 }
+      );
+    }
 
     // Get the item first to get the image URL
     const item = await prisma.carousel.findUnique({
-      where: { id: carouselId }
+      where: { id: parsedId },
     });
 
     if (!item) {
@@ -83,22 +127,23 @@ export async function DELETE(
     }
 
     // Delete the image from blob storage
-    try {
-      const imageUrl = new URL(item.imageUrl);
-      await del(imageUrl.pathname);
-    } catch (deleteError) {
-      console.error('Error deleting image:', deleteError);
+    if (item.imageUrl) {
+      try {
+        const imageUrl = new URL(item.imageUrl);
+        await del(imageUrl.pathname);
+      } catch (deleteError) {
+        console.error('Error deleting image:', deleteError);
+      }
     }
 
     // Delete from database
     await prisma.carousel.delete({
-      where: { id: carouselId }
+      where: { id: parsedId },
     });
 
-    revalidatePath('/api/carousel');
     return NextResponse.json({
       success: true,
-      message: 'Carousel item deleted successfully'
+      message: 'Carousel item deleted successfully',
     });
   } catch (error) {
     console.error('Error deleting carousel item:', error);

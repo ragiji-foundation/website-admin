@@ -11,6 +11,8 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  // Add direct URL if using connection pooling
+  directUrl = env("DIRECT_URL")
 }
 
 model Enquiry {
@@ -171,8 +173,8 @@ model Settings {
 model Carousel {
   id        Int      @id @default(autoincrement())
   title     String
-  imageUrl  String
-  link      String   @default("#")
+  imageUrl  String?
+  link      String?  @default("#")
   active    Boolean  @default(true)
   order     Int      @default(0)
   createdAt DateTime @default(now())

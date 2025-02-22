@@ -1,18 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  async headers() {
-    return [
-      {
-        source: '/api/:path*',
-        headers: [
-          { key: 'Access-Control-Allow-Origin', value: '*' },
-          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, PUT, DELETE, OPTIONS' },
-          { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
-        ],
-      },
-    ];
+  images: {
+    domains: ['images.unsplash.com'],
   },
-  // ...other existing config
+  // Remove MDX configuration for now
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '2mb'
+    },
+  },
 };
 
-module.exports = nextConfig;
+export default nextConfig;

@@ -16,12 +16,7 @@
         "varsIgnorePattern": "^_"
       }
     ],
-    "@typescript-eslint/no-explicit-any": [
-      "warn",
-      {
-        "ignoreRestArgs": true,
-        "fixToUnknown": true
-      }
-    ]
+    "@typescript-eslint/no-explicit-any": "warn",
+    "import/no-anonymous-default-export": "warn"
   }
 }

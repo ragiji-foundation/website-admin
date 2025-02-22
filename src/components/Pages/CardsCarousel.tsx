@@ -1,74 +1,139 @@
 "use client";
 import '@mantine/carousel/styles.css';
 import { Carousel } from '@mantine/carousel';
-import { Button, Paper, Title } from '@mantine/core';
+import { Button, Paper, Title, Center, Loader, Text, Stack } from '@mantine/core';
+import { useEffect, useState } from 'react';
 
 import classes from './CardsCarousel.module.css';
 
-interface CardProps {
-  image: string;
+interface CarouselItem {
+  id: number;
   title: string;
+  imageUrl: string;
+  link: string;
+  active: boolean;
+  order: number;
 }
 
-function Card({ image, title }: CardProps) {
+function Card({ imageUrl, title }: Pick<CarouselItem, 'imageUrl' | 'title'>) {
   return (
     <Paper
       shadow="md"
       p="xl"
       radius="md"
-      style={{ backgroundImage: `url(${image})`, height: '100%' }}
+      style={{
+        backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.7)), url(${imageUrl})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        height: '100%'
+      }}
       className={classes.card}
     >
       <div>
-        <Title order={3} className={classes.title}>
+        <Title order={3} className={classes.title} c="white">
           {title}
         </Title>
       </div>
-      <Button variant="white" color="dark">
-        Read article
-      </Button>
     </Paper>
   );
 }
 
-const data = [
-  {
-    image:
-      'https://images.unsplash.com/photo-1508193638397-1c4234db14d8?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80',
-    title: 'Best forests to visit in North America',
-  },
-  {
-    image:
-      'https://images.unsplash.com/photo-1559494007-9f5847c49d94?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80',
-    title: 'Hawaii beaches review: better than you think',
-  },
-  {
-    image:
-      'https://images.unsplash.com/photo-1608481337062-4093bf3ed404?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80',
-    title: 'Mountains at night: 12 best locations to enjoy the view',
-  },
-  {
-    image:
-      'https://images.unsplash.com/photo-1507272931001-fc06c17e4f43?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80',
-    title: 'Aurora in Norway: when to visit for best experience',
-  },
-];
-
 export function CardsCarousel() {
+  const [items, setItems] = useState<CarouselItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const slides = data.map((item) => (
-    <Carousel.Slide key={item.title}>
-      <Card {...item} />
+  useEffect(() => {
+    const fetchCarouselItems = async () => {
+      try {
+        setError(null);
+        const response = await fetch('/api/carousel');
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        // Filter active items and sort by order
+        const activeItems = data
+          .filter((item: CarouselItem) => item.active)
+          .sort((a: CarouselItem, b: CarouselItem) => a.order - b.order);
+
+        setItems(activeItems);
+      } catch (error) {
+        console.error('Error fetching carousel items:', error);
+        setError(error instanceof Error ? error.message : 'Failed to load carousel items');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCarouselItems();
+  }, []);
+
+  if (loading) {
+    return (
+      <Center h={400}>
+        <Loader size="xl" />
+      </Center>
+    );
+  }
+
+  if (error) {
+    return (
+      <Center h={400}>
+        <Stack align="center" gap="md">
+          <Text c="red" size="xl" fw={700}>Error</Text>
+          <Text>{error}</Text>
+        </Stack>
+      </Center>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <Center h={400}>
+        <Text size="xl">No active carousel items found</Text>
+      </Center>
+    );
+  }
+
+  const slides = items.map((item) => (
+    <Carousel.Slide key={item.id}>
+      <Card imageUrl={item.imageUrl} title={item.title} />
     </Carousel.Slide>
   ));
 
   return (
     <Carousel
-      slideSize="100%" // Ensure only one card is visible at a time with 100% width
-      slideGap="xs" // Optional, adjust as needed
-      align="center" // Centers the slides in the carousel
-      slidesToScroll={1} // Scroll one item at a time
-      loop // Enable looping through carousel items
+      slideSize="100%"
+      slideGap="xs"
+      align="center"
+      slidesToScroll={1}
+      loop
+      withControls
+      withIndicators
+      styles={{
+        control: {
+          background: 'rgba(255, 255, 255, 0.1)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          color: 'white',
+          '&:hover': {
+            background: 'rgba(255, 255, 255, 0.2)',
+          },
+        },
+        indicator: {
+          width: 12,
+          height: 4,
+          transition: 'width 250ms ease, background-color 250ms ease',
+          backgroundColor: 'rgba(255, 255, 255, 0.3)',
+          '&[data-active]': {
+            width: 40,
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          },
+        },
+      }}
     >
       {slides}
     </Carousel>

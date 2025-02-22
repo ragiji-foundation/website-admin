@@ -3,7 +3,7 @@ import {
   IconLayoutBottombarFilled,
   IconLayoutNavbar,
   IconLayoutNavbarFilled,
-  IconProps,
+  IconCrop,
   IconPyramid,
   IconMailbox,
   IconQuote,
@@ -32,7 +32,7 @@ import classes from './Navbar.module.css';
 export type PageLink = {
   link: string;
   label: string;
-  icon?: React.ComponentType<IconProps>;
+  icon?: React.ComponentType<any>;
   links?: PageLink[];
 };
 

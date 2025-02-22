@@ -12,10 +12,11 @@ const s3 = new S3Client({
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    context: any
 ) {
   try {
-    const id = Number(params.id);
+    const id = Number(context.params.id);
     
     // Get the gallery item
     const item = await prisma.gallery.findUnique({
