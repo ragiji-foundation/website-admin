@@ -1,14 +1,13 @@
-import React from 'react'
 import { DocsThemeConfig } from 'nextra-theme-docs'
 
-const config: DocsThemeConfig = {
+const themeConfig: DocsThemeConfig = {
   logo: <span>Ragiji Foundation Admin</span>,
   project: {
     link: 'https://github.com/ragijifoundation/admin',
   },
   docsRepositoryBase: 'https://github.com/ragijifoundation/admin',
   footer: {
-    component: <div>© 2025 Ragiji Foundation Admin Documentation</div>,
+    text: '© 2025 Ragiji Foundation Admin Documentation',
   },
   head: (
     <>
@@ -18,11 +17,18 @@ const config: DocsThemeConfig = {
     </>
   ),
   sidebar: {
-    defaultMenuCollapseLevel: 1
+    defaultMenuCollapseLevel: 1,
+    toggleButton: true
   },
   toc: {
-    float: true
+    float: true,
+    title: "Table of Contents"
+  },
+  useNextSeoProps() {
+    return {
+      titleTemplate: '%s – Ragiji Foundation Admin'
+    }
   }
 }
 
-export default config
+export default themeConfig
