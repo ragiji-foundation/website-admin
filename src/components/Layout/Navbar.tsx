@@ -228,7 +228,7 @@ export function Navbar() {
         </Link>
 
         {/* Docs */}
-        <Link href="/documentation" passHref legacyBehavior>
+        <Link href="/docs" passHref legacyBehavior>
           <NavLink
             component="a"
             label="Documentation"

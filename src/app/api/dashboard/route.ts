@@ -2,26 +2,22 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    // Mock data instead of actual API calls
-    const mockData = {
-      totalBlogs: 25,
-      totalCenters: 12,
+    // Replace this with your actual data fetching logic
+    const dashboardData = {
+      totalBlogs: 10,
+      totalCenters: 5,
       totalInitiatives: 8,
-      totalCareers: 15,
-      activeUsers: 1250,
-      monthlyVisitors: 5000,
-      pageViews: 15000,
+      totalCareers: 3,
+      activeUsers: 150,
+      monthlyVisitors: 1000,
+      pageViews: 5000,
       progress: 75
     };
 
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    return NextResponse.json(mockData);
+    return NextResponse.json(dashboardData);
   } catch (error) {
-    console.error('Dashboard API Error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch dashboard data' },
+      { error: 'Internal Server Error' },
       { status: 500 }
     );
   }

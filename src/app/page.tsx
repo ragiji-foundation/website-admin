@@ -97,7 +97,7 @@ function StatsGrid({ data }: { data: DashboardData }) {
       <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
         <Card shadow="sm" padding="xl" radius="md" withBorder h="100%" style={cardStyle}>
           <Group justify="space-between" mb="md" wrap="nowrap">
-            <Text fw={600} size="lg">Page Views</Text>
+            <Text fw="600" size="lg">Page Views</Text>
             <IconChartBar size={32} stroke={1.5} style={{ flexShrink: 0, color: 'var(--mantine-color-teal-6)' }} />
           </Group>
           <Text size="2.5rem" fw={700} ta="center" variant="gradient"
@@ -176,13 +176,17 @@ export default function DashboardPage() {
     const fetchDashboardData = async () => {
       try {
         const response = await fetch('/api/dashboard');
-        if (!response.ok) throw new Error('Failed to fetch dashboard data');
-        const dashboardData = await response.json();
-        setData(dashboardData);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        if (!data) throw new Error('No data received');
+        setData(data);
       } catch (error) {
+        console.error('Error fetching dashboard data:', error);
         notifications.show({
           title: 'Error',
-          message: 'Failed to fetch dashboard data',
+          message: 'Failed to fetch dashboard data. Please try again later.',
           color: 'red'
         });
       } finally {
