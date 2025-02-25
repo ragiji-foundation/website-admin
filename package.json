@@ -56,6 +56,7 @@
     "jose": "^5.9.6",
     "next": "15.0.3",
     "next-auth": "^4.24.11",
+    "next-mdx-remote": "^5.0.0",
     "nextra": "^3.3.1",
     "nextra-theme-docs": "^3.3.1",
     "nodemailer": "^6.9.16",
@@ -68,9 +69,9 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
-    "@types/node": "^20.17.10",
+    "@types/node": "^20.17.19",
     "@types/nodemailer": "^6.4.17",
-    "@types/react": "^18.2.0",
+    "@types/react": "^18.3.18",
     "@types/react-dom": "^18",
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^8.18.2",
@@ -80,7 +81,7 @@
     "prisma": "^6.3.1",
     "tailwindcss": "^3.4.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.7.2"
+    "typescript": "5.7.3"
   },
   "prisma": {
     "seed": "node --loader ts-node/esm prisma/seed.ts"
