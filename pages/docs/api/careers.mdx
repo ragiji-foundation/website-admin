@@ -78,4 +78,30 @@ Remove a job posting.
 ### Request
 ```http
 DELETE /api/careers/{id}
-``` 
+```
+
+## Authentication
+
+All endpoints require a valid JWT token in the Authorization header:
+
+```http
+Authorization: Bearer <your-token>
+```
+
+## Error Responses
+
+When an error occurs, the API will respond with:
+
+```typescript
+{
+  error: string;
+  status: number;
+}
+```
+
+Common status codes:
+- `400` - Bad Request (Invalid input)
+- `401` - Unauthorized (Invalid/missing token)
+- `403` - Forbidden (Insufficient permissions)
+- `404` - Not Found
+- `500` - Internal Server Error

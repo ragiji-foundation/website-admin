@@ -1,5 +1,5 @@
 import React from 'react';
-import { Container, SimpleGrid} from '@mantine/core';
+import { Container, SimpleGrid } from '@mantine/core';
 import { ImageCard } from './ImageCard';
 
 
@@ -14,25 +14,25 @@ const successStories = [
   {
     image: 'https://via.placeholder.com/300x200',
     title: 'Success at Scale',
-    
-    
+
+
   },
   {
     image: 'https://via.placeholder.com/300x200',
     title: 'From Zero to Hero',
-   
-  
+
+
   },
   {
     image: 'https://via.placeholder.com/300x200',
     title: 'Making a Difference',
 
-   
+
   },
   {
     image: 'https://via.placeholder.com/300x200',
     title: 'Making a Change',
-   
+
   },
 ];
 
