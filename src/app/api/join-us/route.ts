@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { sendEmail } from "@/utils/email";
+import { enqueueEmail } from "@/utils/emailQueue";
 
 // Handle OPTIONS requests explicitly for CORS
 export async function OPTIONS() {
@@ -39,24 +39,24 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Send notification emails
-    await sendEmail({
-      to: "admin@ragijifoundation.com",
-      subject: "New Join Application Received",
-      text: `
+    // Queue notification email for admin
+    await enqueueEmail(
+      "admin@ragijifoundation.com",
+      "New Join Application Received",
+      `
         New application received from ${data.name}
         Role: ${data.role}
         Email: ${data.email}
         Phone: ${data.phone}
         Message: ${data.message}
-      `,
-    });
+      `
+    );
 
-    // Send confirmation email to applicant
-    await sendEmail({
-      to: data.email,
-      subject: "Application Received - Ragi Ji Foundation",
-      text: `
+    // Queue confirmation email for applicant
+    await enqueueEmail(
+      data.email,
+      "Application Received - Ragi Ji Foundation",
+      `
         Dear ${data.name},
 
         Thank you for your interest in joining Ragi Ji Foundation. We have received your application for the ${data.role} position.
@@ -65,8 +65,8 @@ export async function POST(request: NextRequest) {
 
         Best regards,
         Ragi Ji Foundation Team
-      `,
-    });
+      `
+    );
 
     // Add CORS headers to the response
     const headers = new Headers();

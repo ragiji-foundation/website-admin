@@ -51,6 +51,7 @@
     "autoprefixer": "^10.4.17",
     "axios": "^1.7.8",
     "bcryptjs": "^2.4.3",
+    "bullmq": "^5.41.7",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
     "embla-carousel-react": "^7.1.0",
