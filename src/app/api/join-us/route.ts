@@ -1,10 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { sendEmail } from '@/utils/email';
+import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+import { sendEmail } from "@/utils/email";
 
-// Handle OPTIONS requests explicitly
+// Handle OPTIONS requests explicitly for CORS
 export async function OPTIONS() {
-  return new NextResponse(null, { status: 204 });
+  const headers = new Headers();
+  headers.append("Access-Control-Allow-Origin", "https://www.ragijifoundation.com");
+  headers.append("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+  headers.append("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+  return new NextResponse(null, { status: 204, headers });
 }
 
 export async function POST(request: NextRequest) {
@@ -12,7 +17,7 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
 
     // Validate required fields
-    const requiredFields = ['name', 'email', 'phone', 'role', 'message'];
+    const requiredFields = ["name", "email", "phone", "role", "message"];
     for (const field of requiredFields) {
       if (!data[field]) {
         return NextResponse.json(
@@ -30,14 +35,14 @@ export async function POST(request: NextRequest) {
         phone: data.phone,
         role: data.role,
         message: data.message,
-        status: 'PENDING',
+        status: "PENDING",
       },
     });
 
     // Send notification emails
     await sendEmail({
-      to: 'admin@ragijifoundation.com',
-      subject: 'New Join Application Received',
+      to: "admin@ragijifoundation.com",
+      subject: "New Join Application Received",
       text: `
         New application received from ${data.name}
         Role: ${data.role}
@@ -50,7 +55,7 @@ export async function POST(request: NextRequest) {
     // Send confirmation email to applicant
     await sendEmail({
       to: data.email,
-      subject: 'Application Received - Ragi Ji Foundation',
+      subject: "Application Received - Ragi Ji Foundation",
       text: `
         Dear ${data.name},
 
@@ -63,12 +68,18 @@ export async function POST(request: NextRequest) {
       `,
     });
 
-    return NextResponse.json(application, { status: 201 });
+    // Add CORS headers to the response
+    const headers = new Headers();
+    headers.append("Access-Control-Allow-Origin", "https://www.ragijifoundation.com");
+    headers.append("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+    headers.append("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+    return new NextResponse(JSON.stringify(application), { status: 201, headers });
 
   } catch (error) {
-    console.error('Error processing join application:', error);
+    console.error("Error processing join application:", error);
     return NextResponse.json(
-      { error: 'Failed to process application' },
+      { error: "Failed to process application" },
       { status: 500 }
     );
   }
@@ -77,13 +88,21 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const applications = await prisma.joinApplication.findMany({
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json(applications);
+
+    // Add CORS headers to the response
+    const headers = new Headers();
+    headers.append("Access-Control-Allow-Origin", "https://www.ragijifoundation.com");
+    headers.append("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+    headers.append("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+    return new NextResponse(JSON.stringify(applications), { status: 200, headers });
+
   } catch (error) {
-    console.error('Error fetching applications:', error);
+    console.error("Error fetching applications:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch applications' },
+      { error: "Failed to fetch applications" },
       { status: 500 }
     );
   }
