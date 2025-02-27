@@ -19,7 +19,7 @@ const validateEnv = () => {
   ];
 
   const missing = required.filter(key => !process.env[key]);
-  
+
   if (missing.length > 0) {
     return {
       isValid: false,
@@ -38,7 +38,7 @@ let s3: S3Client;
 
 try {
   const envValidation = validateEnv();
-  
+
   if (!envValidation.isValid) {
     console.error(`Missing environment variables: ${envValidation.missing.join(', ')}`);
     throw new Error('Invalid environment configuration');
@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    const folder = formData.get('folder') as string || 'uploads'; // Default to 'uploads' if no folder specified
 
     if (!file) {
       return NextResponse.json(
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest) {
     // Generate unique filename
     const fileExtension = file.name.split('.').pop();
     const fileName = `${uuidv4()}.${fileExtension}`;
-    const key = `blog-images/${fileName}`;
+    const key = `${folder}/${fileName}`; // Use the specified folder
 
     // Convert file to buffer
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -89,7 +90,6 @@ export async function POST(request: NextRequest) {
       Body: buffer,
       ContentType: file.type,
       ACL: 'public-read',
-    
     });
 
     const result = await s3.send(command);

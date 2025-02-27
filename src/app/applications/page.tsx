@@ -1,23 +1,19 @@
 'use client';
 import { useEffect, useState } from 'react';
 import {
-  Container,
-  Title,
-  Table,
-  Badge,
-  ActionIcon,
-  Group,
-  Text,
-  Menu,
-  Select,
-  TextInput,
-  Button,
-  Modal,
-  Stack,
+  Container, Title, Table, Group, TextInput, Select, Button,
+  Menu, ActionIcon, Modal, Stack, Badge,
+  Drawer, Paper, Tooltip, Text
 } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
-import { IconDotsVertical, IconMail, IconPhone, IconCalendar } from '@tabler/icons-react';
+import {
+  IconDotsVertical, IconMail, IconPhone, IconCalendar,
+  IconDownload, IconPrinter, IconFilter, IconSearch,
+  IconFileSpreadsheet, IconX
+} from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
+import * as XLSX from 'xlsx';
+import { DateInput } from '@mantine/dates';
+import { notifications } from '@mantine/notifications';
 
 interface Application {
   id: string;
@@ -109,6 +105,9 @@ export default function ApplicationsPage() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [opened, { open, close }] = useDisclosure(false);
+  const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
+  const [filterDrawerOpened, { open: openFilterDrawer, close: closeFilterDrawer }] = useDisclosure(false);
+  const [roleFilter, setRoleFilter] = useState<string | null>(null);
 
   const fetchApplications = async () => {
     try {
@@ -162,38 +161,140 @@ export default function ApplicationsPage() {
     }
   };
 
-  const filteredApplications = applications.filter(app => {
-    const matchesSearch = app.name.toLowerCase().includes(search.toLowerCase()) ||
-      app.email.toLowerCase().includes(search.toLowerCase()) ||
-      app.role.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = !statusFilter || app.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const getFilteredApplications = () => {
+    return applications.filter(app => {
+      const matchesSearch = search ?
+        (app.name.toLowerCase().includes(search.toLowerCase()) ||
+          app.email.toLowerCase().includes(search.toLowerCase()) ||
+          app.role.toLowerCase().includes(search.toLowerCase()) ||
+          app.message.toLowerCase().includes(search.toLowerCase()))
+        : true;
+
+      const matchesStatus = statusFilter ? app.status === statusFilter : true;
+
+      const matchesRole = roleFilter ? app.role === roleFilter : true;
+
+      const matchesDate = dateRange[0] && dateRange[1] ?
+        (new Date(app.createdAt) >= dateRange[0] &&
+          new Date(app.createdAt) <= dateRange[1])
+        : true;
+
+      return matchesSearch && matchesStatus && matchesRole && matchesDate;
+    });
+  };
+
+  const handleExport = () => {
+    const filteredData = getFilteredApplications();
+    const exportData = filteredData.map(app => ({
+      'Name': app.name,
+      'Email': app.email,
+      'Phone': app.phone,
+      'Role': app.role,
+      'Message': app.message,
+      'Status': app.status,
+      'Date': new Date(app.createdAt).toLocaleDateString()
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Applications');
+    XLSX.writeFile(wb, `applications_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  const handlePrint = () => {
+    const filteredData = getFilteredApplications();
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const html = `
+      <html>
+        <head>
+          <title>Applications</title>
+          <style>
+            table { border-collapse: collapse; width: 100%; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f5f5f5; }
+          </style>
+        </head>
+        <body>
+          <h1>Applications Report</h1>
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Role</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredData.map(app => `
+                <tr>
+                  <td>${app.name}</td>
+                  <td>${app.role}</td>
+                  <td>${app.email}</td>
+                  <td>${app.status}</td>
+                  <td>${new Date(app.createdAt).toLocaleDateString()}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+  const filteredApplications = getFilteredApplications();
+  const uniqueRoles = Array.from(new Set(applications.map(app => app.role)));
 
   return (
     <Container size="xl" py="xl">
-      <Title mb="xl">Join Applications</Title>
-
-      <Group mb="xl">
-        <TextInput
-          placeholder="Search applications..."
-          value={search}
-          onChange={(e) => setSearch(e.currentTarget.value)}
-          style={{ flex: 1 }}
-        />
-        <Select
-          placeholder="Filter by status"
-          value={statusFilter}
-          onChange={setStatusFilter}
-          clearable
-          data={[
-            { value: 'PENDING', label: 'Pending' },
-            { value: 'APPROVED', label: 'Approved' },
-            { value: 'REJECTED', label: 'Rejected' },
-            { value: 'CONTACTED', label: 'Contacted' },
-          ]}
-        />
+      <Group justify="space-between" mb="xl">
+        <Title>Join Applications</Title>
+        <Group>
+          <Tooltip label="Export to Excel">
+            <ActionIcon variant="light" onClick={handleExport}>
+              <IconFileSpreadsheet size={20} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Print">
+            <ActionIcon variant="light" onClick={handlePrint}>
+              <IconPrinter size={20} />
+            </ActionIcon>
+          </Tooltip>
+          <Button
+            leftSection={<IconFilter size={20} />}
+            variant="light"
+            onClick={openFilterDrawer}
+          >
+            Filters
+          </Button>
+        </Group>
       </Group>
+
+      <Paper withBorder p="md" mb="xl">
+        <Group>
+          <TextInput
+            placeholder="Search applications..."
+            value={search}
+            onChange={(e) => setSearch(e.currentTarget.value)}
+            style={{ flex: 1 }}
+            leftSection={<IconSearch size={16} />}
+            rightSection={
+              search ? (
+                <ActionIcon onClick={() => setSearch('')}>
+                  <IconX size={16} />
+                </ActionIcon>
+              ) : null
+            }
+          />
+        </Group>
+      </Paper>
 
       <Table>
         <Table.Thead>
@@ -258,6 +359,65 @@ export default function ApplicationsPage() {
           />
         )}
       </Modal>
+
+      <Drawer
+        opened={filterDrawerOpened}
+        onClose={closeFilterDrawer}
+        title="Filter Applications"
+        position="right"
+        padding="lg"
+      >
+        <Stack>
+          <Select
+            label="Status"
+            placeholder="Filter by status"
+            value={statusFilter}
+            onChange={setStatusFilter}
+            clearable
+            data={[
+              { value: 'PENDING', label: 'Pending' },
+              { value: 'APPROVED', label: 'Approved' },
+              { value: 'REJECTED', label: 'Rejected' },
+              { value: 'CONTACTED', label: 'Contacted' },
+            ]}
+          />
+
+          <Select
+            label="Role"
+            placeholder="Filter by role"
+            value={roleFilter}
+            onChange={setRoleFilter}
+            clearable
+            data={uniqueRoles.map(role => ({ value: role, label: role }))}
+          />
+
+          <DateInput
+            label="Start Date"
+            placeholder="Filter from date"
+            value={dateRange[0]}
+            onChange={(date) => setDateRange([date, dateRange[1]])}
+          />
+
+          <DateInput
+            label="End Date"
+            placeholder="Filter to date"
+            value={dateRange[1]}
+            onChange={(date) => setDateRange([dateRange[0], date])}
+          />
+
+          <Button
+            onClick={() => {
+              setStatusFilter(null);
+              setRoleFilter(null);
+              setDateRange([null, null]);
+            }}
+            variant="light"
+            color="red"
+          >
+            Clear Filters
+          </Button>
+        </Stack>
+      </Drawer>
     </Container>
   );
 }

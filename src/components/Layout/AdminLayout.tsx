@@ -5,6 +5,20 @@ import { AppShell, Burger, Group } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { Navbar } from '@/components/Layout/Navbar';
 import { Header } from '@/components/Layout/Header';
+import { IconPhoto } from '@tabler/icons-react';
+
+const menuItems = [
+  // ...existing menu items...
+  {
+    label: 'Media',
+    icon: IconPhoto,
+    links: [
+      // ...existing media links...
+      { label: 'Banner Management', link: '/banner' },
+    ],
+  },
+  // ...rest of the menu items...
+];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpened, { toggle: toggleMobile }] = useDisclosure(false);

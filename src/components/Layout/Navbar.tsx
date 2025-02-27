@@ -139,6 +139,16 @@ export function Navbar() {
           </NavLink>
         </NavLink>
 
+        {/* Banner */}
+        <Link href="/banner" passHref legacyBehavior>
+          <NavLink
+            component="a"
+            label="Banner"
+            leftSection={<IconCrop size={16} />}
+            className={classes.navButton}
+          />
+        </Link>
+
         {/* Pages with Nested Navigation */}
         <NavLink
           label="Pages"
