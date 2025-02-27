@@ -2,15 +2,15 @@
 import { useEffect, useState } from 'react';
 import { Container, Title, Card, Text, Button, Group, Image, TextInput, Select, FileInput, Grid, Stack, ActionIcon, Badge } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconUpload, IconEdit, IconTrash,IconPhoto } from '@tabler/icons-react';
+import { IconUpload, IconEdit, IconTrash, IconPhoto } from '@tabler/icons-react';
 import { useForm } from '@mantine/form';
+import { Banner, BannerType } from '@/types/banner';
 
-interface BannerItem {
-  id: string;
-  type: string;
+interface FormValues {
+  type: BannerType;
   title: string;
-  description?: string;
-  backgroundImage: string;
+  description: string;
+  backgroundImage: File | null;
 }
 
 const bannerTypes = [
@@ -32,16 +32,16 @@ const bannerTypes = [
 ];
 
 export default function BannerManagement() {
-  const [banners, setBanners] = useState<BannerItem[]>([]);
+  const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const form = useForm({
+  const form = useForm<FormValues>({
     initialValues: {
-      type: '',
+      type: '' as BannerType,
       title: '',
       description: '',
-      backgroundImage: null as File | null,
+      backgroundImage: null,
     },
     validate: {
       type: (value) => (!value ? 'Banner type is required' : null),
@@ -131,6 +131,16 @@ export default function BannerManagement() {
     }
   };
 
+  const handleEdit = (banner: Banner) => {
+    setEditingId(banner.id);
+    form.setValues({
+      type: banner.type,
+      title: banner.title,
+      description: banner.description || '',
+      backgroundImage: null, // Reset file input when editing
+    });
+  };
+
   return (
     <Container size="xl" py="xl">
       <Title order={1} mb="xl">Banner Management</Title>
@@ -197,12 +207,9 @@ export default function BannerManagement() {
                   <ActionIcon
                     variant="light"
                     color="blue"
-                    onClick={() => {
-                      setEditingId(banner.id);
-                      form.setValues(banner);
-                    }}
+                    onClick={() => handleEdit(banner)}
                   >
-                    leftSection={<IconPhoto size={14} />}
+                    <IconEdit size={16} />
                   </ActionIcon>
                   <ActionIcon
                     variant="light"
