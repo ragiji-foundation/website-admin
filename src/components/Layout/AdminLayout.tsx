@@ -1,65 +1,41 @@
-// src/components/Layout/AdminLayout.tsx
 'use client';
 
-import { AppShell, Burger, Group } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
-import { Navbar } from '@/components/Layout/Navbar';
-import { Header } from '@/components/Layout/Header';
-import { IconPhoto } from '@tabler/icons-react';
+import { AppShell, Loader, Center } from '@mantine/core';
+import { AdminHeader } from './AdminHeader';
+import { Navbar } from './Navbar';
+import { useSettings } from '@/hooks/useSettings';
+import { Header } from './Header';
 
-const menuItems = [
-  // ...existing menu items...
-  {
-    label: 'Media',
-    icon: IconPhoto,
-    links: [
-      // ...existing media links...
-      { label: 'Banner Management', link: '/banner' },
-    ],
-  },
-  // ...rest of the menu items...
-];
+export function AdminLayout({ children }: { children: React.ReactNode }) {
+  const { data: settings, isLoading } = useSettings();
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [mobileOpened, { toggle: toggleMobile }] = useDisclosure(false);
-  const [desktopOpened, { toggle: toggleDesktop }] = useDisclosure(true);
+  if (isLoading) {
+    return (
+      <Center h="100vh">
+        <Loader />
+      </Center>
+    );
+  }
 
   return (
     <AppShell
       header={{ height: 60 }}
-      navbar={{
-        width: 250,
-        breakpoint: 'md',
-        collapsed: {
-          mobile: !mobileOpened,
-          desktop: !desktopOpened
-        }
-      }}
-      padding="md"
+      navbar={{ width: 100, breakpoint: 'sm' }}
+      padding="xs"
     >
       <AppShell.Header>
-        <Group h="100%" px="md">
-          <Burger
-            opened={mobileOpened}
-            onClick={toggleMobile}
-            hiddenFrom="md"
-          />
-          <Burger
-            opened={desktopOpened}
-            onClick={toggleDesktop}
-            visibleFrom="md"
-          />
-          <Header />
-        </Group>
+        <Header
+       
+        />
       </AppShell.Header>
-
       <AppShell.Navbar>
         <Navbar />
       </AppShell.Navbar>
-
       <AppShell.Main>
-        {children} {/* Render children passed to the component */}
+        {children}
       </AppShell.Main>
     </AppShell>
   );
 }
+
+export default AdminLayout; 

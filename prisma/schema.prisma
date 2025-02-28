@@ -6,11 +6,13 @@
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  extensions = [pg_trgm]
   // Add direct URL if using connection pooling
   directUrl = env("DIRECT_URL")
 }

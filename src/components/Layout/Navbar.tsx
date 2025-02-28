@@ -38,33 +38,33 @@ export type PageLink = {
 };
 
 const pagesLinks: PageLink[] = [
-  { link: '/pages/home', label: 'HOME', icon: IconHome },
+  { link: '/home', label: 'HOME', icon: IconHome },
   {
     link: '#1',
     label: 'ABOUT US',
     icon: IconBuildingCommunity,
     links: [
-      { link: '/pages/the-need', label: 'THE NEED' },
-      { link: '/pages/our-story', label: 'OUR STORY' },
-      { link: '/pages/our-centers', label: 'OUR CENTERS' },
-      { link: '/pages/our-initiatives', label: 'OUR INITIATIVES' },
-      { link: '/pages/success-stories', label: 'SUCCESS STORIES' },
+      { link: '/the-need', label: 'THE NEED' },
+      { link: '/our-story', label: 'OUR STORY' },
+      { link: '/our-centers', label: 'OUR CENTERS' },
+      { link: '/our-initiatives', label: 'OUR INITIATIVES' },
+      { link: '/success-stories', label: 'SUCCESS STORIES' },
     ],
   },
-  { link: '/pages/awards', label: 'AWARDS', icon: IconAward },
+  { link: '/awards', label: 'AWARDS', icon: IconAward },
   {
     link: '#2',
     label: 'MEDIA',
     icon: IconNews,
     links: [
-      { link: '/pages/news-coverage', label: 'NEWS COVERAGE' },
-      { link: '/pages/blog', label: 'BLOGS' },
-      { link: '/pages/electronic-media', label: 'ELECTRONIC MEDIA' },
-      { link: '/pages/gallery', label: 'GALLERY' },
+      { link: '/news-coverage', label: 'NEWS COVERAGE' },
+      { link: '/blog', label: 'BLOGS' },
+      { link: '/electronic-media', label: 'ELECTRONIC MEDIA' },
+      { link: '/gallery', label: 'GALLERY' },
     ],
   },
-  { link: '/pages/careers', label: 'CAREERS', icon: IconBriefcase },
-  { link: '/pages/contact-us', label: 'CONTACT US', icon: IconMessage }
+  { link: '/careers', label: 'CAREERS', icon: IconBriefcase },
+  { link: '/contact-us', label: 'CONTACT US', icon: IconMessage }
 ];
 
 export function Navbar() {
