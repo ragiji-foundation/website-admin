@@ -9,7 +9,10 @@ interface EmailJob {
 }
 
 export const emailQueue = new Queue<EmailJob>('emailQueue', {
-  connection: redis
+  connection: {
+    ...redis.options,
+    maxRetriesPerRequest: null
+  }
 });
 
 export const emailWorker = new Worker(
@@ -24,7 +27,10 @@ export const emailWorker = new Worker(
     }
   },
   {
-    connection: redis,
+    connection: {
+      ...redis.options,
+      maxRetriesPerRequest: null
+    },
     limiter: {
       max: 50,
       duration: 1000

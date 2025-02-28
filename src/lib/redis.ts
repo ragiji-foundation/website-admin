@@ -7,17 +7,19 @@ class RedisConnection {
     if (!RedisConnection.instance) {
       const redisUrl = process.env.REDIS_URL;
 
-      const config = redisUrl ?
-        { url: redisUrl } :
-        {
+      const config = {
+        ...(redisUrl ? { url: redisUrl } : {
           host: process.env.REDIS_HOST,
           port: parseInt(process.env.REDIS_PORT || '6379'),
           password: process.env.REDIS_PASSWORD,
-          retryStrategy: (times: number) => {
-            const delay = Math.min(times * 50, 2000);
-            return delay;
-          }
-        };
+        }),
+        maxRetriesPerRequest: null,
+        enableReadyCheck: false,
+        retryStrategy: (times: number) => {
+          const delay = Math.min(times * 50, 2000);
+          return delay;
+        }
+      };
 
       RedisConnection.instance = new IORedis(config);
 
