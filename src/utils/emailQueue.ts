@@ -1,15 +1,6 @@
 import { Queue, Worker } from 'bullmq';
 import { sendEmail } from './email';
-
-const connection = {
-  host: process.env.REDIS_HOST,
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-  password: process.env.REDIS_PASSWORD, // Add if using password
-};
-
-// Alternative: use Redis URL if available
-const redisUrl = process.env.REDIS_URL;
-const connectionConfig = redisUrl ? { url: redisUrl } : connection;
+import { redis } from '../lib/redis';
 
 interface EmailJob {
   to: string;
@@ -17,12 +8,10 @@ interface EmailJob {
   text: string;
 }
 
-// Create email queue with connection config
 export const emailQueue = new Queue<EmailJob>('emailQueue', {
-  connection: connectionConfig,
+  connection: redis
 });
 
-// Create worker to process emails
 export const emailWorker = new Worker(
   'emailQueue',
   async (job) => {
@@ -31,23 +20,38 @@ export const emailWorker = new Worker(
       console.log(`Email sent to ${job.data.to}`);
     } catch (error) {
       console.error(`Email failed to ${job.data.to}:`, error);
-      throw error; // Retry the job
+      throw error;
     }
   },
-  { connection }
+  {
+    connection: redis,
+    limiter: {
+      max: 50,
+      duration: 1000
+    }
+  }
 );
 
-// Helper function to enqueue emails
+emailWorker.on('failed', (job, error) => {
+  console.error(`Job ${job?.id} failed:`, error);
+});
+
+emailWorker.on('completed', (job) => {
+  console.log(`Job ${job.id} completed`);
+});
+
 export async function enqueueEmail(to: string, subject: string, text: string) {
   return emailQueue.add('send-email', {
     to,
     subject,
     text,
   }, {
-    attempts: 3, // Retry up to 3 times
+    attempts: 3,
     backoff: {
       type: 'exponential',
-      delay: 1000, // Start with 1 second delay
+      delay: 1000
     },
+    removeOnComplete: true,
+    removeOnFail: false
   });
 }
