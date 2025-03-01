@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { enqueueEmail } from "@/utils/emailQueue";
+import { sendEmail } from '@/utils/email';
 
 // Handle OPTIONS requests explicitly for CORS
 export async function OPTIONS() {
@@ -39,34 +39,20 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Queue notification email for admin
-    await enqueueEmail(
-      "admin@ragijifoundation.com",
-      "New Join Application Received",
+    // Send notification email using existing email utility
+    await sendEmail({
+      to: process.env.ADMIN_EMAIL!,
+      subject: 'New Join Request',
+      text: `New join request from ${data.name} (${data.email})`,
+      html: `
+        <h2>New Join Request</h2>
+        <p><strong>Name:</strong> ${data.name}</p>
+        <p><strong>Email:</strong> ${data.email}</p>
+        <p><strong>Phone:</strong> ${data.phone}</p>
+        <p><strong>Role:</strong> ${data.role}</p>
+        <p><strong>Message:</strong> ${data.message}</p>
       `
-        New application received from ${data.name}
-        Role: ${data.role}
-        Email: ${data.email}
-        Phone: ${data.phone}
-        Message: ${data.message}
-      `
-    );
-
-    // Queue confirmation email for applicant
-    await enqueueEmail(
-      data.email,
-      "Application Received - Ragi Ji Foundation",
-      `
-        Dear ${data.name},
-
-        Thank you for your interest in joining Ragi Ji Foundation. We have received your application for the ${data.role} position.
-
-        We will review your application and get back to you soon.
-
-        Best regards,
-        Ragi Ji Foundation Team
-      `
-    );
+    });
 
     // Add CORS headers to the response
     const headers = new Headers();
