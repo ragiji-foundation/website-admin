@@ -1,8 +1,14 @@
 // app/api/search/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma';
 
-const prisma = new PrismaClient();
+interface SearchResult {
+  source_table: string;
+  source_column: string;
+  record_id: string;
+  match_text: string;
+  similarity_score: number;
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -11,25 +17,35 @@ export async function GET(request: NextRequest) {
   if (!query) {
     return NextResponse.json(
       { error: 'Query parameter "q" is required' },
-      { status: 400, headers: { 'Access-Control-Allow-Origin': '*' } }
+      { status: 400 }
     );
   }
 
   try {
-    const results = await prisma.$queryRaw<
-      { source_table: string; source_column: string; record_id: number; match_text: string; similarity_score: number }[]
-    >`SELECT * FROM unified_search(${query}) ORDER BY similarity_score DESC;`;
+    // Use raw SQL with proper type casting
+    const results = await prisma.$queryRaw<SearchResult[]>`
+      SELECT * FROM unified_search(${query}::text)
+      WHERE similarity_score > 0.1
+      ORDER BY similarity_score DESC
+      LIMIT 10
+    `;
 
-    return NextResponse.json(results, {
-      headers: { 'Access-Control-Allow-Origin': '*' },
-    });
+    return NextResponse.json(results);
   } catch (error) {
-    console.error('Error executing search query:', error);
+    console.error('Search error:', error);
     return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500, headers: { 'Access-Control-Allow-Origin': '*' } }
+      { error: 'Search failed' },
+      { status: 500 }
     );
   }
 }
 
-// The Access-Control-Allow-Origin header is set to *, allowing requests from any origin. For enhanced security, replace * with https://www.ragijifoundation.com to restrict access to your specific frontend domain.
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    }
+  });
+}

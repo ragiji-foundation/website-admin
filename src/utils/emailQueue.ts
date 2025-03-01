@@ -1,6 +1,7 @@
 import { Queue, Worker } from 'bullmq';
+import { QueueScheduler } from 'bullmq';
 import { sendEmail } from './email';
-import { redis } from '../lib/redis';  
+import { redis } from '../lib/redis';
 
 interface EmailJob {
   to: string;
@@ -8,12 +9,24 @@ interface EmailJob {
   text: string;
 }
 
-export const emailQueue = new Queue<EmailJob>('emailQueue', {
-  connection: {
-    ...redis.options,
-    maxRetriesPerRequest: null
+const queueOptions = {
+  connection: redis,
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 1000,
+    },
+    removeOnComplete: true,
+    removeOnFail: false,
+    timeout: 30000, // 30 seconds
   }
-});
+};
+
+// Prevent stalled jobs
+const scheduler = new QueueScheduler('emailQueue', { connection: redis });
+
+export const emailQueue = new Queue('emailQueue', queueOptions);
 
 export const emailWorker = new Worker(
   'emailQueue',
@@ -27,10 +40,8 @@ export const emailWorker = new Worker(
     }
   },
   {
-    connection: {
-      ...redis.options,
-      maxRetriesPerRequest: null
-    },
+    connection: redis,
+    concurrency: 5,
     limiter: {
       max: 50,
       duration: 1000
@@ -51,13 +62,5 @@ export async function enqueueEmail(to: string, subject: string, text: string) {
     to,
     subject,
     text,
-  }, {
-    attempts: 3,
-    backoff: {
-      type: 'exponential',
-      delay: 1000
-    },
-    removeOnComplete: true,
-    removeOnFail: false
   });
 }

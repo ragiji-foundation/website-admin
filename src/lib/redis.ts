@@ -1,43 +1,39 @@
 import IORedis from 'ioredis';
 
-class RedisConnection {
-    private static instance: IORedis;
+const getRedisConfig = () => {
+  // For Vercel deployments
+  if (process.env.VERCEL) {
+    return {
+      url: process.env.REDIS_URL,
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+      maxmemory: '200mb',
+      maxmemoryPolicy: 'noeviction',
+      retryStrategy: (times: number) => Math.min(times * 50, 2000)
+    };
+  }
 
-    static getInstance(): IORedis {
-        if (!RedisConnection.instance) {
-            const redisUrl = process.env.REDIS_URL;
+  // For local development
+  return {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+    password: process.env.REDIS_PASSWORD,
+    maxRetriesPerRequest: null,
+    enableReadyCheck: false,
+    maxmemory: '200mb',
+    maxmemoryPolicy: 'noeviction',
+    retryStrategy: (times: number) => Math.min(times * 50, 2000)
+  };
+};
 
-            const config = {
-                ...(redisUrl
-                    ? { url: redisUrl }
-                    : {
-                          host: process.env.REDIS_HOST,
-                          port: parseInt(process.env.REDIS_PORT || '6379', 10),
-                          password: process.env.REDIS_PASSWORD,
-                      }),
-                maxRetriesPerRequest: null,
-                enableReadyCheck: false,
-                retryStrategy: (times: number) => {
-                    const delay = Math.min(times * 50, 2000);
-                    return delay;
-                },
-                maxmemory: '200mb', // Correct placement
-                maxmemoryPolicy: 'noeviction', // Correct placement and casing
-            };
+const redis = new IORedis(getRedisConfig());
 
-            RedisConnection.instance = new IORedis(config);
+redis.on('error', (error) => {
+  console.error('Redis connection error:', error);
+});
 
-            RedisConnection.instance.on('error', (error) => {
-                console.error('Redis connection error:', error);
-            });
+redis.on('connect', () => {
+  console.log('Successfully connected to Redis');
+});
 
-            RedisConnection.instance.on('connect', () => {
-                console.log('Successfully connected to Redis');
-            });
-        }
-
-        return RedisConnection.instance;
-    }
-}
-
-export const redis = RedisConnection.getInstance();
+export { redis };
