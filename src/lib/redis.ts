@@ -1,44 +1,43 @@
 import IORedis from 'ioredis';
 
 class RedisConnection {
-  private static instance: IORedis;
+    private static instance: IORedis;
 
-  static getInstance(): IORedis {
-    if (!RedisConnection.instance) {
-      const redisUrl = process.env.REDIS_URL;
+    static getInstance(): IORedis {
+        if (!RedisConnection.instance) {
+            const redisUrl = process.env.REDIS_URL;
 
-      const config = {
-        ...(redisUrl ? { url: redisUrl } : {
-          host: process.env.REDIS_HOST,
-          port: parseInt(process.env.REDIS_PORT || '6379'),
-          password: process.env.REDIS_PASSWORD,
-        }),
-        maxRetriesPerRequest: null,
-        enableReadyCheck: false,
-        retryStrategy: (times: number) => {
-          const delay = Math.min(times * 50, 2000);
-          return delay;
-        },
-        // Add eviction policy configuration
-        redisOptions: {
-          maxmemory: '200mb',
-          maxmemory_policy: 'noeviction'
+            const config = {
+                ...(redisUrl
+                    ? { url: redisUrl }
+                    : {
+                          host: process.env.REDIS_HOST,
+                          port: parseInt(process.env.REDIS_PORT || '6379', 10),
+                          password: process.env.REDIS_PASSWORD,
+                      }),
+                maxRetriesPerRequest: null,
+                enableReadyCheck: false,
+                retryStrategy: (times: number) => {
+                    const delay = Math.min(times * 50, 2000);
+                    return delay;
+                },
+                maxmemory: '200mb', // Correct placement
+                maxmemoryPolicy: 'noeviction', // Correct placement and casing
+            };
+
+            RedisConnection.instance = new IORedis(config);
+
+            RedisConnection.instance.on('error', (error) => {
+                console.error('Redis connection error:', error);
+            });
+
+            RedisConnection.instance.on('connect', () => {
+                console.log('Successfully connected to Redis');
+            });
         }
-      };
 
-      RedisConnection.instance = new IORedis(config);
-
-      RedisConnection.instance.on('error', (error) => {
-        console.error('Redis connection error:', error);
-      });
-
-      RedisConnection.instance.on('connect', () => {
-        console.log('Successfully connected to Redis');
-      });
+        return RedisConnection.instance;
     }
-
-    return RedisConnection.instance;
-  }
 }
 
 export const redis = RedisConnection.getInstance();
