@@ -22,17 +22,26 @@ export async function GET() {
       })
     ]);
 
-    return NextResponse.json({
+    const data = {
       story,
       model,
       visionMission,
       timeline
+    };
+
+    return new NextResponse(JSON.stringify(data), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
   } catch (error) {
     console.error('Failed to fetch our story data:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return new NextResponse(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   }
 }
