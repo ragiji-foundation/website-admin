@@ -54,7 +54,7 @@ export const createEmailTemplate = (content: string) => `
     <body>
       <div class="email-container">
         <div class="email-header">
-          <img src="${process.env.NEXT_PUBLIC_SITE_URL}/logo-white.png" alt="Ragi Ji Foundation" />
+          <img src="${process.env.NEXT_PUBLIC_SITE_URL}/logo.png" alt="Ragiji Foundation" />
         </div>
         <div class="email-body">
           ${content}
@@ -107,6 +107,6 @@ export const joinApplicationTemplates = {
       <p><strong>Message:</strong> ${data.message}</p>
     </div>
 
-    <a href="${process.env.NEXT_PUBLIC_SITE_URL}/admin/applications" class="button">View Application</a>
+    <a href="https://admin.ragijifoundation.com/applications" class="button">View Application</a>
   `)
 };
