@@ -1,5 +1,4 @@
-import { Queue, Worker } from 'bullmq';
-import { QueueScheduler } from 'bullmq';
+import { Queue, Worker, QueueEvents } from 'bullmq';
 import { sendEmail } from './email';
 import { redis } from '../lib/redis';
 
@@ -23,12 +22,11 @@ const queueOptions = {
   }
 };
 
-// Prevent stalled jobs
-const scheduler = new QueueScheduler('emailQueue', { connection: redis });
+export const emailQueue = new Queue<EmailJob>('emailQueue', queueOptions);
 
-export const emailQueue = new Queue('emailQueue', queueOptions);
+const queueEvents = new QueueEvents('emailQueue', { connection: redis });
 
-export const emailWorker = new Worker(
+export const emailWorker = new Worker<EmailJob>(
   'emailQueue',
   async (job) => {
     try {
@@ -48,6 +46,11 @@ export const emailWorker = new Worker(
     }
   }
 );
+
+// Monitor stalled jobs
+queueEvents.on('stalled', ({ jobId }) => {
+  console.warn(`Job ${jobId} has stalled`);
+});
 
 emailWorker.on('failed', (job, error) => {
   console.error(`Job ${job?.id} failed:`, error);
