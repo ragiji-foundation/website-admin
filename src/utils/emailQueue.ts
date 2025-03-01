@@ -1,6 +1,6 @@
 import { Queue, Worker } from 'bullmq';
 import { sendEmail } from './email';
-import { redis } from '../lib/redis';
+import { redis } from '../lib/redis';  
 
 interface EmailJob {
   to: string;

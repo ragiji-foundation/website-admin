@@ -18,6 +18,11 @@ class RedisConnection {
         retryStrategy: (times: number) => {
           const delay = Math.min(times * 50, 2000);
           return delay;
+        },
+        // Add eviction policy configuration
+        redisOptions: {
+          maxmemory: '200mb',
+          maxmemory_policy: 'noeviction'
         }
       };
 

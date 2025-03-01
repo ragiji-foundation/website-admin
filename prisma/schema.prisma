@@ -1,20 +1,13 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
   extensions = [pg_trgm]
-  // Add direct URL if using connection pooling
-  directUrl = env("DIRECT_URL")
 }
 
 model Enquiry {
@@ -30,8 +23,8 @@ model Testimonial {
   id        Int      @id @default(autoincrement())
   name      String
   role      String
-  content   String   @db.Text
-  avatar    String?  @db.Text
+  content   String
+  avatar    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -39,21 +32,21 @@ model Testimonial {
 model Blog {
   id              Int       @id @default(autoincrement())
   slug            String
-  locale          String    // 'en' or 'hi'
+  locale          String
   title           String
-  content         String    @db.Text
-  status          String    // 'draft', 'published', 'archived'
+  content         String
+  status          String
   authorName      String
-  metaDescription String?   @db.Text
+  metaDescription String?
   ogTitle         String?
-  ogDescription   String?   @db.Text
+  ogDescription   String?
   authorId        Int
-  author          User      @relation(fields: [authorId], references: [id])
-  category        Category? @relation(fields: [categoryId], references: [id])
   categoryId      Int?
-  tags            Tag[]     @relation("BlogToTag")
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  author          User      @relation(fields: [authorId], references: [id])
+  category        Category? @relation(fields: [categoryId], references: [id])
+  tags            Tag[]     @relation("BlogToTag")
 
   @@unique([slug, locale])
 }
@@ -64,12 +57,12 @@ model User {
   email     String   @unique
   username  String   @unique
   password  String
-  image     String?  @db.Text
-  bio       String?  @db.Text
+  image     String?
+  bio       String?
   role      String   @default("admin")
-  blogs     Blog[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  blogs     Blog[]
 
   @@map("users")
 }
@@ -78,26 +71,26 @@ model Category {
   id          Int      @id @default(autoincrement())
   name        String
   slug        String   @unique
-  description String?  @db.Text
-  blogs       Blog[]
+  description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  blogs       Blog[]
 }
 
 model Tag {
   id          Int      @id @default(autoincrement())
   name        String
   slug        String   @unique
-  description String?  @db.Text
-  blogs       Blog[]   @relation("BlogToTag")
+  description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  blogs       Blog[]   @relation("BlogToTag")
 }
 
 model ElectronicMedia {
   id          Int      @id @default(autoincrement())
   title       String
-  description String?  @db.Text
+  description String?
   videoUrl    String
   thumbnail   String?
   order       Int      @default(0)
@@ -112,26 +105,26 @@ model NewsArticle {
   date        DateTime
   imageUrl    String?
   link        String?
-  description String?  @db.Text
+  description String?
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @default(now())
 }
 
 model Initiative {
   id          Int      @id @default(autoincrement())
   title       String
-  description String   @db.Text
+  description String
   imageUrl    String?
   order       Int      @default(0)
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @default(now())
 }
 
 model Center {
   id          Int      @id @default(autoincrement())
   name        String
   location    String
-  description String   @db.Text
+  description String
   imageUrl    String?
   contactInfo String?
   createdAt   DateTime @default(now())
@@ -143,8 +136,8 @@ model Career {
   title        String
   location     String
   type         String
-  description  String   @db.Text
-  requirements String   @db.Text
+  description  String
+  requirements String
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -153,9 +146,9 @@ model Career {
 model Gallery {
   id          Int      @id @default(autoincrement())
   title       String
-  description String?  @db.Text
+  description String?
   imageUrl    String
-  category    String   // Event, Center, Initiative etc.
+  category    String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -167,7 +160,7 @@ model Settings {
   primaryColor    String   @default("#228BE6")
   logoUrl         String?
   contactEmail    String
-  socialLinks     Json     @default("{\"twitter\":\"\",\"facebook\":\"\",\"instagram\":\"\"}")
+  socialLinks     Json     @default("{\"twitter\": \"\", \"facebook\": \"\", \"instagram\": \"\"}")
   maintenance     Boolean  @default(false)
   updatedAt       DateTime @updatedAt
 }
@@ -191,8 +184,8 @@ model JoinApplication {
   email     String
   phone     String
   role      String
-  message   String   @db.Text
-  status    String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  message   String
+  status    String   @default("PENDING")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -200,16 +193,80 @@ model JoinApplication {
 }
 
 model Banner {
-  id              String    @id @default(cuid())
-  type            String    // blog, about, initiatives, etc.
+  id              String   @id @default(cuid())
+  type            String
   title           String
   description     String?
   backgroundImage String
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@map("banners")
 }
 
+model Award {
+  id           String   @id @default(cuid())
+  title        String
+  year         String
+  description  String
+  imageUrl     String
+  organization String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
+  @@map("awards")
+}
 
+model Feature {
+  id          String   @id @default(cuid())
+  title       String
+  description Json
+  mediaType   String
+  mediaUrl    String
+  thumbnail   String?
+  order       Int      @default(0)
+  section     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("features")
+}
+
+model FeatureSection {
+  id         String   @id @default(cuid())
+  identifier String   @unique
+  heading    String
+  ctaText    String
+  ctaUrl     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now())
+
+  @@map("feature_sections")
+}
+
+model SuccessStory {
+  id          String   @id @default(cuid())
+  title       String
+  content     Json     // Rich text content
+  personName  String
+  location    String
+  imageUrl    String?
+  featured    Boolean  @default(false)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("success_stories")
+}
+
+model Stat {
+  id          String   @id @default(cuid())
+  label       String
+  value       String
+  icon        String?  // Icon name or URL
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("stats")
+}

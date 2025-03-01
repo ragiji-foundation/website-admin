@@ -1,0 +1,3 @@
+// Convert the data.ts to data.js and export all the data
+export { successStoriesData, statsData, initiativesData, centersData, careersData, galleryData, newsArticlesData, electronicMediaData, categoriesData, tagsData, bannersData, awardsData, featuresData, featureSectionsData };
+// ... rest of the data remains the same ...
