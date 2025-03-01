@@ -40,6 +40,16 @@ interface FeatureSection {
   ctaUrl: string;
 }
 
+interface FeatureForm {
+  title: string;
+  description: string; // This will store stringified JSON
+  mediaType: string;
+  mediaUrl: string;
+  thumbnail?: string;
+  order: number;
+  section: string;
+}
+
 export default function FeaturesManagementPage() {
   const [sections, setSections] = useState<FeatureSection[]>([]);
   const [features, setFeatures] = useState<Feature[]>([]);
@@ -48,16 +58,47 @@ export default function FeaturesManagementPage() {
   const [editingFeature, setEditingFeature] = useState<Feature | null>(null);
   const [activeTab, setActiveTab] = useState<string>('features');
 
-  const form = useForm({
+  const form = useForm<FeatureForm>({
     initialValues: {
       title: '',
-      description: {},
-      mediaType: 'image' as 'image' | 'video',
+      description: JSON.stringify({ // Initialize with empty editor state
+        root: {
+          children: [
+            {
+              children: [],
+              direction: null,
+              format: '',
+              indent: 0,
+              type: 'paragraph',
+              version: 1,
+            },
+          ],
+          direction: null,
+          format: '',
+          indent: 0,
+          type: 'root',
+          version: 1,
+        }
+      }),
+      mediaType: 'image',
       mediaUrl: '',
       thumbnail: '',
       order: 0,
-      section: '',
+      section: ''
     },
+    validate: {
+      title: (value) => (!value ? 'Title is required' : null),
+      description: (value) => {
+        try {
+          JSON.parse(value);
+          return null;
+        } catch {
+          return 'Invalid description format';
+        }
+      },
+      mediaUrl: (value) => (!value ? 'Media URL is required' : null),
+      section: (value) => (!value ? 'Section is required' : null),
+    }
   });
 
   const sectionForm = useForm({
@@ -177,7 +218,10 @@ export default function FeaturesManagementPage() {
                       color="blue"
                       onClick={() => {
                         setEditingFeature(feature);
-                        form.setValues(feature);
+                        form.setValues({
+                          ...feature,
+                          description: JSON.stringify(feature.description)
+                        });
                         setModalOpened(true);
                       }}
                     >
@@ -270,7 +314,11 @@ export default function FeaturesManagementPage() {
               <Text size="sm" fw={500}>Description</Text>
               <LexicalEditor
                 initialValue={form.values.description}
-                onChange={(value) => form.setFieldValue('description', value)}
+                onChange={(value) => {
+                  // Ensure the value is stringified JSON
+                  const jsonValue = typeof value === 'string' ? value : JSON.stringify(value);
+                  form.setFieldValue('description', jsonValue);
+                }}
               />
             </Stack>
             <Button type="submit">

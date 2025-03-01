@@ -4,19 +4,18 @@ import {
   Box,
   Container,
   Title,
-  TextInput,
   Button,
   Group,
   Stack,
   Switch,
   FileInput,
-  Alert
 } from '@mantine/core';
 import { LexicalEditor } from '@/components/LexicalEditor';
 import { notifications } from '@mantine/notifications';
 import { uploadImage } from '@/utils/upload';
 
 interface TheNeedForm {
+  id?: string;
   mainText: string;
   statistics: string;
   impact: string;
@@ -33,16 +32,21 @@ export default function TheNeedAdminPage() {
     stats: boolean;
   }>({ main: false, stats: false });
 
+  useEffect(() => {
+    void fetchData();
+  }, []);
+
   const fetchData = async () => {
     try {
       const response = await fetch('/api/admin/the-need');
       if (!response.ok) throw new Error('Failed to fetch data');
       const result = await response.json();
       setData(result);
-    } catch (error) {
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       notifications.show({
         title: 'Error',
-        message: 'Failed to load content',
+        message: errorMessage,
         color: 'red'
       });
     }
@@ -67,10 +71,11 @@ export default function TheNeedAdminPage() {
       });
 
       await fetchData();
-    } catch (error) {
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       notifications.show({
         title: 'Error',
-        message: 'Failed to save content',
+        message: errorMessage,
         color: 'red'
       });
     } finally {
@@ -93,10 +98,11 @@ export default function TheNeedAdminPage() {
         message: 'Image uploaded successfully',
         color: 'green'
       });
-    } catch (error) {
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       notifications.show({
         title: 'Error',
-        message: 'Failed to upload image',
+        message: errorMessage,
         color: 'red'
       });
     } finally {
@@ -106,14 +112,14 @@ export default function TheNeedAdminPage() {
 
   return (
     <Container size="lg" py="xl">
-      <Title order={1} mb="xl">Manage "The Need" Content</Title>
+      <Title order={1} mb="xl">Manage &quot;The Need&quot; Content</Title>
 
       <form onSubmit={handleSubmit}>
         <Stack gap="md">
           <Box>
             <Title order={3}>Main Text</Title>
             <LexicalEditor
-              initialContent={data?.mainText}
+              initialValue={data?.mainText}
               onChange={(content) => setData(prev => ({ ...prev!, mainText: content }))}
             />
           </Box>
@@ -121,7 +127,7 @@ export default function TheNeedAdminPage() {
           <Box>
             <Title order={3}>Statistics</Title>
             <LexicalEditor
-              initialContent={data?.statistics}
+              initialValue={data?.statistics}
               onChange={(content) => setData(prev => ({ ...prev!, statistics: content }))}
             />
           </Box>
@@ -129,26 +135,36 @@ export default function TheNeedAdminPage() {
           <Box>
             <Title order={3}>Impact</Title>
             <LexicalEditor
-              initialContent={data?.impact}
+              initialValue={data?.impact}
               onChange={(content) => setData(prev => ({ ...prev!, impact: content }))}
             />
           </Box>
 
-          <FileInput
-            label="Main Image"
-            placeholder="Upload image"
-            accept="image/*"
-            loading={uploading.main}
-            onChange={(file) => file && handleImageUpload(file, 'main')}
-          />
+          <Box>
+            {uploading.main ? (
+              <div>Loading...</div>
+            ) : (
+              <FileInput
+                label="Main Image"
+                placeholder="Upload image"
+                accept="image/*"
+                onChange={(file) => file && handleImageUpload(file, 'main')}
+              />
+            )}
+          </Box>
 
-          <FileInput
-            label="Statistics Image"
-            placeholder="Upload image"
-            accept="image/*"
-            loading={uploading.stats}
-            onChange={(file) => file && handleImageUpload(file, 'stats')}
-          />
+          <Box>
+            {uploading.stats ? (
+              <div>Loading...</div>
+            ) : (
+              <FileInput
+                label="Statistics Image"
+                placeholder="Upload image"
+                accept="image/*"
+                onChange={(file) => file && handleImageUpload(file, 'stats')}
+              />
+            )}
+          </Box>
 
           <Switch
             label="Published"

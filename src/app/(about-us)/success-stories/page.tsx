@@ -24,6 +24,16 @@ import { IconPlus, IconEdit, IconTrash, IconUpload } from '@tabler/icons-react';
 import { LexicalEditor } from '@/components/LexicalEditor';
 import type { SuccessStory } from '@/types/success-story';
 
+interface SuccessStoryForm {
+  title: string;
+  content: string; // This will store stringified JSON
+  personName: string;
+  location: string;
+  imageUrl?: string;
+  featured: boolean;
+  order: number;
+}
+
 export default function SuccessStoriesManagementPage() {
   const [stories, setStories] = useState<SuccessStory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,18 +41,44 @@ export default function SuccessStoriesManagementPage() {
   const [editingStory, setEditingStory] = useState<SuccessStory | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  const form = useForm({
+  const form = useForm<SuccessStoryForm>({
     initialValues: {
       title: '',
+      content: JSON.stringify({ // Initialize with empty editor state
+        root: {
+          children: [
+            {
+              children: [],
+              direction: null,
+              format: '',
+              indent: 0,
+              type: 'paragraph',
+              version: 1,
+            },
+          ],
+          direction: null,
+          format: '',
+          indent: 0,
+          type: 'root',
+          version: 1,
+        }
+      }),
       personName: '',
       location: '',
-      content: {},
       imageUrl: '',
       featured: false,
       order: 0,
     },
     validate: {
       title: (value) => !value.trim() && 'Title is required',
+      content: (value) => {
+        try {
+          JSON.parse(value);
+          return null;
+        } catch {
+          return 'Invalid content format';
+        }
+      },
       personName: (value) => !value.trim() && 'Person name is required',
       location: (value) => !value.trim() && 'Location is required',
       imageUrl: (value) => !value && 'Image is required',
@@ -262,7 +298,11 @@ export default function SuccessStoriesManagementPage() {
               <Text size="sm" fw={500}>Story Content</Text>
               <LexicalEditor
                 initialValue={form.values.content}
-                onChange={(value) => form.setFieldValue('content', value)}
+                onChange={(value) => {
+                  // Ensure the value is stringified JSON
+                  const jsonValue = typeof value === 'string' ? value : JSON.stringify(value);
+                  form.setFieldValue('content', jsonValue);
+                }}
               />
             </Stack>
             <Stack gap="xs">

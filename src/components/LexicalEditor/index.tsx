@@ -16,8 +16,8 @@ import EditorToolbar from './EditorToolbar';
 import './styles.css';
 
 interface LexicalEditorProps {
-  initialValue?: any;
-  onChange?: (value: any) => void;
+  initialValue?: string;
+  onChange?: (value: string) => void;
 }
 
 const DEFAULT_EDITOR_STATE = {
@@ -51,11 +51,7 @@ export function LexicalEditor({ initialValue, onChange }: LexicalEditorProps) {
       ParagraphNode as Klass<LexicalNode>,
       TextNode as Klass<LexicalNode>
     ],
-    editorState: initialValue
-      ? typeof initialValue === 'string'
-        ? initialValue
-        : JSON.stringify(initialValue)
-      : JSON.stringify(DEFAULT_EDITOR_STATE),
+    editorState: initialValue || JSON.stringify(DEFAULT_EDITOR_STATE),
     theme: {
       paragraph: 'editor-paragraph',
       heading: {
