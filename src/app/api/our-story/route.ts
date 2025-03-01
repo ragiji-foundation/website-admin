@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { withCors, corsError } from '@/utils/cors';
 
 export async function GET() {
   try {
@@ -29,19 +30,13 @@ export async function GET() {
       timeline
     };
 
-    return new NextResponse(JSON.stringify(data), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    return withCors(NextResponse.json(data));
   } catch (error) {
     console.error('Failed to fetch our story data:', error);
-    return new NextResponse(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    return corsError('Internal server error', 500);
   }
+}
+
+export async function OPTIONS() {
+  return withCors(new NextResponse(null, { status: 200 }));
 }

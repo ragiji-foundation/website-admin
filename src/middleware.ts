@@ -1,46 +1,48 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { corsConfig } from '@/config/cors';
 
-const allowedOrigins = [
-  'https://www.ragijifoundation.com',
-  'https://ragijifoundation.com',
-  'http://localhost:3000'
-];
+function getCorsHeaders(origin: string | null) {
+  const validOrigin = origin && corsConfig.allowedOrigins.includes(origin)
+    ? origin
+    : corsConfig.allowedOrigins[0];
+
+  return {
+    'Access-Control-Allow-Origin': validOrigin,
+    'Access-Control-Allow-Methods': corsConfig.allowedMethods.join(', '),
+    'Access-Control-Allow-Headers': corsConfig.allowedHeaders.join(', '),
+    'Access-Control-Allow-Credentials': corsConfig.credentials.toString(),
+    'Access-Control-Max-Age': corsConfig.maxAge.toString(),
+  };
+}
 
 export function middleware(request: NextRequest) {
-  // Check if the origin is allowed
   const origin = request.headers.get('origin');
-  const isAllowedOrigin = origin && allowedOrigins.includes(origin);
 
-  // Handle OPTIONS preflight requests
+  // Handle preflight requests
   if (request.method === 'OPTIONS') {
     return new NextResponse(null, {
       status: 200,
-      headers: {
-        'Access-Control-Allow-Origin': isAllowedOrigin ? origin : allowedOrigins[0],
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Max-Age': '86400',
-      },
+      headers: getCorsHeaders(origin),
     });
   }
 
   // Handle actual requests
   const response = NextResponse.next();
+  const headers = getCorsHeaders(origin);
 
-  // Add CORS headers to response
-  if (isAllowedOrigin) {
-    response.headers.set('Access-Control-Allow-Origin', origin);
-  } else {
-    response.headers.set('Access-Control-Allow-Origin', allowedOrigins[0]);
-  }
-
-  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  // Apply CORS headers
+  Object.entries(headers).forEach(([key, value]) => {
+    response.headers.set(key, value);
+  });
 
   return response;
 }
 
 export const config = {
-  matcher: '/api/:path*',
+  matcher: [
+    '/api/:path*',
+    '/images/:path*',
+    '/uploads/:path*'
+  ],
 };
