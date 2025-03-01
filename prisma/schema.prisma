@@ -83,7 +83,7 @@ model Tag {
   slug        String   @unique
   description String?
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @default(now())
   blogs       Blog[]   @relation("BlogToTag")
 }
 
@@ -269,4 +269,58 @@ model Stat {
   updatedAt   DateTime @updatedAt
 
   @@map("stats")
+}
+
+model TheNeed {
+  id          String   @id @default(cuid())
+  mainText    String   @db.Text
+  statistics  String   @db.Text
+  impact      String   @db.Text
+  imageUrl    String
+  statsImageUrl String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  isPublished Boolean  @default(false)
+  version     Int      @default(1)
+}
+
+model OurStory {
+  id        String   @id @default(cuid())
+  title     String
+  content   String   @db.Text
+  media     Json     // Stores MediaItem[]
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  version   Int      @default(1)
+}
+
+model OurModel {
+  id          String   @id @default(cuid())
+  description String   @db.Text
+  imageUrl    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model VisionMission {
+  id          String   @id @default(cuid())
+  vision      String   @db.Text
+  mission     String   @db.Text
+  visionIcon  String
+  missionIcon String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Timeline {
+  id         String   @id @default(cuid())
+  year       String
+  title      String
+  centers    Int
+  volunteers Int
+  children   Int
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }

@@ -10,7 +10,8 @@
     "lint": "next lint",
     "postinstall": "prisma generate",
     "db:seed": "prisma db seed",
-    "seed:manual": "node prisma/scripts/seed-manual.mjs"
+    "seed:manual": "node prisma/scripts/seed-manual.mjs",
+    "seed:story": "node prisma/seed/our-story.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.749.0",
