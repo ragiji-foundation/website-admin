@@ -1,20 +1,44 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { sendEmail } from '@/utils/email';
+import nodemailer from 'nodemailer';
+import { joinApplicationTemplates } from '@/utils/emailTemplates';
+
+// Add email transport configuration
+console.log('SMTP Config:', {
+  host: process.env.SMTP_HOST,
+  port: process.env.SMTP_PORT,
+  user: process.env.SMTP_USER ? 'Set' : 'Not set',
+  pass: process.env.SMTP_PASSWORD ? 'Set' : 'Not set',
+  fromEmail: process.env.SMTP_FROM_EMAIL,
+  adminEmail: process.env.ADMIN_EMAIL,
+});
+
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT),
+  secure: true,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASSWORD,
+  },
+});
 
 // Handle OPTIONS requests explicitly for CORS
 export async function OPTIONS() {
-  const headers = new Headers();
-  headers.append("Access-Control-Allow-Origin", "https://www.ragijifoundation.com");
-  headers.append("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
-  headers.append("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-  return new NextResponse(null, { status: 204, headers });
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': 'https://www.ragijifoundation.com',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
 }
 
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
+    const { name, email, phone, role, message } = data;
 
     // Validate required fields
     const requiredFields = ["name", "email", "phone", "role", "message"];
@@ -30,65 +54,63 @@ export async function POST(request: NextRequest) {
     // Create application in database
     const application = await prisma.joinApplication.create({
       data: {
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        role: data.role,
-        message: data.message,
+        name,
+        email,
+        phone,
+        role,
+        message,
         status: "PENDING",
       },
     });
 
-    // Send notification email using existing email utility
-    await sendEmail({
-      to: process.env.ADMIN_EMAIL!,
-      subject: 'New Join Request',
-      text: `New join request from ${data.name} (${data.email})`,
-      html: `
-        <h2>New Join Request</h2>
-        <p><strong>Name:</strong> ${data.name}</p>
-        <p><strong>Email:</strong> ${data.email}</p>
-        <p><strong>Phone:</strong> ${data.phone}</p>
-        <p><strong>Role:</strong> ${data.role}</p>
-        <p><strong>Message:</strong> ${data.message}</p>
-      `
+    // Send confirmation email to applicant with enhanced template
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM_EMAIL,
+      to: email,
+      subject: 'Application Received - Ragi Ji Foundation',
+      html: joinApplicationTemplates.applicant(data)
     });
 
-    // Add CORS headers to the response
-    const headers = new Headers();
-    headers.append("Access-Control-Allow-Origin", "https://www.ragijifoundation.com");
-    headers.append("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
-    headers.append("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    // Send notification email to admin with enhanced template
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM_EMAIL,
+      to: process.env.ADMIN_EMAIL,
+      subject: 'New Join Application',
+      html: joinApplicationTemplates.admin(data)
+    });
 
-    return new NextResponse(JSON.stringify(application), { status: 201, headers });
+    return NextResponse.json(
+      { message: 'Application submitted successfully', application },
+      {
+        status: 201,
+        headers: {
+          'Access-Control-Allow-Origin': 'https://www.ragijifoundation.com',
+          'Access-Control-Allow-Methods': 'POST',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        }
+      }
+    );
 
   } catch (error) {
-    console.error("Error processing join application:", error);
+    console.error('Error processing application:', error);
     return NextResponse.json(
-      { error: "Failed to process application" },
+      { error: 'Failed to process application' },
       { status: 500 }
     );
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const applications = await prisma.joinApplication.findMany({
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' }
     });
 
-    // Add CORS headers to the response
-    const headers = new Headers();
-    headers.append("Access-Control-Allow-Origin", "https://www.ragijifoundation.com");
-    headers.append("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
-    headers.append("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-    return new NextResponse(JSON.stringify(applications), { status: 200, headers });
-
+    return NextResponse.json(applications);
   } catch (error) {
-    console.error("Error fetching applications:", error);
+    console.error('Error fetching applications:', error);
     return NextResponse.json(
-      { error: "Failed to fetch applications" },
+      { error: 'Failed to fetch applications' },
       { status: 500 }
     );
   }

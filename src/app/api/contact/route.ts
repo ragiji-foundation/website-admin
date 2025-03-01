@@ -61,13 +61,50 @@ export async function POST(request: Request) {
     await transporter.sendMail({
       from: process.env.SMTP_FROM_EMAIL,
       to: email,
-      subject: 'We received your message',
+      subject: 'Thank you for contacting Ragi Ji Foundation',
       html: `
-        <h1>Thank you for contacting us</h1>
-        <p>We have received your message and will get back to you soon.</p>
-        <h2>Your message details:</h2>
-        <p><strong>Subject:</strong> ${subject || 'N/A'}</p>
-        <p><strong>Message:</strong> ${message}</p>
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #4a90e2; color: white; padding: 20px; text-align: center; }
+            .content { padding: 20px; background-color: #f9f9f9; }
+            .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
+            .message-box { background-color: white; padding: 15px; border-left: 4px solid #4a90e2; margin: 15px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Thank You for Reaching Out!</h1>
+            </div>
+            <div class="content">
+              <p>Dear ${name || 'Valued Friend'},</p>
+              <p>Thank you for contacting Ragi Ji Foundation. We have received your message and appreciate you taking the time to reach out to us.</p>
+              
+              <div class="message-box">
+                <h3>Your Message Details:</h3>
+                <p><strong>Subject:</strong> ${subject || 'N/A'}</p>
+                <p><strong>Message:</strong> ${message}</p>
+              </div>
+              
+              <p>Our team will review your message and get back to you as soon as possible. Usually, we respond within 24-48 business hours.</p>
+              
+              <p>In the meantime, you can:</p>
+              <ul>
+                <li>Visit our website: <a href="https://www.ragijifoundation.com">www.ragijifoundation.com</a></li>
+                <li>Follow us on social media for updates</li>
+              </ul>
+            </div>
+            <div class="footer">
+              <p>This is an automated message. Please do not reply to this email.</p>
+              <p>© ${new Date().getFullYear()} Ragi Ji Foundation. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+        </html>
       `,
     });
 
@@ -75,12 +112,48 @@ export async function POST(request: Request) {
     await transporter.sendMail({
       from: process.env.SMTP_FROM_EMAIL,
       to: process.env.ADMIN_EMAIL,
-      subject: 'New Contact Form Submission',
+      subject: `New Contact Form Submission - ${subject || 'No Subject'}`,
       html: `
-        <h1>New Contact Form Submission</h1>
-        <p><strong>From:</strong> ${name || 'Anonymous'} (${email})</p>
-        <p><strong>Subject:</strong> ${subject || 'N/A'}</p>
-        <p><strong>Message:</strong> ${message}</p>
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #ff6b6b; color: white; padding: 20px; text-align: center; }
+            .content { padding: 20px; background-color: #f9f9f9; }
+            .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
+            .info-box { background-color: white; padding: 15px; border-left: 4px solid #ff6b6b; margin: 15px 0; }
+            .timestamp { color: #666; font-size: 12px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>New Contact Form Submission</h1>
+            </div>
+            <div class="content">
+              <p class="timestamp">Received on: ${new Date().toLocaleString()}</p>
+              
+              <div class="info-box">
+                <h3>Contact Details:</h3>
+                <p><strong>Name:</strong> ${name || 'Anonymous'}</p>
+                <p><strong>Email:</strong> ${email}</p>
+                <p><strong>Subject:</strong> ${subject || 'N/A'}</p>
+                <h3>Message:</h3>
+                <p>${message}</p>
+              </div>
+              
+              <p>Please respond to this enquiry at your earliest convenience.</p>
+              
+              <p><a href="${process.env.ADMIN_DASHBOARD_URL || '#'}/enquiries">View in Dashboard</a></p>
+            </div>
+            <div class="footer">
+              <p>© ${new Date().getFullYear()} Ragi Ji Foundation - Admin Notification</p>
+            </div>
+          </div>
+        </body>
+        </html>
       `,
     });
 
@@ -123,4 +196,4 @@ export async function GET() {
       { status: 500 }
     );
   }
-} 
+}
