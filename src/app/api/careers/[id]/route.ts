@@ -1,17 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { withCors, corsError } from '@/utils/cors';
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  if (request.method === 'OPTIONS') {
+    return corsError('CORS error', 400);
+  }
+
+  try {
+    const id = parseInt(params.id);
+    const career = await prisma.career.findUnique({
+      where: { id }
+    });
+
+    if (!career) {
+      return withCors(
+        NextResponse.json(
+          { error: 'Career not found' },
+          { status: 404 }
+        )
+      );
+    }
+
+    return withCors(NextResponse.json(career));
+  } catch (error) {
+    return withCors(
+      NextResponse.json(
+        { error: 'Failed to fetch career' },
+        { status: 500 }
+      )
+    );
+  }
+}
 
 export async function PUT(
   request: NextRequest,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  context: any
+  { params }: { params: { id: string } }
 ) {
   try {
+    const id = parseInt(params.id);
     const data = await request.json();
+
     const career = await prisma.career.update({
-      where: { id: parseInt(context.params.id) },
-      data
+      where: { id },
+      data: {
+        title: data.title,
+        slug: data.slug,
+        location: data.location,
+        type: data.type,
+        description: data.description,
+        requirements: data.requirements,
+        isActive: data.isActive,
+      },
     });
+
     return NextResponse.json(career);
   } catch (error) {
     console.error('Error updating career:', error);
@@ -23,14 +68,13 @@ export async function PUT(
 }
 
 export async function DELETE(
-  request: Request,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  context: any
+  request: NextRequest,
+  { params }: { params: { id: string } }
 ) {
   try {
-    const id = parseInt(context.params.id);
+    const id = parseInt(params.id);
     await prisma.career.delete({
-      where: { id }
+      where: { id },
     });
 
     return NextResponse.json({ success: true });
@@ -41,4 +85,8 @@ export async function DELETE(
       { status: 500 }
     );
   }
-} 
+}
+
+export async function OPTIONS() {
+  return withCors(new NextResponse(null, { status: 200 }));
+}

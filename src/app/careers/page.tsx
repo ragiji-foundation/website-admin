@@ -14,23 +14,26 @@ import {
   Select,
   Badge,
   Text,
+  Modal,
+  Switch,
+  Card,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconTrash, IconEdit } from '@tabler/icons-react';
-import { formatDate } from '@/utils/formatDate';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { fetchWithError } from '@/utils/fetchWithError';
-
+import { IconTrash, IconEdit, IconSearch } from '@tabler/icons-react';
+import { useDisclosure } from '@mantine/hooks';
+import { generateSlug } from '@/utils/slug';
 
 interface Career {
   id: number;
   title: string;
+  slug: string;
   location: string;
   type: string;
   description: string;
   requirements: string;
   isActive: boolean;
   createdAt: string;
+  updatedAt: string;
 }
 
 const JOB_TYPES = [
@@ -41,37 +44,33 @@ const JOB_TYPES = [
   { value: 'volunteer', label: 'Volunteer' },
 ];
 
+const initialFormData = {
+  title: '',
+  location: '',
+  type: '',
+  description: '',
+  requirements: '',
+  isActive: true,
+};
+
 export default function CareersAdmin() {
   const [careers, setCareers] = useState<Career[]>([]);
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    title: '',
-    location: '',
-    type: '',
-    description: '',
-    requirements: '',
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState(initialFormData);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [opened, { open, close }] = useDisclosure(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchCareers();
   }, []);
 
-  const validateForm = (data: typeof formData) => {
-    const errors: Record<string, string> = {};
-
-    if (!data.title.trim()) errors.title = 'Title is required';
-    if (!data.location.trim()) errors.location = 'Location is required';
-    if (!data.type) errors.type = 'Job type is required';
-    if (!data.description.trim()) errors.description = 'Description is required';
-    if (!data.requirements.trim()) errors.requirements = 'Requirements are required';
-
-    return Object.keys(errors).length > 0 ? errors : null;
-  };
-
   const fetchCareers = async () => {
     try {
-      const data = await fetchWithError<Career[]>('/api/careers');
+      setLoading(true);
+      const response = await fetch('/api/careers');
+      if (!response.ok) throw new Error('Failed to fetch careers');
+      const data = await response.json();
       setCareers(data);
     } catch (error) {
       notifications.show({
@@ -79,59 +78,62 @@ export default function CareersAdmin() {
         message: error instanceof Error ? error.message : 'Failed to fetch careers',
         color: 'red'
       });
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const errors = validateForm(formData);
-    if (errors) {
-      Object.entries(errors).forEach(([field, message]) => {
-        notifications.show({
-          title: 'Validation Error',
-          message: `${field}: ${message}`,
-          color: 'red'
-        });
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
     try {
-      await fetchWithError('/api/careers', {
-        method: 'POST',
+      const slug = generateSlug(formData.title);
+      const method = editingId ? 'PUT' : 'POST';
+      const url = editingId ? `/api/careers/${editingId}` : '/api/careers';
+
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, slug }),
       });
+
+      if (!response.ok) throw new Error('Failed to save career');
 
       notifications.show({
         title: 'Success',
-        message: 'Career created successfully',
+        message: `Career ${editingId ? 'updated' : 'created'} successfully`,
         color: 'green'
       });
 
-      setFormData({
-        title: '',
-        location: '',
-        type: '',
-        description: '',
-        requirements: '',
-      });
-
+      setFormData(initialFormData);
+      setEditingId(null);
+      close();
       fetchCareers();
     } catch (error) {
       notifications.show({
         title: 'Error',
-        message: error instanceof Error ? error.message : 'Failed to create career',
+        message: error instanceof Error ? error.message : 'Failed to save career',
         color: 'red'
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
+  const handleEdit = (career: Career) => {
+    setFormData({
+      title: career.title,
+      location: career.location,
+      type: career.type,
+      description: career.description,
+      requirements: career.requirements,
+      isActive: career.isActive,
+    });
+    setEditingId(career.id);
+    open();
+  };
+
   const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this career?')) return;
+
     try {
       const response = await fetch(`/api/careers/${id}`, {
         method: 'DELETE',
@@ -147,7 +149,6 @@ export default function CareersAdmin() {
 
       fetchCareers();
     } catch (error) {
-      console.error('Error deleting career:', error);
       notifications.show({
         title: 'Error',
         message: 'Failed to delete career',
@@ -156,112 +157,132 @@ export default function CareersAdmin() {
     }
   };
 
+  const filteredCareers = careers.filter(career =>
+    career.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    career.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    career.type.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <ErrorBoundary>
-     
-        <Title order={2} mb="lg">Manage Careers</Title>
+    <Stack gap="xl">
+      <Card shadow="sm" p="lg">
+        <Group justify="space-between" mb="xl">
+          <Title order={2}>Manage Careers</Title>
+          <Button onClick={open}>Add New Position</Button>
+        </Group>
+
+        <TextInput
+          icon={<IconSearch size={16} />}
+          placeholder="Search careers..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          mb="lg"
+        />
 
         <Grid>
-          <Grid.Col span={7}>
-            <Paper shadow="sm" p="md">
-              <form onSubmit={handleSubmit}>
-                <Stack>
-                  <TextInput
-                    label="Job Title"
-                    required
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  />
-                  <TextInput
-                    label="Location"
-                    required
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  />
-                  <Select
-                    label="Job Type"
-                    required
-                    data={JOB_TYPES}
-                    value={formData.type}
-                    onChange={(value) => setFormData({ ...formData, type: value || '' })}
-                  />
-                 <Textarea
+          {filteredCareers.map((career) => (
+            <Grid.Col key={career.id} span={{ base: 12, md: 6 }}>
+              <Paper shadow="xs" p="md" withBorder>
+                <Group justify="space-between" mb="xs">
+                  <Stack gap="xs">
+                    <Title order={4}>{career.title}</Title>
+                    <Group gap="xs">
+                      <Text size="sm" c="dimmed">{career.location}</Text>
+                      <Badge variant="light">{career.type}</Badge>
+                      <Badge
+                        color={career.isActive ? 'green' : 'gray'}
+                        variant="light"
+                      >
+                        {career.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </Group>
+                  </Stack>
+                  <Group gap="xs">
+                    <ActionIcon
+                      variant="light"
+                      color="blue"
+                      onClick={() => handleEdit(career)}
+                    >
+                      <IconEdit size={16} />
+                    </ActionIcon>
+                    <ActionIcon
+                      variant="light"
+                      color="red"
+                      onClick={() => handleDelete(career.id)}
+                    >
+                      <IconTrash size={16} />
+                    </ActionIcon>
+                  </Group>
+                </Group>
+                <Text size="sm" lineClamp={2} mb="xs">
+                  {career.description}
+                </Text>
+                <Text size="sm" c="dimmed">
+                  Last updated: {new Date(career.updatedAt).toLocaleDateString()}
+                </Text>
+              </Paper>
+            </Grid.Col>
+          ))}
+        </Grid>
+      </Card>
+
+      <Modal
+        opened={opened}
+        onClose={() => {
+          setFormData(initialFormData);
+          setEditingId(null);
+          close();
+        }}
+        title={editingId ? "Edit Career" : "Add New Career"}
+        size="lg"
+      >
+        <form onSubmit={handleSubmit}>
+          <Stack>
+            <TextInput
+              label="Job Title"
+              required
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            />
+            <TextInput
+              label="Location"
+              required
+              value={formData.location}
+              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+            />
+            <Select
+              label="Job Type"
+              required
+              data={JOB_TYPES}
+              value={formData.type}
+              onChange={(value) => setFormData({ ...formData, type: value || '' })}
+            />
+            <Textarea
               label="Description"
               required
               minRows={4}
-              maxRows={8}
-              styles={{
-                input: {
-                  height: '120px',
-                  minHeight: '120px',
-                  resize: 'vertical',
-                },
-              }}
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             />
-                  <Textarea
-                    label="Requirements"
-                    required
-                    minRows={4}
-                    value={formData.requirements}
-                    onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
-                  />
-                  <Group justify="flex-end">
-                    <Button type="submit" loading={isSubmitting}>
-                      Add Career
-                    </Button>
-                  </Group>
-                </Stack>
-              </form>
-            </Paper>
-          </Grid.Col>
-
-          <Grid.Col span={5}>
-            <Paper shadow="sm" p="md">
-              <Title order={3} mb="md">Active Positions</Title>
-              <Stack>
-                {careers.map((item) => (
-                  <Paper key={item.id} shadow="xs" p="sm">
-                    <Group justify="space-between" mb="xs">
-                      <div>
-                        <Title order={4}>{item.title}</Title>
-                        <Group gap="xs">
-                          <Text size="sm" color="dimmed">{item.location}</Text>
-                          <Badge>{item.type}</Badge>
-                        </Group>
-                      </div>
-                      <Group gap="xs">
-                        <ActionIcon
-                          color="blue"
-                          onClick={() => {/* TODO: Implement edit */ }}
-                        >
-                          <IconEdit size={16} />
-                        </ActionIcon>
-                        <ActionIcon
-                          color="red"
-                          onClick={() => handleDelete(item.id)}
-                        >
-                          <IconTrash size={16} />
-                        </ActionIcon>
-                      </Group>
-                    </Group>
-                    <Text size="sm" mb="xs">
-                      Posted on: {formatDate(item.createdAt)}
-                    </Text>
-                    <Text size="sm" mb="xs" lineClamp={3}>
-                      {item.description}
-                    </Text>
-                    <Text size="sm" color="dimmed" lineClamp={2}>
-                      Requirements: {item.requirements}
-                    </Text>
-                  </Paper>
-                ))}
-              </Stack>
-            </Paper>
-          </Grid.Col>
-        </Grid>
-
-    </ErrorBoundary>
+            <Textarea
+              label="Requirements"
+              required
+              minRows={4}
+              value={formData.requirements}
+              onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
+            />
+            <Switch
+              label="Active"
+              checked={formData.isActive}
+              onChange={(e) => setFormData({ ...formData, isActive: e.currentTarget.checked })}
+            />
+            <Group justify="flex-end">
+              <Button variant="light" onClick={close}>Cancel</Button>
+              <Button type="submit">{editingId ? 'Update' : 'Create'}</Button>
+            </Group>
+          </Stack>
+        </form>
+      </Modal>
+    </Stack>
   );
-} 
+}

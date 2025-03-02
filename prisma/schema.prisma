@@ -134,6 +134,7 @@ model Center {
 model Career {
   id           Int      @id @default(autoincrement())
   title        String
+  slug         String   @unique
   location     String
   type         String
   description  String
