@@ -23,6 +23,13 @@
 //   }
 // }
 
+
+
+
+
+
+
+import { withCors, corsError } from '@/utils/cors';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
@@ -32,12 +39,11 @@ export async function GET() {
       orderBy: { createdAt: 'desc' }
     });
     
-    return NextResponse.json(content);
+    return withCors(NextResponse.json(content));
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Failed to fetch content:', error);
+    return corsError('Internal server error', 500);
+    
   }
 }
 
@@ -87,4 +93,9 @@ export async function PUT(request: Request) {
       { status: 500 }
     );
   }
+}
+
+
+export async function OPTIONS() {
+  return withCors(new NextResponse(null, { status: 200 }));
 }

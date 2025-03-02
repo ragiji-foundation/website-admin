@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { withCors, corsError } from '@/utils/cors';
 
 export async function GET() {
   try {
@@ -7,13 +8,10 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
       where: { isActive: true }
     });
-    return NextResponse.json(careers);
+    return withCors(NextResponse.json(careers));
   } catch (error) {
     console.error('Error fetching careers:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch careers' },
-      { status: 500 }
-    );
+    return corsError('Failed to fetch careers');
   }
 }
 
@@ -38,4 +36,8 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}
+
+export async function OPTIONS() {
+  return withCors(new NextResponse(null, { status: 200 }));
+}

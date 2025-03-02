@@ -1,41 +1,35 @@
 'use client';
-
-import { AppShell, Loader, Center } from '@mantine/core';
-import { AdminHeader } from './AdminHeader';
-import { Navbar } from './Navbar';
+import { memo } from 'react';
 import { useSettings } from '@/hooks/useSettings';
-import { Header } from './Header';
+import { Loader, Center } from '@mantine/core';
 
-export function AdminLayout({ children }: { children: React.ReactNode }) {
+
+
+
+interface AdminLayoutProps {
+  children: React.ReactNode;
+}
+
+export function AdminLayout({ children }: AdminLayoutProps) {
   const { data: settings, isLoading } = useSettings();
 
   if (isLoading) {
     return (
       <Center h="100vh">
-        <Loader />
+        <Loader size="lg" />
       </Center>
     );
   }
 
   return (
-    <AppShell
-      header={{ height: 60 }}
-      navbar={{ width: 100, breakpoint: 'sm' }}
-      padding="xs"
-    >
-      <AppShell.Header>
-        <Header
-       
-        />
-      </AppShell.Header>
-      <AppShell.Navbar>
-        <Navbar />
-      </AppShell.Navbar>
-      <AppShell.Main>
-        {children}
-      </AppShell.Main>
-    </AppShell>
+
+      
+
+        <main >
+          {children}
+        </main>
+  
   );
 }
 
-export default AdminLayout; 
+export default memo(AdminLayout);

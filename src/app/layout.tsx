@@ -7,7 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MantineProvider, AppShell } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 
-import Navbar from '@/components/Layout/Navbar';
+import Navbar from '@/components/Layout/Sidebar';
 import { Header } from '@/components/Layout/Header';
 
 const queryClient = new QueryClient();

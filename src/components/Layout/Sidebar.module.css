@@ -1,0 +1,126 @@
+.navbar {
+  width: var(--app-shell-navbar-width);
+  height: 100vh;
+  position: fixed;
+  background-color: #fff;
+  border-right: 1px solid var(--mantine-color-gray-2);
+  transition: width 0.3s ease;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: -100;
+}
+
+.collapsed {
+  width: 90px;
+}
+
+.header {
+  padding: 1rem;
+  border-bottom: 1px solid var(--mantine-color-gray-2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0;
+  /* margin-left: calc(var(--mantine-spacing-md) * -1); */
+  /* margin-right: calc(var(--mantine-spacing-md) * -1); */
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-8));
+}
+
+.toggleButton {
+  background: none;
+  border: none;
+  color: var(--mantine-color-gray-6);
+  cursor: pointer;
+  padding: 0.5rem;
+  transition: color 0.2s;
+}
+
+.toggleButton:hover {
+  color: var(--mantine-color-blue-6);
+}
+
+.navLinks {
+  flex: 1;
+  overflow-y: auto;
+  padding-top: var(--mantine-spacing-md);
+  padding-right: var(--mantine-spacing-md);
+  padding-left: 8px;
+  margin-left: 0;
+  padding-bottom: 2rem;
+}
+
+.navButton {
+  border-radius: var(--mantine-radius-md);
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.navButton:hover {
+  background-color: var(--mantine-color-blue-0);
+  color: var(--mantine-color-blue-7);
+}
+
+.navButton[data-active="true"] {
+  background-color: var(--mantine-color-blue-1);
+  color: var(--mantine-color-blue-7);
+  font-weight: 500;
+}
+
+/* Customize scrollbar */
+.navLinks::-webkit-scrollbar {
+  width: 6px;
+}
+
+.navLinks::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.navLinks::-webkit-scrollbar-thumb {
+  background: var(--mantine-color-gray-3);
+  border-radius: 3px;
+}
+
+.navLinks::-webkit-scrollbar-thumb:hover {
+  background: var(--mantine-color-gray-4);
+}
+
+.link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.active {
+  background-color: var(--mantine-color-blue-0);
+  color: var(--mantine-color-blue-7);
+}
+
+.navLink {
+  text-decoration: none;
+  color: inherit;
+}
+
+.icon {
+  margin-right: 0.5rem;
+  transition: margin 0.3s ease;
+}
+
+.collapsed .icon {
+  margin-right: 0;
+}
+
+.label {
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.collapsed .label {
+  opacity: 0;
+}
+
+.tooltip {
+  display: none;
+}
+
+.collapsed .tooltip {
+  display: block;
+}

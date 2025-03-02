@@ -6,7 +6,16 @@ import Link from 'next/link';
 import { ActionToggle } from '@/components/ActionToggle';
 import { useRouter } from 'next/navigation';
 
-export function Header() {
+export interface HeaderProps {
+  settings?: {
+    siteName?: string;
+    logoUrl?: string | null;
+  };
+}
+
+
+
+export function Header({ settings }: HeaderProps) {
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -25,13 +34,13 @@ export function Header() {
     <Group h="100%" px="md" justify="space-between" align="center">
       <Group>
         <Image
-          src="/logo.png"
+          src={settings?.logoUrl || "/logo.png"}
           alt="Ragiji Foundation Logo"
           w={52}
           h={52}
         />
         <Text size="xl" fw={700}>
-          Ragiji Foundation | Admin Panel
+          {settings?.siteName || 'Ragiji Foundation '}
         </Text>
       </Group>
 
