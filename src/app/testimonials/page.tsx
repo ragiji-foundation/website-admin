@@ -218,7 +218,7 @@ export default function TestimonialsPage() {
                       radius="xl"
                       onError={(e) => {
                         // Fallback to initials if avatar fails to load
-                        e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                        (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
                           testimonial.name
                         )}&background=random`;
                       }}
