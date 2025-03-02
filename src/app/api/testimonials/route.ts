@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { withCors, corsError } from '@/utils/cors';
 
 export async function GET() {
   try {
@@ -9,13 +10,10 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json(testimonials);
+    return withCors(NextResponse.json(testimonials));
   } catch (error) {
     console.error('Error fetching testimonials:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch testimonials' },
-      { status: 500 }
-    );
+    return corsError('Failed to fetch testimonials');
   }
 }
 
@@ -59,16 +57,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function OPTIONS() {
-  return NextResponse.json(
-    {},
-    {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      },
-    }
-  );
+  return withCors(new NextResponse(null, { status: 200 }));
 }
 
 // Helper function to validate image URLs
@@ -79,4 +68,4 @@ function isValidImageUrl(url: string): boolean {
   } catch {
     return false;
   }
-} 
+}

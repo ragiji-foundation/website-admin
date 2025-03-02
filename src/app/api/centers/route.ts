@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma  from '@/lib/prisma';
+import prisma from '@/lib/prisma';
+import { withCors, corsError } from '@/utils/cors';
 
 export async function GET() {
   try {
     const centers = await prisma.center.findMany({
-      orderBy: { createdAt: 'desc' }
+      orderBy: { name: 'asc' }
     });
-    return NextResponse.json(centers);
+
+    return withCors(NextResponse.json(centers));
   } catch (error) {
-    console.error('Error fetching centers:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch centers' },
-      { status: 500 }
-    );
+    console.error('Failed to fetch centers:', error);
+    return corsError('Failed to fetch centers');
   }
 }
 
@@ -22,12 +21,16 @@ export async function POST(request: NextRequest) {
     const center = await prisma.center.create({
       data
     });
-    return NextResponse.json(center);
+    return NextResponse.json(center, { status: 201 });
   } catch (error) {
-    console.error('Error creating center:', error);
+    console.error('Failed to create center:', error);
     return NextResponse.json(
       { error: 'Failed to create center' },
       { status: 500 }
     );
   }
-} 
+}
+
+export async function OPTIONS() {
+  return withCors(new NextResponse(null, { status: 200 }));
+}

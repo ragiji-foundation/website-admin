@@ -33,7 +33,7 @@ export async function GET() {
     return withCors(NextResponse.json(data));
   } catch (error) {
     console.error('Failed to fetch our story data:', error);
-    return corsError('Internal server error', 500);
+    return corsError('Failed to fetch data');
   }
 }
 

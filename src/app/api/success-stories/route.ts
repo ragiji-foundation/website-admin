@@ -1,20 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { withCors, corsError } from '@/utils/cors';
 
 export async function GET() {
   try {
     const stories = await prisma.successStory.findMany({
-      orderBy: [
-        { featured: 'desc' },
-        { order: 'asc' }
-      ]
+      where: { featured: true },
+      orderBy: { order: 'asc' }
     });
-    return NextResponse.json(stories);
+    return withCors(NextResponse.json(stories));
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to fetch success stories' },
-      { status: 500 }
-    );
+    return corsError('Failed to fetch success stories');
   }
 }
 
@@ -29,4 +25,8 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+export async function OPTIONS() {
+  return withCors(new NextResponse(null, { status: 200 }));
 }

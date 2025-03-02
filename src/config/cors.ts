@@ -1,13 +1,13 @@
 export const corsConfig = {
   allowedOrigins: [
     'https://www.ragijifoundation.com',
-    'https://admin.ragijifoundation.com',
     'https://ragijifoundation.com',
-    'http://localhost:3000',
-    'http://localhost:3001'
+    'http://localhost:3000'
   ],
-  allowedMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  credentials: true,
-  maxAge: 86400 // 24 hours
+  allowedMethods: ['GET', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  maxAge: 86400, // 24 hours
+  credentials: false // Set to false for public API endpoints
 };
+
+export const MAIN_WEBSITE = 'https://www.ragijifoundation.com';

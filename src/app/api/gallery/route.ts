@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import prisma from '@/lib/prisma';
+import { withCors, corsError } from '@/utils/cors';
 
 const s3 = new S3Client({
   region: process.env.AWS_REGION!,
@@ -12,12 +13,12 @@ const s3 = new S3Client({
 
 export async function DELETE(
   request: NextRequest,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    context: any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  context: any
 ) {
   try {
     const id = Number(context.params.id);
-    
+
     // Get the gallery item
     const item = await prisma.gallery.findUnique({
       where: { id }
@@ -48,9 +49,9 @@ export async function DELETE(
       where: { id }
     });
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
-      message: 'Gallery item deleted successfully' 
+      message: 'Gallery item deleted successfully'
     });
   } catch (error) {
     console.error('Error deleting gallery item:', error);
@@ -59,4 +60,19 @@ export async function DELETE(
       { status: 500 }
     );
   }
+}
+
+export async function GET() {
+  try {
+    const gallery = await prisma.gallery.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    return withCors(NextResponse.json(gallery));
+  } catch (error) {
+    return corsError('Failed to fetch gallery');
+  }
+}
+
+export async function OPTIONS() {
+  return withCors(new NextResponse(null, { status: 200 }));
 }

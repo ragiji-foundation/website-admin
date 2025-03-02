@@ -1,48 +1,40 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { corsConfig } from '@/config/cors';
-
-function getCorsHeaders(origin: string | null) {
-  const validOrigin = origin && corsConfig.allowedOrigins.includes(origin)
-    ? origin
-    : corsConfig.allowedOrigins[0];
-
-  return {
-    'Access-Control-Allow-Origin': validOrigin,
-    'Access-Control-Allow-Methods': corsConfig.allowedMethods.join(', '),
-    'Access-Control-Allow-Headers': corsConfig.allowedHeaders.join(', '),
-    'Access-Control-Allow-Credentials': corsConfig.credentials.toString(),
-    'Access-Control-Max-Age': corsConfig.maxAge.toString(),
-  };
-}
+import { corsConfig, MAIN_WEBSITE } from '@/config/cors';
 
 export function middleware(request: NextRequest) {
-  const origin = request.headers.get('origin');
+  // Early return if not an API route
+  if (!request.url.includes('/api/')) {
+    return NextResponse.next();
+  }
 
   // Handle preflight requests
   if (request.method === 'OPTIONS') {
     return new NextResponse(null, {
       status: 200,
-      headers: getCorsHeaders(origin),
+      headers: {
+        'Access-Control-Allow-Origin': MAIN_WEBSITE,
+        'Access-Control-Allow-Methods': corsConfig.allowedMethods.join(', '),
+        'Access-Control-Allow-Headers': corsConfig.allowedHeaders.join(', '),
+        'Access-Control-Max-Age': corsConfig.maxAge.toString(),
+      },
     });
   }
 
-  // Handle actual requests
-  const response = NextResponse.next();
-  const headers = getCorsHeaders(origin);
+  // Handle GET requests
+  if (request.method === 'GET') {
+    const response = NextResponse.next();
+    response.headers.set('Access-Control-Allow-Origin', MAIN_WEBSITE);
+    response.headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', corsConfig.allowedHeaders.join(', '));
+    return response;
+  }
 
-  // Apply CORS headers
-  Object.entries(headers).forEach(([key, value]) => {
-    response.headers.set(key, value);
-  });
-
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {
   matcher: [
     '/api/:path*',
-    '/images/:path*',
-    '/uploads/:path*'
   ],
 };
