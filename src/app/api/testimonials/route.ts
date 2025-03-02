@@ -8,6 +8,7 @@ export async function GET() {
       orderBy: {
         createdAt: 'desc',
       },
+      where: { isPublished: true }
     });
 
     return withCors(NextResponse.json(testimonials));
@@ -22,37 +23,29 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // Validate required fields
-    if (!body.name || !body.role || !body.content) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
-
-    // Validate avatar URL if provided
-    if (body.avatar && !isValidImageUrl(body.avatar)) {
-      return NextResponse.json(
-        { error: 'Invalid avatar URL' },
-        { status: 400 }
+    if (!body.name?.trim() || !body.role?.trim() || !body.content?.trim()) {
+      return withCors(
+        NextResponse.json(
+          { error: 'Name, role, and content are required' },
+          { status: 400 }
+        )
       );
     }
 
     const testimonial = await prisma.testimonial.create({
       data: {
-        name: body.name,
-        role: body.role,
-        content: body.content,
-        avatar: body.avatar || null,
+        name: body.name.trim(),
+        role: body.role.trim(),
+        content: body.content.trim(),
+        avatar: body.avatar?.trim() || null,
+        isPublished: true
       },
     });
 
-    return NextResponse.json(testimonial, { status: 201 });
+    return withCors(NextResponse.json(testimonial, { status: 201 }));
   } catch (error) {
     console.error('Error creating testimonial:', error);
-    return NextResponse.json(
-      { error: 'Failed to create testimonial' },
-      { status: 500 }
-    );
+    return corsError('Failed to create testimonial');
   }
 }
 

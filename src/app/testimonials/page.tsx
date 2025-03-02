@@ -75,18 +75,37 @@ export default function TestimonialsPage() {
     fetchTestimonials();
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
     try {
+      // Validate form data
+      if (!formData.name.trim() || !formData.role.trim() || !formData.content.trim()) {
+        notifications.show({
+          title: 'Error',
+          message: 'Please fill in all required fields',
+          color: 'red',
+        });
+        return;
+      }
+
       const response = await fetch('/api/testimonials', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          // Only include avatar if it's not empty
+          avatar: formData.avatar?.trim() || undefined,
+        }),
       });
 
-      if (!response.ok) throw new Error('Failed to create testimonial');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create testimonial');
+      }
 
       notifications.show({
         title: 'Success',
@@ -96,7 +115,7 @@ export default function TestimonialsPage() {
 
       setFormData(initialFormData);
       close();
-      fetchTestimonials();
+      await fetchTestimonials();
     } catch (err) {
       notifications.show({
         title: 'Error',
@@ -132,6 +151,47 @@ export default function TestimonialsPage() {
     }
   };
 
+  const TestimonialCard = ({ testimonial }: { testimonial: Testimonial }) => (
+    <Card shadow="sm" padding="lg" radius="md" withBorder>
+      <Stack gap="md">
+        <Group justify="space-between">
+          <Group>
+            <Avatar
+              src={testimonial.avatar}
+              alt={testimonial.name}
+              size="xl"
+              radius="xl"
+              onError={(e) => {
+                // Fallback to initials if avatar fails to load
+                e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                  testimonial.name
+                )}&background=random`;
+              }}
+            />
+            <div>
+              <Text size="lg" fw={500}>
+                {testimonial.name}
+              </Text>
+              <Text size="sm" c="dimmed">
+                {testimonial.role}
+              </Text>
+            </div>
+          </Group>
+          <ActionIcon
+            color="red"
+            variant="subtle"
+            onClick={() => handleDelete(testimonial.id)}
+          >
+            <IconTrash size={16} />
+          </ActionIcon>
+        </Group>
+        <Text size="sm" style={{ lineHeight: 1.6 }}>
+          {testimonial.content}
+        </Text>
+      </Stack>
+    </Card>
+  );
+
   const PublicView = () => (
     <Stack gap="xl">
       <Paper p="xl" radius="md" withBorder>
@@ -157,6 +217,12 @@ export default function TestimonialsPage() {
                       alt={testimonial.name}
                       size="lg"
                       radius="xl"
+                      onError={(e) => {
+                        // Fallback to initials if avatar fails to load
+                        e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                          testimonial.name
+                        )}&background=random`;
+                      }}
                     />
                     <div>
                       <Text size="sm" fw={500}>
@@ -191,38 +257,7 @@ export default function TestimonialsPage() {
       <Grid>
         {testimonials.map((testimonial) => (
           <Grid.Col key={testimonial.id} span={{ base: 12, md: 6, lg: 4 }}>
-            <Card shadow="sm" padding="lg" radius="md" withBorder>
-              <Stack gap="md">
-                <Group justify="space-between">
-                  <Group>
-                    <Avatar
-                      src={testimonial.avatar}
-                      alt={testimonial.name}
-                      size="xl"
-                      radius="xl"
-                    />
-                    <div>
-                      <Text size="lg" fw={500}>
-                        {testimonial.name}
-                      </Text>
-                      <Text size="sm" c="dimmed">
-                        {testimonial.role}
-                      </Text>
-                    </div>
-                  </Group>
-                  <ActionIcon
-                    color="red"
-                    variant="subtle"
-                    onClick={() => handleDelete(testimonial.id)}
-                  >
-                    <IconTrash size={16} />
-                  </ActionIcon>
-                </Group>
-                <Text size="sm" style={{ lineHeight: 1.6 }}>
-                  {testimonial.content}
-                </Text>
-              </Stack>
-            </Card>
+            <TestimonialCard testimonial={testimonial} />
           </Grid.Col>
         ))}
       </Grid>
@@ -285,7 +320,10 @@ export default function TestimonialsPage() {
 
       <Modal
         opened={opened}
-        onClose={close}
+        onClose={() => {
+          setFormData(initialFormData);
+          close();
+        }}
         title="Add New Testimonial"
         size="lg"
       >
@@ -296,17 +334,20 @@ export default function TestimonialsPage() {
               required
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              error={formData.name.trim() === '' ? 'Name is required' : null}
             />
             <TextInput
               label="Role"
               required
               value={formData.role}
               onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
+              error={formData.role.trim() === '' ? 'Role is required' : null}
             />
             <TextInput
-              label="Avatar URL"
-              value={formData.avatar}
+              label="Avatar URL (optional)"
+              value={formData.avatar || ''}
               onChange={(e) => setFormData(prev => ({ ...prev, avatar: e.target.value }))}
+              placeholder="https://example.com/avatar.jpg"
             />
             <Textarea
               label="Content"
@@ -314,6 +355,7 @@ export default function TestimonialsPage() {
               minRows={4}
               value={formData.content}
               onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+              error={formData.content.trim() === '' ? 'Content is required' : null}
             />
             <Group justify="flex-end">
               <Button variant="light" onClick={close}>Cancel</Button>
@@ -324,4 +366,4 @@ export default function TestimonialsPage() {
       </Modal>
     </Container>
   );
-} 
+}
