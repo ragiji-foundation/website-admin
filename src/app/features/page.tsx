@@ -19,7 +19,7 @@ import {
 import { notifications } from '@mantine/notifications';
 import { useForm } from '@mantine/form';
 import { IconPlus, IconEdit, IconTrash } from '@tabler/icons-react';
-import { LexicalEditor } from '@/components/LexicalEditor';
+import LexicalEditor from '@/components/LexicalEditor';
 
 interface Feature {
   id: string;
@@ -313,12 +313,14 @@ export default function FeaturesManagementPage() {
             <Stack gap="xs">
               <Text size="sm" fw={500}>Description</Text>
               <LexicalEditor
-                initialValue={form.values.description}
+                content={form.values.description}
                 onChange={(value) => {
                   // Ensure the value is stringified JSON
                   const jsonValue = typeof value === 'string' ? value : JSON.stringify(value);
                   form.setFieldValue('description', jsonValue);
                 }}
+                required
+                error={form.errors.content ? String(form.errors.content) : undefined}
               />
             </Stack>
             <Button type="submit">

@@ -10,15 +10,15 @@ import {
   Switch,
   FileInput,
 } from '@mantine/core';
-import { LexicalEditor } from '@/components/LexicalEditor';
+import LexicalEditor from '@/components/LexicalEditor';
 import { notifications } from '@mantine/notifications';
 import { uploadImage } from '@/utils/upload';
 
 interface TheNeedForm {
   id?: string;
-  mainText: string;
-  statistics: string;
-  impact: string;
+  mainText: string | null;
+  statistics: string | null;
+  impact: string | null;
   imageUrl: string;
   statsImageUrl: string;
   isPublished: boolean;
@@ -26,7 +26,14 @@ interface TheNeedForm {
 
 export default function TheNeedAdminPage() {
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<TheNeedForm | null>(null);
+  const [data, setData] = useState<TheNeedForm>({
+    mainText: null,
+    statistics: null,
+    impact: null,
+    imageUrl: '',
+    statsImageUrl: '',
+    isPublished: false
+  });
   const [uploading, setUploading] = useState<{
     main: boolean;
     stats: boolean;
@@ -119,24 +126,36 @@ export default function TheNeedAdminPage() {
           <Box>
             <Title order={3}>Main Text</Title>
             <LexicalEditor
-              initialValue={data?.mainText}
-              onChange={(content) => setData(prev => ({ ...prev!, mainText: content }))}
+              content={data?.mainText || null}
+              onChange={(value) => setData(prev => ({
+                ...prev!,
+                mainText: value ? JSON.stringify(value) : null
+              }))}
+              required
             />
           </Box>
 
           <Box>
             <Title order={3}>Statistics</Title>
             <LexicalEditor
-              initialValue={data?.statistics}
-              onChange={(content) => setData(prev => ({ ...prev!, statistics: content }))}
+              content={data?.statistics || null}
+              onChange={(value) => setData(prev => ({
+                ...prev!,
+                statistics: value ? JSON.stringify(value) : null
+              }))}
+              required
             />
           </Box>
 
           <Box>
             <Title order={3}>Impact</Title>
             <LexicalEditor
-              initialValue={data?.impact}
-              onChange={(content) => setData(prev => ({ ...prev!, impact: content }))}
+              content={data?.impact || null}
+              onChange={(value) => setData(prev => ({
+                ...prev!,
+                impact: value ? JSON.stringify(value) : null
+              }))}
+              required
             />
           </Box>
 

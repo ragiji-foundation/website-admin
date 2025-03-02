@@ -19,9 +19,11 @@
     "@emotion/react": "^11.13.5",
     "@google-analytics/data": "^4.12.0",
     "@hello-pangea/dnd": "^18.0.1",
+    "@lexical/link": "^0.26.0",
+    "@lexical/list": "^0.12.2",
     "@lexical/markdown": "^0.20.1",
-    "@lexical/react": "^0.25.0",
-    "@lexical/rich-text": "^0.20.1",
+    "@lexical/react": "^0.12.2",
+    "@lexical/rich-text": "^0.20.2",
     "@mantine/carousel": "^7.14.3",
     "@mantine/charts": "^7.14.3",
     "@mantine/code-highlight": "^7.14.3",
@@ -60,7 +62,7 @@
     "dayjs": "^1.11.13",
     "embla-carousel-react": "^7.1.0",
     "jose": "^5.9.6",
-    "lexical": "^0.25.0",
+    "lexical": "^0.12.2",
     "next": "15.0.3",
     "next-auth": "^4.24.11",
     "next-mdx-remote": "^5.0.0",
@@ -96,6 +98,10 @@
     "prisma": "^6.3.1",
     "tailwindcss": "^3.4.1",
     "ts-node": "^10.9.2"
+  },
+  "resolutions": {
+    "lexical": "^0.12.2",
+    "@lexical/*": "^0.12.2"
   },
   "prisma": {
     "seed": "node --loader ts-node/esm prisma/seed.ts"

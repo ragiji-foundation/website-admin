@@ -21,7 +21,7 @@ import {
 import { notifications } from '@mantine/notifications';
 import { useForm } from '@mantine/form';
 import { IconPlus, IconEdit, IconTrash, IconUpload } from '@tabler/icons-react';
-import { LexicalEditor } from '@/components/LexicalEditor';
+import LexicalEditor from '@/components/LexicalEditor';
 import type { SuccessStory } from '@/types/success-story';
 
 interface SuccessStoryForm {
@@ -297,12 +297,14 @@ export default function SuccessStoriesManagementPage() {
             <Stack gap="xs">
               <Text size="sm" fw={500}>Story Content</Text>
               <LexicalEditor
-                initialValue={form.values.content}
+                content={form.values.content}
                 onChange={(value) => {
                   // Ensure the value is stringified JSON
                   const jsonValue = typeof value === 'string' ? value : JSON.stringify(value);
                   form.setFieldValue('content', jsonValue);
                 }}
+                error={form.errors.content ? String(form.errors.content) : undefined}
+                required
               />
             </Stack>
             <Stack gap="xs">

@@ -22,6 +22,7 @@ import { notifications } from '@mantine/notifications';
 import { IconTrash, IconEdit, IconSearch } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import { generateSlug } from '@/utils/slug';
+import LexicalEditor from '@/components/LexicalEditor';
 
 interface Career {
   id: number;
@@ -44,13 +45,47 @@ const JOB_TYPES = [
   { value: 'volunteer', label: 'Volunteer' },
 ];
 
-const initialFormData = {
+interface EditorContent {
+  json: any;
+  isEmpty: boolean;
+  text: string;
+}
+
+const isEmptyContent = (content: EditorContent | null | undefined): boolean => {
+  if (!content) return true;
+  return content.isEmpty || !content.text.trim();
+};
+
+interface FormData {
+  title: string;
+  location: string;
+  type: string;
+  description: EditorContent | null;
+  requirements: EditorContent | null;
+  isActive: boolean;
+}
+
+const initialFormData: FormData = {
   title: '',
   location: '',
   type: '',
-  description: '',
-  requirements: '',
+  description: null,
+  requirements: null,
   isActive: true,
+};
+
+const parseRichText = (content: string): string => {
+  try {
+    const parsed = JSON.parse(content);
+    return parsed.root.children
+      .map((p: any) => p.children
+        .map((c: any) => c.text)
+        .join('')
+      )
+      .join('\n');
+  } catch (e) {
+    return content;
+  }
 };
 
 export default function CareersAdmin() {
@@ -86,15 +121,37 @@ export default function CareersAdmin() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (isEmptyContent(formData.description) || isEmptyContent(formData.requirements)) {
+      notifications.show({
+        title: 'Validation Error',
+        message: 'Description and Requirements are required',
+        color: 'red'
+      });
+      return;
+    }
+
     try {
       const slug = generateSlug(formData.title);
       const method = editingId ? 'PUT' : 'POST';
-      const url = editingId ? `/api/careers/${editingId}` : '/api/careers';
+      const body = editingId
+        ? {
+          ...formData,
+          id: editingId,
+          slug,
+          description: formData.description?.json,
+          requirements: formData.requirements?.json,
+        }
+        : {
+          ...formData,
+          slug,
+          description: formData.description?.json,
+          requirements: formData.requirements?.json,
+        };
 
-      const response = await fetch(url, {
+      const response = await fetch('/api/careers', {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, slug }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) throw new Error('Failed to save career');
@@ -123,8 +180,12 @@ export default function CareersAdmin() {
       title: career.title,
       location: career.location,
       type: career.type,
-      description: career.description,
-      requirements: career.requirements,
+      description: typeof career.description === 'string'
+        ? JSON.parse(career.description)
+        : career.description,
+      requirements: typeof career.requirements === 'string'
+        ? JSON.parse(career.requirements)
+        : career.requirements,
       isActive: career.isActive,
     });
     setEditingId(career.id);
@@ -135,7 +196,7 @@ export default function CareersAdmin() {
     if (!confirm('Are you sure you want to delete this career?')) return;
 
     try {
-      const response = await fetch(`/api/careers/${id}`, {
+      const response = await fetch(`/api/careers?id=${id}`, {
         method: 'DELETE',
       });
 
@@ -172,7 +233,7 @@ export default function CareersAdmin() {
         </Group>
 
         <TextInput
-          icon={<IconSearch size={16} />}
+          rightSection={<IconSearch size={16} />}
           placeholder="Search careers..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -215,7 +276,7 @@ export default function CareersAdmin() {
                   </Group>
                 </Group>
                 <Text size="sm" lineClamp={2} mb="xs">
-                  {career.description}
+                  {parseRichText(career.description)}
                 </Text>
                 <Text size="sm" c="dimmed">
                   Last updated: {new Date(career.updatedAt).toLocaleDateString()}
@@ -234,7 +295,7 @@ export default function CareersAdmin() {
           close();
         }}
         title={editingId ? "Edit Career" : "Add New Career"}
-        size="lg"
+        size="xl"
       >
         <form onSubmit={handleSubmit}>
           <Stack>
@@ -257,19 +318,25 @@ export default function CareersAdmin() {
               value={formData.type}
               onChange={(value) => setFormData({ ...formData, type: value || '' })}
             />
-            <Textarea
+            <LexicalEditor
               label="Description"
               required
-              minRows={4}
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              content={formData.description?.json || null}
+              onChange={(content) => setFormData(prev => ({
+                ...prev,
+                description: content
+              }))}
+              error={isEmptyContent(formData.description) ? 'Description is required' : undefined}
             />
-            <Textarea
+            <LexicalEditor
               label="Requirements"
               required
-              minRows={4}
-              value={formData.requirements}
-              onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
+              content={formData.requirements?.json || null}
+              onChange={(content) => setFormData(prev => ({
+                ...prev,
+                requirements: content
+              }))}
+              error={isEmptyContent(formData.requirements) ? 'Requirements are required' : undefined}
             />
             <Switch
               label="Active"

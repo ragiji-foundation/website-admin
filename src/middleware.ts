@@ -13,7 +13,7 @@ export function middleware(request: NextRequest) {
     return new NextResponse(null, {
       status: 200,
       headers: {
-        'Access-Control-Allow-Origin': MAIN_WEBSITE,
+        'Access-Control-Allow-Origin': `${MAIN_WEBSITE}, http://localhost:3000/, http://localhost:3001/`,
         'Access-Control-Allow-Methods': corsConfig.allowedMethods.join(', '),
         'Access-Control-Allow-Headers': corsConfig.allowedHeaders.join(', '),
         'Access-Control-Max-Age': corsConfig.maxAge.toString(),
