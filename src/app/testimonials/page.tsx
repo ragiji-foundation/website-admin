@@ -27,11 +27,13 @@ import { notifications } from '@mantine/notifications';
 import { useDisclosure } from '@mantine/hooks';
 
 type Testimonial = {
-  id: string;
+  id: number;  // Changed from string to number to match Prisma schema
   name: string;
   role: string;
   content: string;
   avatar?: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 interface TestimonialFormData {
@@ -82,7 +84,7 @@ export default function TestimonialsPage() {
       // Validate form data
       if (!formData.name.trim() || !formData.role.trim() || !formData.content.trim()) {
         notifications.show({
-          title: 'Error',
+          title: 'Validation Error',
           message: 'Please fill in all required fields',
           color: 'red',
         });
@@ -94,11 +96,7 @@ export default function TestimonialsPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...formData,
-          // Only include avatar if it's not empty
-          avatar: formData.avatar?.trim() || undefined,
-        }),
+        body: JSON.stringify(formData),
       });
 
       const data = await response.json();
@@ -117,6 +115,7 @@ export default function TestimonialsPage() {
       close();
       await fetchTestimonials();
     } catch (err) {
+      console.error('Error creating testimonial:', err);
       notifications.show({
         title: 'Error',
         message: err instanceof Error ? err.message : 'Failed to create testimonial',
@@ -125,7 +124,7 @@ export default function TestimonialsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this testimonial?')) return;
 
     try {
@@ -163,7 +162,7 @@ export default function TestimonialsPage() {
               radius="xl"
               onError={(e) => {
                 // Fallback to initials if avatar fails to load
-                e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
                   testimonial.name
                 )}&background=random`;
               }}
