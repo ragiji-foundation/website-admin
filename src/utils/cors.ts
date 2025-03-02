@@ -3,7 +3,14 @@ import { NextResponse } from 'next/server';
 
 export function withCors<T>(response: NextResponse<T>) {
   const headers = new Headers(response.headers);
-  headers.set('Access-Control-Allow-Origin', corsConfig.allowedOrigins[0]);
+
+  const origin = response.headers.get('Origin');
+  if (origin && corsConfig.allowedOrigins.includes(origin)) {
+    headers.set('Access-Control-Allow-Origin', origin);
+  } else {
+    headers.set('Access-Control-Allow-Origin', corsConfig.allowedOrigins[0]); // Default
+  }
+
   headers.set('Access-Control-Allow-Methods', corsConfig.allowedMethods.join(', '));
   headers.set('Access-Control-Allow-Headers', corsConfig.allowedHeaders.join(', '));
   headers.set('Access-Control-Allow-Credentials', corsConfig.credentials.toString());
@@ -13,10 +20,4 @@ export function withCors<T>(response: NextResponse<T>) {
     statusText: response.statusText,
     headers
   });
-}
-
-export function corsError(message: string, status = 400) {
-  return withCors(
-    NextResponse.json({ error: message }, { status })
-  );
 }
