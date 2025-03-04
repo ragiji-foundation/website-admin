@@ -1,22 +1,26 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { ActionIcon, Group, Modal, Stack, TextInput, Button } from '@mantine/core';
 import {
-  IconBold,
-  IconItalic,
-  IconUnderline,
-  IconList,
-  IconListNumbers,
-  IconClearFormatting,
-  IconLink,
-  IconH1,
-  IconH2,
-  IconQuote,
+  IconBold, IconItalic, IconUnderline, IconList, IconListNumbers,
+  IconClearFormatting, IconLink, IconH1, IconH2,
   IconSeparator,
-  IconCode,
 } from '@tabler/icons-react';
+import { INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND } from '@lexical/list';
+import {
+  FORMAT_TEXT_COMMAND,
+  FORMAT_ELEMENT_COMMAND,
+  CLEAR_EDITOR_COMMAND,
+  LexicalNode
+} from 'lexical';
+import {
+  $getSelection,
+  $isRangeSelection,
+} from 'lexical';
+import { $createHeadingNode as createHeadingNode } from '@lexical/rich-text'
+
 import { TOGGLE_LINK_COMMAND } from '@lexical/link';
-import { $getSelection, $isRangeSelection } from 'lexical';
-import { createPortal } from 'react-dom';
+import { INSERT_HORIZONTAL_RULE_COMMAND } from '@lexical/react/LexicalHorizontalRuleNode';
+
 import { useState, useCallback } from 'react';
 
 export default function ToolbarPlugin() {
@@ -24,28 +28,47 @@ export default function ToolbarPlugin() {
   const [showURLDialog, setShowURLDialog] = useState(false);
   const [urlInputValue, setUrlInputValue] = useState('');
 
+
+  const formatHeading = (tag: 'h1' | 'h2' | 'h3' | 'h4') => {
+    editor.update(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        const nodes = selection.extract();
+        nodes.forEach((node) => {
+          const headingNode = createHeadingNode(tag);
+          headingNode.append(...node.getChildren());
+          node.replace(headingNode as unknown as LexicalNode);
+        });
+      }
+    });
+  };
+
+  const formatAlignment = (alignment: 'left' | 'center' | 'right' | 'justify') => {
+    editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, alignment);
+  };
+
   const formatBulletList = () => {
-    editor.dispatchCommand('INSERT_UNORDERED_LIST', undefined);
+    editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
   };
 
   const formatNumberedList = () => {
-    editor.dispatchCommand('INSERT_ORDERED_LIST', undefined);
+    editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined);
   };
 
   const formatBold = () => {
-    editor.dispatchCommand('FORMAT_TEXT_COMMAND', 'bold');
+    editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold');
   };
 
   const formatItalic = () => {
-    editor.dispatchCommand('FORMAT_TEXT_COMMAND', 'italic');
+    editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic');
   };
 
   const formatUnderline = () => {
-    editor.dispatchCommand('FORMAT_TEXT_COMMAND', 'underline');
+    editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline');
   };
 
   const clearFormatting = () => {
-    editor.dispatchCommand('CLEAR_FORMATTING_COMMAND', undefined);
+    editor.dispatchCommand(CLEAR_EDITOR_COMMAND, undefined);
   };
 
   const toggleLink = useCallback(() => {
@@ -70,34 +93,35 @@ export default function ToolbarPlugin() {
     setUrlInputValue('');
   }, [editor, urlInputValue]);
 
-  const formatHeading = (level: 1 | 2) => {
-    editor.update(() => {
-      const selection = $getSelection();
-      if ($isRangeSelection(selection)) {
-        editor.dispatchCommand('FORMAT_HEADING_COMMAND', level);
-      }
-    });
-  };
-
-  const formatQuote = () => {
-    editor.dispatchCommand('FORMAT_QUOTE_COMMAND', undefined);
-  };
-
   const insertHorizontalRule = () => {
-    editor.dispatchCommand('INSERT_HORIZONTAL_RULE_COMMAND', undefined);
-  };
-
-  const formatCode = () => {
-    editor.dispatchCommand('FORMAT_CODE_COMMAND', undefined);
+    editor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND, undefined);
   };
 
   return (
     <>
       <Group gap="xs" mb="xs">
-        <ActionIcon variant="light" onClick={() => formatHeading(1)}>
+        <ActionIcon variant="light" onClick={() => formatHeading('h1')}>
           <IconH1 size={16} />
         </ActionIcon>
-        <ActionIcon variant="light" onClick={() => formatHeading(2)}>
+        <ActionIcon variant="light" onClick={() => formatHeading('h2')}>
+          <IconH2 size={16} />
+        </ActionIcon>
+        <ActionIcon variant="light" onClick={() => formatHeading('h3')}>
+          <IconH1 size={16} />
+        </ActionIcon>
+        <ActionIcon variant="light" onClick={() => formatHeading('h4')}>
+          <IconH2 size={16} />
+        </ActionIcon>
+        <ActionIcon variant="light" onClick={() => formatAlignment('justify')}>
+          <IconH1 size={16} />
+        </ActionIcon>
+        <ActionIcon variant="light" onClick={() => formatAlignment('right')}>
+          <IconH2 size={16} />
+        </ActionIcon>
+        <ActionIcon variant="light" onClick={() => formatAlignment('left')}>
+          <IconH1 size={16} />
+        </ActionIcon>
+        <ActionIcon variant="light" onClick={() => formatAlignment('center')}>
           <IconH2 size={16} />
         </ActionIcon>
         <ActionIcon variant="light" onClick={formatBold}>
@@ -108,12 +132,6 @@ export default function ToolbarPlugin() {
         </ActionIcon>
         <ActionIcon variant="light" onClick={formatUnderline}>
           <IconUnderline size={16} />
-        </ActionIcon>
-        <ActionIcon variant="light" onClick={formatCode}>
-          <IconCode size={16} />
-        </ActionIcon>
-        <ActionIcon variant="light" onClick={formatQuote}>
-          <IconQuote size={16} />
         </ActionIcon>
         <ActionIcon variant="light" onClick={formatBulletList}>
           <IconList size={16} />
@@ -131,8 +149,7 @@ export default function ToolbarPlugin() {
           <IconClearFormatting size={16} />
         </ActionIcon>
       </Group>
-
-      {showURLDialog && createPortal(
+      {showURLDialog && (
         <Modal
           opened={showURLDialog}
           onClose={() => setShowURLDialog(false)}
@@ -155,8 +172,7 @@ export default function ToolbarPlugin() {
               </Button>
             </Group>
           </Stack>
-        </Modal>,
-        document.body
+        </Modal>
       )}
     </>
   );
