@@ -17,30 +17,30 @@ import styles from './styles.module.css';
 import { HeadingNode, QuoteNode } from '@lexical/rich-text';
 import { Klass } from 'lexical';
 import { ListNode, ListItemNode } from '@lexical/list';
-import { ParagraphNode, TextNode, LexicalNode } from 'lexical';
+import { ParagraphNode, TextNode, LexicalNode, SerializedElementNode } from 'lexical';
 import LexicalErrorBoundary from '@lexical/react/LexicalErrorBoundary';
 import { LinkNode } from '@lexical/link';
 import { TableNode, TableCellNode, TableRowNode } from '@lexical/table';
 import { CodeNode } from '@lexical/code';
 import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode';
-import { $getRoot, createEditor, EditorState } from 'lexical';
+import { $getRoot, createEditor, EditorState, SerializedEditorState, SerializedLexicalNode } from 'lexical';
 
-const DEFAULT_EDITOR_STATE = {
+const DEFAULT_EDITOR_STATE: SerializedEditorState<SerializedElementNode> = {
   root: {
     children: [
       {
         children: [],
         direction: null,
-        format: "",
+        format: '',
         indent: 0,
-        type: "paragraph",
+        type: 'paragraph',
         version: 1,
       }
     ],
     direction: null,
-    format: "",
+    format: '',
     indent: 0,
-    type: "root",
+    type: 'root',
     version: 1
   }
 };
@@ -105,8 +105,7 @@ export default function LexicalEditor({
     onError: (error: Error) => {
       console.error('Lexical error:', error);
     },
-    editor
-  }), [editor]);
+  }), []);
 
   const handleStateChange = useCallback((editorState: EditorState) => {
     try {
@@ -137,11 +136,17 @@ export default function LexicalEditor({
   }, [onChange]);
 
   useEffect(() => {
-    if (!editor || !content) return;
-
-    const parsedContent = typeof content === 'string' ? JSON.parse(content) : content;
-    const state = editor.parseEditorState(parsedContent);
-    editor.setEditorState(state);
+    if (content) {
+      const parsedContent = getInitialContent(content);
+      editor.update(() => {
+        const state = editor.parseEditorState(parsedContent);
+        if (state.isEmpty()) {
+          editor.setEditorState(editor.parseEditorState(DEFAULT_EDITOR_STATE));
+        } else {
+          editor.setEditorState(state);
+        }
+      });
+    }
   }, [editor, content]);
 
   return (

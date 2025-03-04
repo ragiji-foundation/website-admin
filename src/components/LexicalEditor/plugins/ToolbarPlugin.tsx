@@ -2,7 +2,8 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { ActionIcon, Group, Modal, Stack, TextInput, Button } from '@mantine/core';
 import {
   IconBold, IconItalic, IconUnderline, IconList, IconListNumbers,
-  IconClearFormatting, IconLink, IconH1, IconH2,
+  IconClearFormatting, IconLink, IconH1, IconH2, IconH3, IconH4,
+  IconAlignLeft, IconAlignCenter, IconAlignRight, IconAlignJustified,
   IconSeparator,
 } from '@tabler/icons-react';
 import { INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND } from '@lexical/list';
@@ -28,7 +29,6 @@ export default function ToolbarPlugin() {
   const [showURLDialog, setShowURLDialog] = useState(false);
   const [urlInputValue, setUrlInputValue] = useState('');
 
-
   const formatHeading = (tag: 'h1' | 'h2' | 'h3' | 'h4') => {
     editor.update(() => {
       const selection = $getSelection();
@@ -44,31 +44,45 @@ export default function ToolbarPlugin() {
   };
 
   const formatAlignment = (alignment: 'left' | 'center' | 'right' | 'justify') => {
-    editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, alignment);
+    editor.update(() => {
+      editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, alignment);
+    });
   };
 
   const formatBulletList = () => {
-    editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
+    editor.update(() => {
+      editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
+    });
   };
 
   const formatNumberedList = () => {
-    editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined);
+    editor.update(() => {
+      editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined);
+    });
   };
 
   const formatBold = () => {
-    editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold');
+    editor.update(() => {
+      editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold');
+    });
   };
 
   const formatItalic = () => {
-    editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic');
+    editor.update(() => {
+      editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic');
+    });
   };
 
   const formatUnderline = () => {
-    editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline');
+    editor.update(() => {
+      editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline');
+    });
   };
 
   const clearFormatting = () => {
-    editor.dispatchCommand(CLEAR_EDITOR_COMMAND, undefined);
+    editor.update(() => {
+      editor.dispatchCommand(CLEAR_EDITOR_COMMAND, undefined);
+    });
   };
 
   const toggleLink = useCallback(() => {
@@ -94,7 +108,9 @@ export default function ToolbarPlugin() {
   }, [editor, urlInputValue]);
 
   const insertHorizontalRule = () => {
-    editor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND, undefined);
+    editor.update(() => {
+      editor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND, undefined);
+    });
   };
 
   return (
@@ -107,22 +123,22 @@ export default function ToolbarPlugin() {
           <IconH2 size={16} />
         </ActionIcon>
         <ActionIcon variant="light" onClick={() => formatHeading('h3')}>
-          <IconH1 size={16} />
+          <IconH3 size={16} />
         </ActionIcon>
         <ActionIcon variant="light" onClick={() => formatHeading('h4')}>
-          <IconH2 size={16} />
-        </ActionIcon>
-        <ActionIcon variant="light" onClick={() => formatAlignment('justify')}>
-          <IconH1 size={16} />
-        </ActionIcon>
-        <ActionIcon variant="light" onClick={() => formatAlignment('right')}>
-          <IconH2 size={16} />
+          <IconH4 size={16} />
         </ActionIcon>
         <ActionIcon variant="light" onClick={() => formatAlignment('left')}>
-          <IconH1 size={16} />
+          <IconAlignLeft size={16} />
         </ActionIcon>
         <ActionIcon variant="light" onClick={() => formatAlignment('center')}>
-          <IconH2 size={16} />
+          <IconAlignCenter size={16} />
+        </ActionIcon>
+        <ActionIcon variant="light" onClick={() => formatAlignment('right')}>
+          <IconAlignRight size={16} />
+        </ActionIcon>
+        <ActionIcon variant="light" onClick={() => formatAlignment('justify')}>
+          <IconAlignJustified size={16} />
         </ActionIcon>
         <ActionIcon variant="light" onClick={formatBold}>
           <IconBold size={16} />

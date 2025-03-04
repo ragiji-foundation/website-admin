@@ -1,0 +1,31 @@
+.imageWrapper {
+  position: relative;
+  cursor: pointer;
+}
+
+.imageWrapper:hover .image {
+  transform: scale(1.05);
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Optional: Add a subtle overlay effect on hover */
+.imageWrapper::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0);
+  transition: background 0.3s ease;
+  pointer-events: none;
+}
+
+.imageWrapper:hover::after {
+  background: rgba(0, 0, 0, 0.1);
+}
