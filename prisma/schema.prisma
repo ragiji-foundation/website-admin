@@ -325,3 +325,15 @@ model Timeline {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
+
+model RichTextContent {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  modelName String   // Name of the model this content belongs to (e.g., "Blog", "Page")
+  fieldName String   // Name of the field in the model (e.g., "body", "description")
+  recordId  String?  // ID of the specific record in the model
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([modelName, fieldName, recordId])
+}

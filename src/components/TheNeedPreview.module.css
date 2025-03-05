@@ -1,5 +1,9 @@
 .imageWrapper {
+  width: 100%;
   position: relative;
+  overflow: hidden;
+  border-radius: var(--mantine-radius-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   cursor: pointer;
 }
 
@@ -11,6 +15,12 @@
   display: block;
   width: 100%;
   height: auto;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.image:hover {
+  transform: scale(1.02);
 }
 
 /* Optional: Add a subtle overlay effect on hover */
@@ -28,4 +38,88 @@
 
 .imageWrapper:hover::after {
   background: rgba(0, 0, 0, 0.1);
+}
+
+.contentPaper {
+  background-color: white;
+  border: 1px solid var(--mantine-color-gray-2);
+  transition: box-shadow 0.3s ease;
+}
+
+.contentPaper:hover {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+/* Styling for HTML content */
+.richContent {
+  font-size: var(--mantine-font-size-md);
+  line-height: 1.7;
+  color: var(--mantine-color-dark-8);
+}
+
+.richContent h1,
+.richContent h2,
+.richContent h3,
+.richContent h4,
+.richContent h5,
+.richContent h6 {
+  margin-top: 1rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  color: var(--mantine-color-dark-9);
+}
+
+.richContent p {
+  margin-bottom: 1rem;
+}
+
+.richContent ul,
+.richContent ol {
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.richContent li {
+  margin-bottom: 0.25rem;
+}
+
+.richContent a {
+  color: var(--mantine-color-blue-6);
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+.richContent a:hover {
+  color: var(--mantine-color-blue-8);
+}
+
+.richContent img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--mantine-radius-md);
+  margin: 1rem 0;
+}
+
+.richContent blockquote {
+  border-left: 4px solid var(--mantine-color-blue-3);
+  padding-left: 1rem;
+  color: var(--mantine-color-dark-6);
+  font-style: italic;
+  margin: 1rem 0;
+}
+
+.richContent table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.richContent th,
+.richContent td {
+  border: 1px solid var(--mantine-color-gray-3);
+  padding: 0.5rem;
+}
+
+.richContent th {
+  background-color: var(--mantine-color-gray-1);
 }

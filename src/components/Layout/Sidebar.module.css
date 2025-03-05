@@ -1,58 +1,127 @@
 .navbar {
-  width: var(--app-shell-navbar-width);
-  height: 100vh;
-  position: fixed;
-  background-color: #fff;
-  border-right: 1px solid var(--mantine-color-gray-2);
-  transition: width 0.3s ease;
-  overflow-y: auto;
-  overflow-x: hidden;
-  z-index: -100;
+  width: 280px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--mantine-color-white);
+  border-right: 1px solid var(--mantine-color-gray-3);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  z-index: 100;
 }
 
 .collapsed {
-  width: 90px;
+  width: 70px;
 }
 
-.header {
-  padding: 1rem;
-  border-bottom: 1px solid var(--mantine-color-gray-2);
+.navbarInner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0.75rem;
+}
+
+.navHead {
+  height: 60px;
+  padding: 0 0.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 0;
-  /* margin-left: calc(var(--mantine-spacing-md) * -1); */
-  /* margin-right: calc(var(--mantine-spacing-md) * -1); */
-  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-8));
+  margin-bottom: 0.5rem;
+}
+
+.logo {
+  background: linear-gradient(45deg, var(--mantine-color-blue-7), var(--mantine-color-indigo-5));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  transition: opacity 0.3s ease;
+}
+
+.collapsed .logo {
+  opacity: 0;
+  width: 0;
+}
+
+.actionIcon {
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mantine-color-blue-6);
+  transition: all 0.2s ease;
+}
+
+.actionIconLight {
+  background-color: var(--mantine-color-blue-1);
+}
+
+.actionIcon:hover {
+  background-color: var(--mantine-color-blue-2);
+  transform: scale(1.05);
 }
 
 .toggleButton {
-  background: none;
-  border: none;
-  color: var(--mantine-color-gray-6);
-  cursor: pointer;
-  padding: 0.5rem;
-  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
 }
 
-.toggleButton:hover {
-  color: var(--mantine-color-blue-6);
+.collapsed .toggleButton {
+  transform: rotate(180deg);
 }
 
-.navLinks {
+.navItemsWrapper {
   flex: 1;
   overflow-y: auto;
-  padding-top: var(--mantine-spacing-md);
-  padding-right: var(--mantine-spacing-md);
-  padding-left: 8px;
-  margin-left: 0;
-  padding-bottom: 2rem;
+  overflow-x: hidden;
+  padding-right: 0.25rem;
+  margin-right: -0.25rem;
+  /* To hide the scrollbar */
+}
+
+.navItems {
+  padding-bottom: 1rem;
+}
+
+.dividerContainer {
+  margin: 0.5rem 0;
+}
+
+.divider {
+  border-top-width: 1px;
+  opacity: 0.6;
 }
 
 .navButton {
-  border-radius: var(--mantine-radius-md);
+  border-radius: 8px;
   font-weight: 500;
   transition: all 0.2s ease;
+  cursor: pointer;
+  margin-bottom: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.navButton::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--mantine-color-blue-1), transparent);
+  transition: width 0.2s ease;
+  z-index: -1;
+  opacity: 0;
 }
 
 .navButton:hover {
@@ -60,67 +129,111 @@
   color: var(--mantine-color-blue-7);
 }
 
+.navButton:hover::before {
+  width: 100%;
+  opacity: 1;
+}
+
 .navButton[data-active="true"] {
   background-color: var(--mantine-color-blue-1);
+  color: var(--mantine-color-blue-8);
+  font-weight: 600;
+}
+
+.activeNavButton {
+  background-color: var(--mantine-color-blue-1);
+  color: var(--mantine-color-blue-8);
+  font-weight: 600;
+  box-shadow: 0 0 0 1px var(--mantine-color-blue-3);
+}
+
+.activeNavButton::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 3px;
+  background: linear-gradient(0deg, var(--mantine-color-blue-5), var(--mantine-color-blue-8));
+}
+
+.navLinkLabel {
+  display: flex;
+  align-items: center;
+}
+
+.navChildren {
+  padding-left: 0.5rem;
+}
+
+.iconContainer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-right: 10px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.activeIcon {
   color: var(--mantine-color-blue-7);
-  font-weight: 500;
-}
-
-/* Customize scrollbar */
-.navLinks::-webkit-scrollbar {
-  width: 6px;
-}
-
-.navLinks::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.navLinks::-webkit-scrollbar-thumb {
-  background: var(--mantine-color-gray-3);
-  border-radius: 3px;
-}
-
-.navLinks::-webkit-scrollbar-thumb:hover {
-  background: var(--mantine-color-gray-4);
-}
-
-.link {
-  text-decoration: none;
-  color: inherit;
-}
-
-.active {
-  background-color: var(--mantine-color-blue-0);
-  color: var(--mantine-color-blue-7);
+  transform: scale(1.1);
 }
 
 .navLink {
   text-decoration: none;
   color: inherit;
+  display: block;
+  width: 100%;
+  cursor: pointer;
 }
 
-.icon {
-  margin-right: 0.5rem;
-  transition: margin 0.3s ease;
+/* Customize scrollbar */
+.navItemsWrapper::-webkit-scrollbar {
+  width: 4px;
 }
 
-.collapsed .icon {
-  margin-right: 0;
+.navItemsWrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.navItemsWrapper::-webkit-scrollbar-thumb {
+  background: var(--mantine-color-gray-3);
+  border-radius: 4px;
+}
+
+.navItemsWrapper::-webkit-scrollbar-thumb:hover {
+  background: var(--mantine-color-blue-3);
 }
 
 .label {
   opacity: 1;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.2s ease;
+  white-space: nowrap;
 }
 
 .collapsed .label {
   opacity: 0;
+  width: 0;
 }
 
-.tooltip {
-  display: none;
+/* Animation for hover effect */
+@keyframes highlight {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
-.collapsed .tooltip {
-  display: block;
+.navButton:active {
+  transform: translateY(1px);
 }

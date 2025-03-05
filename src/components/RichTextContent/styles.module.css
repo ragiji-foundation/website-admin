@@ -1,0 +1,133 @@
+.container {
+  padding: 1rem;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  hyphens: auto;
+}
+
+.content {
+  line-height: 1.6;
+}
+
+/* Rich text content styling */
+.content h1 {
+  font-size: 1.8rem;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.content h2 {
+  font-size: 1.6rem;
+  margin-top: 1.4rem;
+  margin-bottom: 0.9rem;
+}
+
+.content h3 {
+  font-size: 1.4rem;
+  margin-top: 1.3rem;
+  margin-bottom: 0.8rem;
+}
+
+.content h4 {
+  font-size: 1.2rem;
+  margin-top: 1.2rem;
+  margin-bottom: 0.7rem;
+}
+
+.content h5 {
+  font-size: 1.1rem;
+  margin-top: 1.1rem;
+  margin-bottom: 0.6rem;
+}
+
+.content h6 {
+  font-size: 1rem;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.content p {
+  margin-bottom: 1rem;
+}
+
+.content ul,
+.content ol {
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.content li {
+  margin-bottom: 0.25rem;
+}
+
+.content blockquote {
+  border-left: 3px solid var(--mantine-color-gray-4);
+  padding-left: 1rem;
+  margin-left: 0;
+  color: var(--mantine-color-gray-7);
+  font-style: italic;
+  margin-bottom: 1rem;
+}
+
+.content a {
+  color: var(--mantine-color-blue-filled);
+  text-decoration: underline;
+}
+
+.content img {
+  max-width: 100%;
+  height: auto;
+  margin: 1rem 0;
+  border-radius: 4px;
+}
+
+.content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+}
+
+.content table td,
+.content table th {
+  border: 1px solid var(--mantine-color-gray-3);
+  padding: 0.5rem;
+}
+
+.content table th {
+  background-color: var(--mantine-color-gray-1);
+  font-weight: bold;
+}
+
+.content hr {
+  margin: 1.5rem 0;
+  border: 0;
+  height: 1px;
+  background-color: var(--mantine-color-gray-3);
+}
+
+.content mark {
+  background-color: rgba(255, 230, 0, 0.4);
+  padding: 0.1rem 0.2rem;
+  border-radius: 2px;
+}
+
+.content code {
+  font-family: monospace;
+  background-color: var(--mantine-color-gray-1);
+  padding: 0.1rem 0.2rem;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+.content pre {
+  background-color: var(--mantine-color-gray-1);
+  padding: 1rem;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.content pre code {
+  background-color: transparent;
+  padding: 0;
+}

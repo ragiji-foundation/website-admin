@@ -1,0 +1,112 @@
+.content {
+  /* Add styling for the rich text content */
+}
+
+.content h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: var(--mantine-color-dark-9);
+}
+
+.content h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--mantine-color-dark-8);
+}
+
+.content h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--mantine-color-dark-7);
+}
+
+.content p {
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.content ul,
+.content ol {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+}
+
+.content li {
+  margin-bottom: 0.25rem;
+}
+
+.content a {
+  color: var(--mantine-color-blue-6);
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+.content a:hover {
+  color: var(--mantine-color-blue-8);
+}
+
+.content blockquote {
+  border-left: 4px solid var(--mantine-color-gray-4);
+  padding-left: 1rem;
+  font-style: italic;
+  margin: 1rem 0;
+  color: var(--mantine-color-gray-7);
+}
+
+.content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--mantine-radius-md);
+  margin: 1rem 0;
+}
+
+.content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.content table th,
+.content table td {
+  border: 1px solid var(--mantine-color-gray-3);
+  padding: 0.5rem;
+}
+
+.content table th {
+  background-color: var(--mantine-color-gray-1);
+}
+
+/* Style for tables */
+.content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+  overflow-x: auto;
+  display: block;
+}
+
+.content table td,
+.content table th {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+.content table th {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  text-align: left;
+  background-color: var(--mantine-color-gray-1);
+}
+
+/* Placeholder style */
+.placeholder {
+  padding: 1rem;
+  background-color: var(--mantine-color-gray-1);
+  border-radius: var(--mantine-radius-md);
+  color: var(--mantine-color-gray-6);
+  font-style: italic;
+  text-align: center;
+}

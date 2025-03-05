@@ -1,32 +1,25 @@
-import { corsConfig } from '@/config/cors';
 import { NextResponse } from 'next/server';
 
-export function getCorsHeaders(origin: string | null) {
-  // Always allow the main website
-  const MAIN_WEBSITE = 'https://www.ragijifoundation.com';
+// Function to add CORS headers to a NextResponse
+export function withCors(response: NextResponse): NextResponse {
+  // Get the allowed origins from environment variable or use a default
+  const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS
+    ? process.env.CORS_ALLOWED_ORIGINS.split(',')
+    : ['http://localhost:3000', 'https://www.ragijifoundation.com'];
 
-  return {
-    'Access-Control-Allow-Origin': MAIN_WEBSITE,
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Max-Age': '86400',
-  };
-}
+  // Set basic CORS headers
+  response.headers.set('Access-Control-Allow-Credentials', 'true');
+  response.headers.set('Access-Control-Allow-Origin', '*'); // Consider restricting this in production
+  response.headers.set(
+    'Access-Control-Allow-Methods',
+    'GET, POST, PUT, DELETE, OPTIONS'
+  );
+  response.headers.set(
+    'Access-Control-Allow-Headers',
+    'X-Requested-With, Content-Type, Accept, Origin, Authorization'
+  );
 
-export function withCors<T>(response: NextResponse<T>) {
-  const headers = new Headers(response.headers);
-  const corsHeaders = getCorsHeaders(null);
-
-  // Apply CORS headers
-  Object.entries(corsHeaders).forEach(([key, value]) => {
-    headers.set(key, value);
-  });
-
-  return new NextResponse(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers
-  });
+  return response;
 }
 
 export function corsError(message: string, status = 500) {

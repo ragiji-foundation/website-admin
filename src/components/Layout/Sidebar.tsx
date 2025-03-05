@@ -1,146 +1,211 @@
 'use client';
 import { useState } from 'react';
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Stack, Text, Tooltip, UnstyledButton, Divider } from '@mantine/core';
-import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
-import { NavLink } from '@mantine/core';
+import Link from 'next/link';
+import { Box, NavLink, Stack, Text, Divider, Tooltip, rem } from '@mantine/core';
+// Removed TablerIconsProps import as it is not exported by the module
 import classes from './Sidebar.module.css';
-import { NavItem, navItems } from './navItems'; // We'll create this next
 
-interface NavbarProps {
-  onCollapse?: (collapsed: boolean) => void;
+// Assuming navItems is imported from elsewhere
+import { navItems } from './navItems';
+
+// Add proper types for props
+interface NavItemLinkProps {
+  href?: string;
+  active?: boolean;
+  children: React.ReactNode;
 }
 
-const getItemKey = (item: NavItem, index: number) => {
-  if (item.link) return item.link;
-  if (item.divider) return `divider-${item.dividerLabel || index}`;
-  return `nav-item-${index}`;
+// This component avoids the nested <a> tag issue
+const NavItemLink = ({ href, active, children }: NavItemLinkProps) => {
+  if (href) {
+    return (
+      <Link href={href} passHref legacyBehavior>
+        {/* We're using Box as a span to avoid rendering another <a> */}
+        <Box component="span" className={classes.navLink}>
+          {children}
+        </Box>
+      </Link>
+    );
+  }
+  return children;
 };
 
-export function Navbar({ onCollapse }: NavbarProps) {
-  const [collapsed, setCollapsed] = useState(false);
-  const pathname = usePathname();
-
-  const toggleCollapse = () => {
-    setCollapsed(!collapsed);
-    onCollapse?.(!collapsed);
-  };
-
-  return (
-    <nav className={`${classes.navbar} ${collapsed ? classes.collapsed : ''}`}>
-      <div className={classes.header}>
-        {!collapsed && <Text ta={'center'} fw={900}>Admin Panel</Text>}
-        <UnstyledButton
-          onClick={toggleCollapse}
-          className={classes.toggleButton}
-        >
-          {collapsed ? <IconChevronRight size={20} /> : <IconChevronLeft size={20} />}
-        </UnstyledButton>
-      </div>
-
-      <Stack gap="xs" className={classes.navLinks}>
-        {navItems.map((item, index) => (
-          <NavItemWithChildren
-            key={getItemKey(item, index)}
-            item={item}
-            collapsed={collapsed}
-            active={pathname === item.link}
-          />
-        ))}
-      </Stack>
-    </nav>
-  );
+// Define NavItem type
+interface NavItem {
+  link?: string;
+  label?: string;
+  icon?: React.ComponentType<any>;
+  links?: NavItem[];
+  divider?: boolean;
+  dividerLabel?: string;
 }
 
-function NavItemWithChildren({ item, collapsed, active }: {
-  item: typeof navItems[0],
-  collapsed: boolean,
-  active: boolean
-}) {
+interface NavItemWithChildrenProps {
+  item: NavItem;
+  collapsed: boolean;
+  active: boolean;
+}
+
+function NavItemWithChildren({ item, collapsed, active }: NavItemWithChildrenProps) {
   const [opened, setOpened] = useState(false);
+  const pathname = usePathname();
   const Icon = item.icon;
 
+  // Handle dividers
   if (item.divider) {
     return (
-      <Divider
-        my="xs"
-        label={!collapsed && item.dividerLabel ? item.dividerLabel : null}
-        labelPosition="center"
-      />
+      <div className={classes.dividerContainer}>
+        <Divider
+          my="sm"
+          color="gray.3"
+          labelPosition="center"
+          className={classes.divider}
+          label={
+            !collapsed && item.dividerLabel ? (
+              <Text size="xs" fw={500} tt="uppercase" c="dimmed">
+                {item.dividerLabel}
+              </Text>
+            ) : null
+          }
+        />
+      </div>
     );
   }
 
+  // For items with children
   if (item.links) {
     return (
       <NavLink
         label={
-          collapsed ? (
-            <Tooltip label={item.label} position="right" withArrow>
-              <span className={classes.icon}>
-                {Icon && <Icon size={20} />}
-              </span>
-            </Tooltip>
-          ) : (
-            <>
-              <span className={classes.icon}>
-                {Icon && <Icon size={20} />}
-              </span>
-              <span className={classes.label}>{item.label}</span>
-            </>
-          )
+          <>
+            {Icon && <span className={classes.iconContainer}><Icon size={18} /></span>}
+            {!collapsed && <span className={classes.label}>{item.label}</span>}
+          </>
         }
         className={classes.navButton}
+        classNames={{
+          label: classes.navLinkLabel,
+          children: classes.navChildren
+        }}
+        childrenOffset={collapsed ? 8 : 16}
         opened={opened}
         onChange={setOpened}
-        childrenOffset={28}
+        // Important: Don't render as an anchor tag
+        component="div"
       >
-        {item.links.map((child) => (
-          <Link
-            key={child.link}
-            href={child.link || '#'}
-            className={classes.navLink}
-            passHref
-          >
-            <NavLink
-              component="a"
-              label={child.label}
-              active={active}
-              className={classes.navButton}
-            />
-          </Link>
+        {item.links.map((child, index) => (
+          <NavItemWithChildren
+            key={child.link || `${child.label}-${index}`} // Fix: Added index as fallback for unique key
+            item={child}
+            collapsed={collapsed}
+            active={pathname === child.link}
+          />
         ))}
       </NavLink>
     );
   }
 
+  // For regular items (leaf nodes)
+  const isActive = pathname === item.link;
+  const navLink = (
+    <NavLink
+      label={
+        <>
+          {Icon && (
+            <span className={`${classes.iconContainer} ${isActive ? classes.activeIcon : ''}`}>
+              <Icon size={18} />
+            </span>
+          )}
+          {!collapsed && <span className={classes.label}>{item.label}</span>}
+        </>
+      }
+      active={isActive}
+      // Important: Render as div, not anchor
+      component="div"
+      className={`${classes.navButton} ${isActive ? classes.activeNavButton : ''}`}
+    />
+  );
+
   return (
-    <Link
-      href={item.link || '/'} // Provide a default value
-      passHref
-      className={classes.navLink}
-    >
-      <Tooltip
-        label={collapsed ? item.label : ""}
-        position="right"
-        disabled={!collapsed}
-      >
-        <NavLink
-          component="a"
-          label={
-            <>
-              <span className={classes.icon}>
-                {Icon && <Icon size={20} />}
-              </span>
-              {!collapsed && <span className={classes.label}>{item.label}</span>}
-            </>
-          }
-          active={active}
-          className={classes.navButton}
-        />
-      </Tooltip>
-    </Link>
+    <NavItemLink href={item.link} active={isActive}>
+      {collapsed ? (
+        <Tooltip
+          label={item.label}
+          position="right"
+          withArrow
+          offset={5}
+          disabled={!collapsed}
+          transitionProps={{ duration: 200 }}
+        >
+          {navLink}
+        </Tooltip>
+      ) : navLink}
+    </NavItemLink>
   );
 }
+
+const Navbar = () => {
+  const [collapsed, setCollapsed] = useState(false);
+  const pathname = usePathname();
+
+  const toggleCollapsed = () => {
+    setCollapsed(prev => !prev);
+  };
+
+  return (
+    <nav className={`${classes.navbar} ${collapsed ? classes.collapsed : ''}`}>
+      <div className={classes.navbarInner}>
+        <div className={classes.navHead}>
+          {!collapsed && (
+            <Text fw={700} size="lg" c="blue" ta="center" className={classes.logo}>
+              Admin Panel
+            </Text>
+          )}
+
+        </div>
+
+        <Divider mb="md" />
+
+        <div className={classes.navItemsWrapper}>
+          <Stack gap="xs" className={classes.navItems}>
+            {navItems.map((item, index) => (
+              <NavItemWithChildren
+                key={item.link || item.dividerLabel || `item-${index}`} // Fix: Added better unique key handling
+                item={item}
+                collapsed={collapsed}
+                active={pathname === item.link}
+              />
+            ))}
+          </Stack>
+        </div>
+      </div>
+    </nav>
+  );
+};
+
+// Add proper types for ActionIcon props
+interface ActionIconProps {
+  children: React.ReactNode;
+  className?: string;
+  onClick?: () => void;
+  variant?: 'light' | 'filled' | 'outline' | 'subtle' | 'default';
+  color?: string;
+  size?: number | string;
+  radius?: number | string | 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+}
+
+// Add missing ActionIcon component
+const ActionIcon = ({ children, className, onClick, variant, color, size, radius }: ActionIconProps) => {
+  return (
+    <button
+      className={`${classes.actionIcon} ${className || ''} ${variant === 'light' ? classes.actionIconLight : ''}`}
+      onClick={onClick}
+      style={{ borderRadius: radius === 'xl' ? '50%' : rem(4) }}
+    >
+      {children}
+    </button>
+  );
+};
 
 export default Navbar;

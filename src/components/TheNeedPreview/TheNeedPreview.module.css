@@ -1,0 +1,118 @@
+.contentContainer {
+  height: 100%;
+  padding: 1rem;
+  background-color: var(--mantine-color-gray-0);
+  border-radius: var(--mantine-radius-md);
+}
+
+.imageWrapper {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--mantine-radius-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.image {
+  width: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.image:hover {
+  transform: scale(1.02);
+}
+
+.contentPaper {
+  background-color: white;
+  border: 1px solid var(--mantine-color-gray-2);
+  transition: box-shadow 0.3s ease;
+  height: 100%;
+}
+
+.contentPaper:hover {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.richTextContainer {
+  width: 100%;
+}
+
+.contentWrapper {
+  width: 100%;
+}
+
+.richText {
+  font-size: var(--mantine-font-size-md);
+  line-height: 1.7;
+}
+
+.richText p {
+  margin-bottom: 1rem;
+}
+
+.richText h1,
+.richText h2,
+.richText h3 {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.richText ul,
+.richText ol {
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.richText li {
+  margin-bottom: 0.5rem;
+}
+
+.richText a {
+  color: var(--mantine-color-blue-6);
+  text-decoration: underline;
+}
+
+.sectionTitle {
+  position: relative;
+  padding-bottom: 1rem;
+  font-weight: 700;
+  color: var(--mantine-color-blue-7);
+}
+
+.sectionTitle::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--mantine-color-blue-5), var(--mantine-color-blue-8));
+  border-radius: 2px;
+}
+
+.publishStatus {
+  margin-top: 2rem;
+}
+
+.publishedBadge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background-color: var(--mantine-color-green-1);
+  color: var(--mantine-color-green-8);
+  border: 1px solid var(--mantine-color-green-3);
+  border-radius: var(--mantine-radius-md);
+  font-weight: 500;
+}
+
+.unpublishedBadge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background-color: var(--mantine-color-red-1);
+  color: var(--mantine-color-red-8);
+  border: 1px solid var(--mantine-color-red-3);
+  border-radius: var(--mantine-radius-md);
+  font-weight: 500;
+}

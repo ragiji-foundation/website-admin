@@ -1,0 +1,13 @@
+.previewContainer {
+  padding: 20px;
+}
+
+.sectionContainer {
+  margin-bottom: 30px;
+}
+
+.sectionTitle {
+  font-size: 24px;
+  margin-bottom: 15px;
+  color: #228be6; /* Example color */
+}

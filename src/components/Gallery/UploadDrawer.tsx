@@ -22,7 +22,9 @@ export function UploadDrawer({ opened, onClose, onSubmit }: UploadDrawerProps) {
 
   const onImageUpload = async (file: File | null) => {
     try {
-      const url = await handleImageUpload(file);
+      setLoading(true);
+      // Use our utility that calls the centralized API endpoint
+      const url = await handleImageUpload(file, 'gallery');
       if (url) {
         setFormData(prev => ({ ...prev, imageUrl: url }));
         notifications.show({
@@ -32,11 +34,10 @@ export function UploadDrawer({ opened, onClose, onSubmit }: UploadDrawerProps) {
         });
       }
     } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to upload image',
-        color: 'red',
-      });
+      console.error('Upload failed:', error);
+      // Error notifications are handled in the utility function
+    } finally {
+      setLoading(false);
     }
   };
 
