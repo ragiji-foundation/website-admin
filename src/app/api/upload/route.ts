@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
 
+export const runtime = 'nodejs';
+
 // Configure Cloudinary with credentials
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dhyetvc2r',
@@ -12,7 +14,9 @@ cloudinary.config({
 export async function POST(request: NextRequest) {
   try {
     // Check if formData can be parsed
-    let file: File | null = null;
+    let fileData: Blob | null = null;
+    let fileName: string = '';
+    let fileType: string = '';
     let folder = 'uploads';
     let tags = '';
 
@@ -20,9 +24,16 @@ export async function POST(request: NextRequest) {
       const formData = await request.formData();
       const fileEntry = formData.get('file');
 
-      // Proper type checking and casting
-      if (fileEntry && fileEntry instanceof File) {
-        file = fileEntry;
+      // Check if fileEntry exists and has necessary properties
+      if (fileEntry &&
+        typeof fileEntry === 'object' &&
+        'arrayBuffer' in fileEntry &&
+        typeof fileEntry.arrayBuffer === 'function' &&
+        'name' in fileEntry &&
+        'type' in fileEntry) {
+        fileData = fileEntry as Blob;
+        fileName = fileEntry.name as string;
+        fileType = fileEntry.type as string;
       } else {
         throw new Error('Invalid file format');
       }
@@ -42,31 +53,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!file) {
+    if (!fileData) {
       return NextResponse.json(
         { error: 'No file provided' },
         { status: 400 }
       );
     }
 
-    // We need to convert the File to a buffer that can be uploaded to Cloudinary
-    const arrayBuffer = await file.arrayBuffer();
+    // We need to convert the Blob to a buffer that can be uploaded to Cloudinary
+    const arrayBuffer = await fileData.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
     // Convert the file to a base64 data URI
     const base64Data = buffer.toString('base64');
-    // Now we can safely access file.type since we've properly typed the variable
-    const dataURI = `data:${file.type};base64,${base64Data}`;
+    const dataURI = `data:${fileType};base64,${base64Data}`;
 
-    console.log(`Processing file: ${file.name}, size: ${buffer.length} bytes`);
+    console.log(`Processing file: ${fileName}, size: ${buffer.length} bytes`);
 
-    // Upload to Cloudinary using the Node SDK instead of direct API call
+    // Upload to Cloudinary using the Node SDK
     const uploadResult = await new Promise((resolve, reject) => {
-      const uploadOptions: any = {
+      const uploadOptions = {
         folder,
         upload_preset: 'ragiji',
         resource_type: 'auto',
-      };
+      } as any;
 
       if (tags) {
         uploadOptions['tags'] = tags.split(',');
@@ -101,8 +111,9 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+// This is not needed for Next.js App Router API routes
+// export const config = {
+//   api: {
+//     bodyParser: false,
+//   },
+// };

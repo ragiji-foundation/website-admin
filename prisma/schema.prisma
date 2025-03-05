@@ -20,13 +20,13 @@ model Enquiry {
 }
 
 model Testimonial {
-  id        Int      @id @default(autoincrement())
-  name      String
-  role      String
-  content   String
-  avatar    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  name        String
+  role        String
+  content     String
+  avatar      String?
+  createdAt   DateTime @default(now())
+  isPublished Boolean  @default(false)
 }
 
 model Blog {
@@ -228,7 +228,7 @@ model Feature {
   order       Int      @default(0)
   section     String
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @default(now())
 
   @@map("features")
 }
@@ -280,7 +280,7 @@ model TheNeed {
   imageUrl    String
   statsImageUrl String
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @default(now())
   isPublished Boolean  @default(false)
   version     Int      @default(1)
 }
@@ -324,16 +324,4 @@ model Timeline {
   order      Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-}
-
-model RichTextContent {
-  id        String   @id @default(cuid())
-  content   String   @db.Text
-  modelName String   // Name of the model this content belongs to (e.g., "Blog", "Page")
-  fieldName String   // Name of the field in the model (e.g., "body", "description")
-  recordId  String?  // ID of the specific record in the model
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([modelName, fieldName, recordId])
 }

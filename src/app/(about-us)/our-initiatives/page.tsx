@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import {
   TextInput,
-  Textarea,
   Button,
   Group,
   Stack,
@@ -21,6 +20,7 @@ import { FileButton } from '@mantine/core';
 
 import { handleImageUpload } from '@/utils/imageUpload';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import TipTapEditor from '@/components/TipTapEditor/TipTapEditor';
 
 interface Initiative {
   id: number;
@@ -198,21 +198,15 @@ export default function InitiativesAdmin() {
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 />
-                <Textarea
+                <TipTapEditor
                   label="Description"
-                  required
-                  minRows={4}
-                  maxRows={8}
-                  styles={{
-                    input: {
-                      height: '120px',
-                      minHeight: '120px',
-                      resize: 'vertical',
-                    },
-                  }}
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                />                  <Group align="flex-end">
+                  content={formData.description}
+                  onChange={(htmlContent) => setFormData({ ...formData, description: htmlContent })}
+                  placeholder="Enter initiative description..."
+                  required={true}
+                  minHeight={200}
+                />
+                <Group align="flex-end">
                   <TextInput
                     label="Image URL"
                     style={{ flex: 1 }}
@@ -301,4 +295,4 @@ export default function InitiativesAdmin() {
 
     </ErrorBoundary>
   );
-} 
+}
