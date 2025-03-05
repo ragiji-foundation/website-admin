@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { BannerType } from '@/types/banner';
+import { withCors, corsError } from '@/utils/cors';
 
 // Define valid banner types for validation
 const VALID_BANNER_TYPES: BannerType[] = [
@@ -13,16 +14,13 @@ const VALID_BANNER_TYPES: BannerType[] = [
 export async function GET() {
   try {
     const banners = await prisma.banner.findMany({
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { updatedAt: 'desc' }
     });
 
-    return NextResponse.json(banners);
+    return withCors(NextResponse.json(banners));
   } catch (error) {
-    console.error('Error fetching banners:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch banners' },
-      { status: 500 }
-    );
+    console.error('Failed to fetch banners:', error);
+    return corsError('Internal server error', 500);
   }
 }
 
@@ -33,18 +31,12 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!data.title || !data.type || !data.backgroundImage) {
-      return NextResponse.json(
-        { error: 'Title, type, and backgroundImage are required fields' },
-        { status: 400 }
-      );
+      return corsError('Title, type, and backgroundImage are required fields', 400);
     }
 
     // Validate banner type
     if (!VALID_BANNER_TYPES.includes(data.type)) {
-      return NextResponse.json(
-        { error: 'Invalid banner type' },
-        { status: 400 }
-      );
+      return corsError('Invalid banner type', 400);
     }
 
     // Check if a banner with this type already exists - ENABLED to ensure uniqueness
@@ -53,10 +45,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingBanner) {
-      return NextResponse.json(
-        { error: `A banner with type "${data.type}" already exists. Please update the existing banner instead of creating a new one.` },
-        { status: 409 }
-      );
+      return corsError(`A banner with type "${data.type}" already exists. Please update the existing banner instead of creating a new one.`, 409);
     }
 
     // Create the banner
@@ -69,13 +58,10 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(banner, { status: 201 });
+    return withCors(NextResponse.json(banner, { status: 201 }));
   } catch (error) {
     console.error('Error creating banner:', error);
-    return NextResponse.json(
-      { error: 'Failed to create banner' },
-      { status: 500 }
-    );
+    return corsError('Failed to create banner', 500);
   }
 }
 
@@ -85,10 +71,7 @@ export async function PATCH(request: NextRequest) {
     const { banners } = await request.json();
 
     if (!Array.isArray(banners) || banners.length === 0) {
-      return NextResponse.json(
-        { error: 'No banners provided for update' },
-        { status: 400 }
-      );
+      return corsError('No banners provided for update', 400);
     }
 
     // Process each banner update
@@ -113,22 +96,16 @@ export async function PATCH(request: NextRequest) {
     });
 
     const results = await Promise.all(updatePromises);
-    return NextResponse.json({ results });
+    return withCors(NextResponse.json({ results }));
   } catch (error) {
     console.error('Error in batch update:', error);
-    return NextResponse.json(
-      { error: 'Failed to process batch update' },
-      { status: 500 }
-    );
+    return corsError('Failed to process batch update', 500);
   }
 }
 
 // PUT - Not typically used for collections
 export async function PUT() {
-  return NextResponse.json(
-    { error: 'Method not allowed' },
-    { status: 405 }
-  );
+  return corsError('Method not allowed', 405);
 }
 
 // DELETE - Delete multiple banners
@@ -138,10 +115,7 @@ export async function DELETE(request: NextRequest) {
     const ids = url.searchParams.get('ids')?.split(',');
 
     if (!ids || ids.length === 0) {
-      return NextResponse.json(
-        { error: 'No banner IDs provided for deletion' },
-        { status: 400 }
-      );
+      return corsError('No banner IDs provided for deletion', 400);
     }
 
     // Delete the banners
@@ -151,15 +125,16 @@ export async function DELETE(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({
+    return withCors(NextResponse.json({
       message: `Deleted ${result.count} banners`,
       count: result.count,
-    });
+    }));
   } catch (error) {
     console.error('Error deleting banners:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete banners' },
-      { status: 500 }
-    );
+    return corsError('Failed to delete banners', 500);
   }
+}
+
+export async function OPTIONS() {
+  return withCors(new NextResponse(null, { status: 200 }));
 }

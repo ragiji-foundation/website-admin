@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { BannerType, Banner } from '@/types/banner';
 import { v2 as cloudinary } from 'cloudinary';
+import { withCors, corsError } from '@/utils/cors';
 
 // Initialize Cloudinary (optional if you're using it here)
 if (process.env.CLOUDINARY_URL) {
@@ -22,20 +23,20 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const banner = await prisma.banner.findUnique({ where: { id } });
 
     if (!banner) {
-      return NextResponse.json({ error: 'Banner not found' }, { status: 404 });
+      return corsError('Banner not found', 404);
     }
 
-    return NextResponse.json(banner);
+    return withCors(NextResponse.json(banner));
   } catch (error) {
     console.error('Error fetching banner:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return corsError('Internal server error', 500);
   }
 }
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-): Promise<NextResponse<Banner | { error: string }>> {
+) {
   try {
     const { id } = await params; // Resolve the params promise
 
@@ -44,10 +45,7 @@ export async function PUT(
 
     // Validate required fields
     if (!data.title || !data.type) {
-      return NextResponse.json(
-        { error: 'Title and type are required' },
-        { status: 400 }
-      );
+      return corsError('Title and type are required', 400);
     }
 
     // Get the current banner to check if type is being changed
@@ -56,10 +54,7 @@ export async function PUT(
     });
 
     if (!currentBanner) {
-      return NextResponse.json(
-        { error: 'Banner not found' },
-        { status: 404 }
-      );
+      return corsError('Banner not found', 404);
     }
 
     // If type is being changed, check if the new type is already in use
@@ -72,10 +67,7 @@ export async function PUT(
       });
 
       if (existingBanner) {
-        return NextResponse.json(
-          { error: `A banner with type "${data.type}" already exists. Each banner type must be unique.` },
-          { status: 409 }
-        );
+        return corsError(`A banner with type "${data.type}" already exists. Each banner type must be unique.`, 409);
       }
     }
 
@@ -97,32 +89,29 @@ export async function PUT(
       data: updateData,
     });
 
-    return NextResponse.json({
+    // Return the updated banner with date fields converted to strings
+    return withCors(NextResponse.json({
       ...updatedBanner,
       createdAt: updatedBanner.createdAt.toISOString(),
       updatedAt: updatedBanner.updatedAt.toISOString(),
-    });
+    }));
   } catch (error) {
     console.error('Error updating banner:', error);
-    return NextResponse.json(
-      { error: 'Failed to update banner' },
-      { status: 500 }
-    );
+    return corsError('Failed to update banner', 500);
   }
 }
 
-// Fix the return type to allow for { success: boolean }
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-): Promise<NextResponse<{ message?: string; id?: string; success?: boolean; error?: string }>> {
+) {
   try {
     const { id } = await params; // Resolve the params promise
 
     // Check if banner exists
     const banner = await prisma.banner.findUnique({ where: { id } });
     if (!banner) {
-      return NextResponse.json({ error: 'Banner not found' }, { status: 404 });
+      return corsError('Banner not found', 404);
     }
 
     // Delete the banner
@@ -137,33 +126,27 @@ export async function DELETE(
     // }
 
     // Return with both success and a message for better API consistency
-    return NextResponse.json({
+    return withCors(NextResponse.json({
       success: true,
       message: 'Banner deleted successfully',
       id
-    });
+    }));
   } catch (error) {
     console.error('Error deleting banner:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete banner' },
-      { status: 500 }
-    );
+    return corsError('Failed to delete banner', 500);
   }
 }
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-): Promise<NextResponse<Banner | { error: string }>> {
+) {
   try {
     const { id } = await params;
     const data = await request.json();
 
     if (data.type && !VALID_BANNER_TYPES.includes(data.type)) {
-      return NextResponse.json(
-        { error: 'Invalid banner type' },
-        { status: 400 }
-      );
+      return corsError('Invalid banner type', 400);
     }
 
     const updatedBanner = await prisma.banner.update({
@@ -174,18 +157,19 @@ export async function PATCH(
       },
     });
 
-    const banner: Banner = {
+    const banner = {
       ...updatedBanner,
       createdAt: updatedBanner.createdAt.toISOString(),
       updatedAt: updatedBanner.updatedAt.toISOString(),
     };
 
-    return NextResponse.json(banner);
+    return withCors(NextResponse.json(banner));
   } catch (error) {
     console.error('Error updating banner:', error);
-    return NextResponse.json(
-      { error: 'Failed to update banner' },
-      { status: 500 }
-    );
+    return corsError('Failed to update banner', 500);
   }
+}
+
+export async function OPTIONS() {
+  return withCors(new NextResponse(null, { status: 200 }));
 }
