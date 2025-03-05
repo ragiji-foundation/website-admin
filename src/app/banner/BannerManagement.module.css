@@ -1,0 +1,143 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Form styles */
+.formCard {
+  transition: transform 0.2s ease;
+}
+
+.dropzone {
+  height: 180px;
+  border: 2px dashed var(--mantine-color-blue-4);
+  background-color: var(--mantine-color-blue-0);
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.dropzoneActive {
+  height: 180px;
+  border: 2px solid var(--mantine-color-blue-6);
+  background-color: var(--mantine-color-blue-1);
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.dropzone:hover {
+  border-color: var(--mantine-color-blue-6);
+  background-color: var(--mantine-color-blue-1);
+}
+
+.previewWrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.removePreview {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  border: 2px solid white;
+}
+
+/* Banner list styles */
+.bannerCard {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.bannerCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.bannerImageContainer {
+  position: relative;
+  overflow: hidden;
+}
+
+.bannerImage {
+  transition: transform 0.3s ease;
+}
+
+.bannerOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.bannerImageContainer:hover .bannerOverlay {
+  opacity: 1;
+}
+
+.bannerImageContainer:hover .bannerImage {
+  transform: scale(1.05);
+}
+
+.bannerAction {
+  backdrop-filter: blur(2px);
+}
+
+.emptyState {
+  padding: 3rem;
+  text-align: center;
+}
+
+.sectionTitle {
+  position: relative;
+  padding-left: 1rem;
+}
+
+.sectionTitle::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 10%;
+  bottom: 10%;
+  width: 4px;
+  background: var(--mantine-color-blue-5);
+  border-radius: 2px;
+}
+
+/* Preview modal styles */
+.previewContainer {
+  position: relative;
+  height: 400px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.previewImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.previewOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.6));
+}
+
+.previewContent {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 2rem;
+  z-index: 2;
+}

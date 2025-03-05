@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { Banner, BannerType } from '@/types/banner';
+import { BannerType, Banner } from '@/types/banner';
+import { v2 as cloudinary } from 'cloudinary';
+
+// Initialize Cloudinary (optional if you're using it here)
+if (process.env.CLOUDINARY_URL) {
+  cloudinary.config({
+    secure: true
+  });
+}
 
 const VALID_BANNER_TYPES: BannerType[] = [
   'blog', 'about', 'initiatives', 'successstories', 'home', 'media',
@@ -8,63 +16,92 @@ const VALID_BANNER_TYPES: BannerType[] = [
   'centers', 'contactus', 'careers', 'awards'
 ];
 
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params; // Resolve the params promise
+    const banner = await prisma.banner.findUnique({ where: { id } });
+
+    if (!banner) {
+      return NextResponse.json({ error: 'Banner not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(banner);
+  } catch (error) {
+    console.error('Error fetching banner:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse<Banner | { error: string }>> {
   try {
     const { id } = await params; // Resolve the params promise
-    const formData = await request.formData();
-    const file = formData.get('backgroundImage') as File | null;
-    const type = formData.get('type') as BannerType;
-    const title = formData.get('title') as string;
-    const description = formData.get('description') as string | null;
+
+    // Parse JSON data
+    const data = await request.json();
 
     // Validate required fields
-    if (!type || !title) {
+    if (!data.title || !data.type) {
       return NextResponse.json(
-        { error: 'Type and title are required' },
+        { error: 'Title and type are required' },
         { status: 400 }
       );
     }
 
-    if (!VALID_BANNER_TYPES.includes(type)) {
+    // Get the current banner to check if type is being changed
+    const currentBanner = await prisma.banner.findUnique({
+      where: { id },
+    });
+
+    if (!currentBanner) {
       return NextResponse.json(
-        { error: 'Invalid banner type' },
-        { status: 400 }
+        { error: 'Banner not found' },
+        { status: 404 }
       );
     }
 
-    let imageUrl: string | undefined;
-    if (file) {
-      const uploadFormData = new FormData();
-      uploadFormData.append('file', file);
-      uploadFormData.append('folder', 'banners');
-
-      const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/upload`, {
-        method: 'POST',
-        body: uploadFormData,
+    // If type is being changed, check if the new type is already in use
+    if (data.type !== currentBanner.type) {
+      const existingBanner = await prisma.banner.findFirst({
+        where: {
+          type: data.type,
+          id: { not: id } // Exclude the current banner
+        },
       });
 
-      if (!uploadResponse.ok) {
-        throw new Error('Failed to upload image');
+      if (existingBanner) {
+        return NextResponse.json(
+          { error: `A banner with type "${data.type}" already exists. Each banner type must be unique.` },
+          { status: 409 }
+        );
       }
-
-      const { url } = await uploadResponse.json();
-      imageUrl = url;
     }
 
-    const banner = await prisma.banner.update({
-      where: { id },
-      data: {
-        type,
-        title,
-        description,
-        ...(imageUrl && { backgroundImage: imageUrl }),
-      },
-    }) as Banner; // Cast to Banner type
+    // Prepare the data to update
+    const updateData: any = {
+      title: data.title,
+      type: data.type,
+      description: data.description || null,
+    };
 
-    return NextResponse.json(banner);
+    // Update the background image only if provided
+    if (data.backgroundImage) {
+      updateData.backgroundImage = data.backgroundImage;
+    }
+
+    // Update banner in database
+    const updatedBanner = await prisma.banner.update({
+      where: { id },
+      data: updateData,
+    });
+
+    return NextResponse.json({
+      ...updatedBanner,
+      createdAt: updatedBanner.createdAt.toISOString(),
+      updatedAt: updatedBanner.updatedAt.toISOString(),
+    });
   } catch (error) {
     console.error('Error updating banner:', error);
     return NextResponse.json(
@@ -74,19 +111,36 @@ export async function PUT(
   }
 }
 
+// Fix the return type to allow for { success: boolean }
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-): Promise<NextResponse<{ message: string; id: string } | { error: string }>> {
+): Promise<NextResponse<{ message?: string; id?: string; success?: boolean; error?: string }>> {
   try {
     const { id } = await params; // Resolve the params promise
-    const banner = await prisma.banner.delete({
-      where: { id },
-    }) as Banner;
 
+    // Check if banner exists
+    const banner = await prisma.banner.findUnique({ where: { id } });
+    if (!banner) {
+      return NextResponse.json({ error: 'Banner not found' }, { status: 404 });
+    }
+
+    // Delete the banner
+    await prisma.banner.delete({ where: { id } });
+
+    // Delete the image from Cloudinary if needed (optional)
+    // if (banner.backgroundImage && banner.backgroundImage.includes('cloudinary')) {
+    //   const publicId = banner.backgroundImage.split('/').pop()?.split('.')[0];
+    //   if (publicId) {
+    //     await cloudinary.uploader.destroy(`banners/${publicId}`);
+    //   }
+    // }
+
+    // Return with both success and a message for better API consistency
     return NextResponse.json({
+      success: true,
       message: 'Banner deleted successfully',
-      id: banner.id
+      id
     });
   } catch (error) {
     console.error('Error deleting banner:', error);
@@ -112,13 +166,19 @@ export async function PATCH(
       );
     }
 
-    const banner = await prisma.banner.update({
+    const updatedBanner = await prisma.banner.update({
       where: { id },
       data: {
         ...data,
         updatedAt: new Date()
       },
-    }) as Banner; // Cast to Banner type
+    });
+
+    const banner: Banner = {
+      ...updatedBanner,
+      createdAt: updatedBanner.createdAt.toISOString(),
+      updatedAt: updatedBanner.updatedAt.toISOString(),
+    };
 
     return NextResponse.json(banner);
   } catch (error) {

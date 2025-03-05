@@ -1,3 +1,8 @@
+/**
+ * Type definitions for the Banner model
+ */
+
+// Define all valid banner types
 export type BannerType =
   | 'blog'
   | 'about'
@@ -15,26 +20,38 @@ export type BannerType =
   | 'careers'
   | 'awards';
 
+// Banner interface matching the Prisma model
 export interface Banner {
   id: string;
-  type: BannerType;
+  type: string;
   title: string;
-  description?: string | null;
+  description: string | null;
   backgroundImage: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface BannerCreateInput {
+// Interface for creating a new banner
+export interface CreateBannerDto {
   type: BannerType;
   title: string;
   description?: string;
   backgroundImage: string;
 }
 
-export interface BannerUpdateInput {
-  type?: BannerType;
+// Interface for updating an existing banner
+export interface UpdateBannerDto {
   title?: string;
   description?: string | null;
   backgroundImage?: string;
+  type?: BannerType;
+}
+
+// Type guard to check if a string is a valid banner type
+export function isBannerType(type: string): type is BannerType {
+  return [
+    'blog', 'about', 'initiatives', 'successstories', 'home', 'media',
+    'electronicmedia', 'gallery', 'newscoverage', 'ourstory', 'need',
+    'centers', 'contactus', 'careers', 'awards'
+  ].includes(type);
 }
