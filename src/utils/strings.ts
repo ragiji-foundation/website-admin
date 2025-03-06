@@ -10,7 +10,6 @@ export function slugify(text: string): string {
     .toLowerCase()
     .trim()
     .replace(/\s+/g, '-')        // Replace spaces with -
-    .replace(/&/g, '-and-')      // Replace & with 'and'
     .replace(/[^\w\-]+/g, '')    // Remove all non-word characters
     .replace(/\-\-+/g, '-')      // Replace multiple - with single -
     .replace(/^-+/, '')          // Trim - from start of text
@@ -68,4 +67,9 @@ export function toTitleCase(text: string): string {
 export function stripHtml(html: string): string {
   if (!html) return '';
   return html.replace(/<[^>]*>?/gm, '');
+}
+
+export function truncateText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength) + '...';
 }

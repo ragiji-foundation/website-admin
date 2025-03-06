@@ -1,37 +1,103 @@
-import { NextResponse } from 'next/server';
-import { mockSuccessStories } from '@/data/mock-success-stories';
+import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
+import { withCors, corsError } from '@/utils/cors';
+import { z } from 'zod';
+
+const successStorySchema = z.object({
+  title: z.string().min(3).max(255).optional(),
+  content: z.any().optional(), // Allow any JSON, but consider a more specific schema
+  personName: z.string().min(3).max(255).optional(),
+  location: z.string().min(3).max(255).optional(),
+  imageUrl: z.string().url().optional(),
+  featured: z.boolean().optional(),
+  order: z.number().int().optional(),
+  slug: z.string().min(3).max(255).optional()
+});
+
+
 
 export async function GET(
-  request: Request,
-  { params }: { params: { slug: string } }
+  request: NextRequest,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  context: any
 ) {
   try {
-    const { slug } = params;
+    const { slug } = context.params;
 
-    // In a real app, you'd query a database for this specific story by slug
-    // For now, we'll modify the mock data to have slugs
-    const story = mockSuccessStories.find(story =>
-      // Convert title to slug for demo purposes - in real app, you'd have a dedicated slug field
-      story.slug === slug ||
-      story.title.toLowerCase().replace(/[^\w\s]/gi, '').replace(/\s+/g, '-') === slug
-    );
+    const story = await prisma.successStory.findUnique({
+      where: { slug: slug },
+    });
 
     if (!story) {
-      return NextResponse.json(
-        { error: 'Success story not found' },
-        { status: 404 }
-      );
+      return corsError('Success story not found', 404, request);
     }
 
-    // Add artificial delay to simulate network latency
-    await new Promise(resolve => setTimeout(resolve, 300));
-
-    return NextResponse.json(story);
+    return withCors(NextResponse.json(story), request);
   } catch (error) {
-    console.error(`Error fetching success story with slug ${params.slug}:`, error);
-    return NextResponse.json(
-      { error: 'Failed to fetch success story' },
-      { status: 500 }
-    );
+    console.error(`Error fetching success story with slug ${context.params.slug}:`, error);
+    return corsError('Failed to fetch success story', 500, request);
   }
+}
+
+export async function PUT(
+  request: NextRequest,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  context: any
+) {
+  try {
+    const { slug } = context.params;
+    const data = await request.json();
+    const validatedData = successStorySchema.partial().parse(data); // Partial validation
+
+    // Fetch the story first to check if it exists
+    const existingStory = await prisma.successStory.findUnique({
+      where: { slug: slug },
+    });
+
+    if (!existingStory) {
+      return corsError('Success story not found', 404, request);
+    }
+
+    const story = await prisma.successStory.update({
+      where: { id: existingStory.id }, // Use the ID for update
+      data: validatedData,
+    });
+
+    return withCors(NextResponse.json(story), request);
+  } catch (error) {
+    console.error(`Failed to update success story with slug ${context.params.slug}:`, error);
+    return corsError('Failed to update success story', 500, request);
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  context: any
+) {
+  try {
+    const { slug } = context.params;
+
+    // Fetch the story first to check if it exists
+    const existingStory = await prisma.successStory.findUnique({
+      where: { slug: slug },
+    });
+
+    if (!existingStory) {
+      return corsError('Success story not found', 404, request);
+    }
+
+    await prisma.successStory.delete({
+      where: { id: existingStory.id }, // Use the ID for deletion
+    });
+
+    return withCors(NextResponse.json({ message: 'Success story deleted' }, request), request);
+  } catch (error) {
+    console.error(`Failed to delete success story with slug ${context.params.slug}:`, error);
+    return corsError('Failed to delete success story', 500, request);
+  }
+}
+
+export async function OPTIONS(request: NextRequest) {
+  return withCors(new NextResponse(null, { status: 200 }), request);
 }

@@ -75,8 +75,8 @@ export default function EditBlog() {
   // Handle image upload for TipTap
   const handleImageUpload = async (file: File): Promise<string> => {
     try {
-      const uploadResult = await uploadToCloudinary(file, 'blogs');
-      return uploadResult.secure_url;
+      const uploadResult = await uploadToCloudinary(file, { folder: 'blogs' });
+      return uploadResult.url;
     } catch (error) {
       console.error('Image upload failed:', error);
       notifications.show({

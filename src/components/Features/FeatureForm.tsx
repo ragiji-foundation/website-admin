@@ -115,8 +115,8 @@ export function FeatureForm({ initialData, isEditing = false }: FeatureFormProps
         // Upload new image if provided
         let imageUrl = previewImage;
         if (imageFile) {
-          const uploadResult = await uploadToCloudinary(imageFile, 'features');
-          imageUrl = uploadResult.secure_url;
+          const uploadResult = await uploadToCloudinary(imageFile, { folder: 'features' });
+          imageUrl = uploadResult.url;
         }
 
         mediaItem = {
@@ -137,8 +137,8 @@ export function FeatureForm({ initialData, isEditing = false }: FeatureFormProps
         // Upload thumbnail if provided
         let thumbnailUrl = previewThumbnail;
         if (thumbnailFile) {
-          const uploadResult = await uploadToCloudinary(thumbnailFile, 'features/thumbnails');
-          thumbnailUrl = uploadResult.secure_url;
+          const uploadResult = await uploadToCloudinary(thumbnailFile, { folder: 'features/thumbnails' });
+          thumbnailUrl = uploadResult.url;
         }
 
         mediaItem = {

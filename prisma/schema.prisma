@@ -247,6 +247,7 @@ model FeatureSection {
 
 model SuccessStory {
   id          String   @id @default(cuid())
+  slug        String   @unique // Add the @unique attribute here
   title       String
   content     Json     // Rich text content
   personName  String

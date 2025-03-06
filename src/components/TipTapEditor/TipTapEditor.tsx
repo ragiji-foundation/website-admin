@@ -1,14 +1,15 @@
 import React from 'react';
 import TiptapEditor from '../TiptapEditor';
 
-// Define the props interface expected by our-story/page.tsx
+// Define the props interface expected by consumers
 interface TipTapEditorProps {
-  content: string;
-  onChange: (html: string) => void;
+  content: string | any;  // Accept both string and rich text object
+  onChange: (content: any) => void;
   minHeight?: number;
   placeholder?: string;
   label?: string;
   required?: boolean;
+  onImageUpload?: (file: File) => Promise<string>;
 }
 
 const TipTapEditor: React.FC<TipTapEditorProps> = ({
@@ -18,6 +19,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
   placeholder,
   label,
   required,
+  onImageUpload,
 }) => {
   return (
     <TiptapEditor
@@ -27,6 +29,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
       placeholder={placeholder}
       label={label}
       required={required}
+      onImageUpload={onImageUpload}
     />
   );
 };

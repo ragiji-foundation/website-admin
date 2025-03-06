@@ -15,11 +15,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Upload the image to Cloudinary
-    const result = await uploadToCloudinary(file, 'blogs');
+   // Upload the image to Cloudinary
+const result = await uploadToCloudinary(file, { folder: 'blogs' });
 
     // Return the URL of the uploaded image
     return NextResponse.json({
-      url: result.secure_url,
+      url: result.url,
       success: true
     });
   } catch (error) {
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
 export async function OPTIONS() {
   return new NextResponse(null, {
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': 'www.ragijifoundation.com,ragijifoundation.com',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type'
     },

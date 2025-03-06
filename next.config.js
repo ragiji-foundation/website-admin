@@ -10,9 +10,10 @@ const withNextra = nextra({
   },
 });
 
+/** @type {import('next').NextConfig} */
 const nextConfig = withNextra({
   images: {
-    domains: ["images.unsplash.com"],
+    domains: ["images.unsplash.com", "res.cloudinary.com"],
   },
   experimental: {
     serverActions: {
