@@ -3,16 +3,16 @@ import type { NextRequest } from 'next/server';
 
 // Define allowed origins
 const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:3001',
   'https://www.ragijifoundation.com',
   'https://ragijifoundation.com',
+  'http://localhost:3000',
+  'http://localhost:3001',
 ];
 
 // Helper function to check if origin is allowed
 function isOriginAllowed(origin: string | null): boolean {
   if (!origin) return false;
-  return allowedOrigins.includes(origin) || origin.endsWith('vercel.app');
+  return allowedOrigins.includes(origin); // Remove vercel.app check for production
 }
 
 /**
@@ -22,22 +22,23 @@ function isOriginAllowed(origin: string | null): boolean {
  * @param request Optional NextRequest to extract origin
  * @returns Response with CORS headers
  */
-export function withCors(response: NextResponse, request?: NextRequest) {
-  // Get origin from request or default to *
-  let origin: string = '*'; // Initialize with a default string value
+export function withCors(response: NextResponse, request?: NextRequest): NextResponse {
+  let origin: string | undefined = undefined;
 
   if (request?.headers.get('origin')) {
     const requestOrigin = request.headers.get('origin');
-    if (requestOrigin && isOriginAllowed(requestOrigin)) { // Check if requestOrigin is not null or undefined
+    if (requestOrigin && isOriginAllowed(requestOrigin)) {
       origin = requestOrigin;
     }
   }
 
   // Add CORS headers
-  response.headers.set('Access-Control-Allow-Origin', origin);
-  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  response.headers.set('Access-Control-Allow-Credentials', 'true');
+  if (origin) { // Only set CORS headers if a valid origin is present
+    response.headers.set('Access-Control-Allow-Origin', origin);
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    response.headers.set('Access-Control-Allow-Credentials', 'true');
+  }
 
   return response;
 }
@@ -50,7 +51,7 @@ export function withCors(response: NextResponse, request?: NextRequest) {
  * @param request Optional NextRequest to extract origin
  * @returns NextResponse with error and CORS headers
  */
-export function corsError(message: string, status: number = 500, request?: NextRequest) {
+export function corsError(message: string, status: number = 500, request?: NextRequest): NextResponse {
   const response = NextResponse.json(
     { error: message },
     { status }
