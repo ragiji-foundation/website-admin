@@ -16,9 +16,13 @@ import {
   Avatar,
   LoadingOverlay,
   Alert,
+  Divider,
+  Box,
+  ActionIcon,
 } from '@mantine/core';
-import { IconEdit, IconCalendar, IconUser, IconAlertCircle } from '@tabler/icons-react';
+import { IconEdit, IconCalendar, IconUser, IconAlertCircle, IconArrowLeft } from '@tabler/icons-react';
 import { format } from 'date-fns';
+import DOMPurify from 'isomorphic-dompurify';
 
 interface Tag {
   id: number;
@@ -45,13 +49,15 @@ interface BlogPost {
     image: string | null;
   };
   createdAt: string;
+  updatedAt: string;
+  locale: string;
 }
 
 export default function BlogDetailPage() {
   const router = useRouter();
   const params = useParams() as { slug: string };
   const searchParams = useSearchParams();
-  const [activeLocale, setActiveLocale] = useState(searchParams?.get('locale') || 'en');
+  const locale = searchParams?.get('locale') || 'en';
   const [blog, setBlog] = useState<BlogPost | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,10 +67,11 @@ export default function BlogDetailPage() {
       try {
         setIsLoading(true);
         setError(null);
-        const response = await fetch(`/api/blogs/${params.slug}?locale=${activeLocale}`);
+
+        const response = await fetch(`/api/blogs/${params.slug}?locale=${locale}`);
 
         if (!response.ok) {
-          throw new Error('Failed to fetch blog post');
+          throw new Error(`Failed to fetch blog post (${response.status})`);
         }
 
         const data = await response.json();
@@ -83,7 +90,13 @@ export default function BlogDetailPage() {
     if (params.slug) {
       fetchBlog();
     }
-  }, [params.slug, activeLocale]);
+  }, [params.slug, locale]);
+
+  const switchLocale = (newLocale: string) => {
+    router.push(`/blogs/${params.slug}?locale=${newLocale}`);
+  };
+
+  const sanitizedContent = blog?.content ? DOMPurify.sanitize(blog.content) : '';
 
   if (isLoading) {
     return (
@@ -103,40 +116,79 @@ export default function BlogDetailPage() {
         >
           {error || 'Blog post not found'}
         </Alert>
+        <Button
+          leftSection={<IconArrowLeft size={16} />}
+          variant="subtle"
+          mt="md"
+          onClick={() => router.push('/blogs')}
+        >
+          Return to blog list
+        </Button>
       </Container>
     );
   }
 
   return (
     <Container size="md" py="xl">
-      <Tabs value={activeLocale} onChange={(value) => setActiveLocale(value || 'en')} mb="xl">
-        <Tabs.List>
-          <Tabs.Tab value="en">English</Tabs.Tab>
-          <Tabs.Tab value="hi">Hindi</Tabs.Tab>
-        </Tabs.List>
-      </Tabs>
+      <Group mb="xl" justify="space-between">
+        <ActionIcon
+          variant="subtle"
+          size="lg"
+          onClick={() => router.push('/blogs')}
+        >
+          <IconArrowLeft size={20} />
+        </ActionIcon>
 
-      <Paper shadow="xs" p="md" mb="xl">
+        <Tabs value={locale} onChange={(value) => switchLocale(value || 'en')}>
+          <Tabs.List>
+            <Tabs.Tab value="en">English</Tabs.Tab>
+            <Tabs.Tab value="hi">Hindi</Tabs.Tab>
+          </Tabs.List>
+        </Tabs>
+      </Group>
+
+      <Paper shadow="xs" p="lg" mb="xl" withBorder>
         <Stack gap="md">
-          {blog.author.image && (
-            <Image
-              src={blog.author.image}
-              height={300}
-              alt={blog.title}
-              fallbackSrc="/default-blog-image.jpg"
-            />
-          )}
-
           <Group justify="space-between">
             <Title order={1}>{blog.title}</Title>
             <Button
               variant="light"
               leftSection={<IconEdit size={16} />}
-              onClick={() => router.push(`/blogs/${params.slug}/edit?locale=${activeLocale}`)}
+              onClick={() => router.push(`/blogs/${params.slug}/edit?locale=${locale}`)}
             >
               Edit
             </Button>
           </Group>
+
+          <Group mt="md" mb="lg">
+            <Group gap="xs">
+              <Avatar
+                src={blog.author.image}
+                radius="xl"
+                alt={blog.author.name}
+                size="sm"
+              />
+              <Text size="sm" c="dimmed">
+                <IconUser size={14} style={{ display: 'inline', marginRight: 4 }} />
+                {blog.author.name}
+              </Text>
+            </Group>
+
+            <Text size="sm" c="dimmed">
+              <IconCalendar size={14} style={{ display: 'inline', marginRight: 4 }} />
+              {format(new Date(blog.createdAt), 'MMMM dd, yyyy')}
+            </Text>
+
+            <Badge color={blog.status === 'published' ? 'green' : 'yellow'}>
+              {blog.status}
+            </Badge>
+          </Group>
+
+          {blog.category && (
+            <Badge color="blue" size="lg">
+              {blog.category.name}
+            </Badge>
+          )}
 
           {blog.tags && blog.tags.length > 0 && (
             <Group gap="xs">
@@ -148,39 +200,34 @@ export default function BlogDetailPage() {
             </Group>
           )}
 
-          {blog.category && (
-            <Badge color="blue" size="lg">
-              {blog.category.name}
-            </Badge>
-          )}
-
-          <Group gap="lg">
-            <Group gap="xs">
-              <Avatar
-                src={blog.author.image}
-                radius="xl"
-                alt={blog.author.name}
-              />
-              <Text size="sm" c="dimmed">
-                <IconUser size={14} style={{ display: 'inline', marginRight: 4 }} />
-                {blog.author.name}
-              </Text>
-            </Group>
-            <Text size="sm" c="dimmed">
-              <IconCalendar size={14} style={{ display: 'inline', marginRight: 4 }} />
-              {format(new Date(blog.createdAt), 'MMMM dd, yyyy')}
-            </Text>
-            <Badge color={blog.status === 'published' ? 'green' : 'yellow'}>
-              {blog.status}
-            </Badge>
-          </Group>
+          <Divider my="md" />
 
           <div
             className="blog-content"
-            dangerouslySetInnerHTML={{ __html: blog.content }}
+            dangerouslySetInnerHTML={{ __html: sanitizedContent }}
           />
         </Stack>
       </Paper>
+
+      <Box mb="xl">
+        <Title order={4}>SEO Information</Title>
+        <Paper p="md" withBorder mt="sm">
+          <Stack>
+            <Group>
+              <Text fw={600}>Meta Description:</Text>
+              <Text>{blog.metaDescription || 'Not set'}</Text>
+            </Group>
+            <Group>
+              <Text fw={600}>OG Title:</Text>
+              <Text>{blog.ogTitle || 'Not set'}</Text>
+            </Group>
+            <Group>
+              <Text fw={600}>OG Description:</Text>
+              <Text>{blog.ogDescription || 'Not set'}</Text>
+            </Group>
+          </Stack>
+        </Paper>
+      </Box>
 
       <style jsx global>{`
         .blog-content {
@@ -216,17 +263,27 @@ export default function BlogDetailPage() {
         }
 
         .blog-content pre {
-          background: var(--mantine-color-dark-8);
+          background: var(--mantine-color-gray-1);
           padding: 1rem;
           border-radius: 8px;
           overflow-x: auto;
         }
 
         .blog-content code {
-          background: var(--mantine-color-dark-8);
+          background: var(--mantine-color-gray-1);
           padding: 0.2rem 0.4rem;
           border-radius: 4px;
           font-size: 0.9em;
+        }
+        
+        .blog-content ul, 
+        .blog-content ol {
+          margin-left: 2rem;
+          margin-bottom: 1.5rem;
+        }
+        
+        .blog-content li {
+          margin-bottom: 0.5rem;
         }
       `}</style>
     </Container>

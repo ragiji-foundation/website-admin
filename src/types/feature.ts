@@ -1,14 +1,20 @@
+export interface MediaItem {
+  type: 'video' | 'image';
+  url: string;
+  thumbnail?: string;
+}
+
 export interface Feature {
   id: string;
   title: string;
-  description: any; // Json type
-  mediaType: string;
-  mediaUrl: string;
-  thumbnail?: string | null;
-  order: number;
-  section: string;
-  createdAt: Date;
-  updatedAt: Date;
+  description: any; // Rich text content
+  mediaItem: MediaItem;
+  slug?: string;
+  order?: number;
+  category?: string;
+  isPublished: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface FeatureSection {

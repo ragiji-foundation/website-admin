@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import slugify from 'slugify';
-import { isApiError } from '@/types/api';
+
+// Fixed admin user ID for all blog operations
+const DEFAULT_ADMIN_USER_ID = 1; // Use an ID that exists in your database
 
 const logError = (error: unknown, context: string) => {
   if (error instanceof Error) {
@@ -105,19 +107,19 @@ export async function POST(request: NextRequest) {
       slug = `${slug}-${count + 1}`;
     }
 
-    // Create the blog post with proper types and fixed authorId
+    // Create the blog post with fixed admin user
     const blog = await prisma.blog.create({
       data: {
-        title: data.title as string,
-        content: data.content as string,
-        status: data.status as string || 'draft',
-        locale: data.locale as string,
+        title: data.title,
+        content: data.content,
+        status: data.status || 'draft',
+        locale: data.locale,
         slug: slug,
-        metaDescription: data.metaDescription as string || '',
-        ogTitle: data.ogTitle as string || '',
-        ogDescription: data.ogDescription as string || '',
-        authorName: 'Admin User', // Fixed author name
-        authorId: 5, // Fixed authorId
+        metaDescription: data.metaDescription || '',
+        ogTitle: data.ogTitle || '',
+        ogDescription: data.ogDescription || '',
+        authorName: data.authorName || 'Admin',
+        authorId: DEFAULT_ADMIN_USER_ID, // Use fixed admin user ID
         categoryId: data.categoryId ? parseInt(data.categoryId.toString()) : null,
         tags: data.tags ? {
           connect: data.tags.map((tag: { id: number }) => ({
@@ -134,9 +136,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(blog);
   } catch (error) {
     console.error('Error creating blog:', error);
+
+    // Check if it's a foreign key constraint error related to the user ID
+    if (error instanceof Error &&
+      error.message.includes('foreign key constraint') &&
+      error.message.includes('authorId')) {
+      return NextResponse.json(
+        { error: 'Admin user not found. Please create a user with ID 1 before creating blogs.' },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
       { error: 'Failed to create blog' },
       { status: 500 }
     );
   }
-} 
+}

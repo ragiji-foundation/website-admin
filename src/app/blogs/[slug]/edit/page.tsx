@@ -1,11 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useEditor } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Underline from '@tiptap/extension-underline';
-import Image from '@tiptap/extension-image';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { notifications } from '@mantine/notifications';
 import {
   TextInput,
@@ -19,14 +15,20 @@ import {
   Group,
   ActionIcon,
   Text,
+  Tabs,
+  LoadingOverlay,
+  Box,
+  Drawer,
+  ScrollArea,
+  Divider,
+  Badge,
 } from '@mantine/core';
-import { IconArrowLeft, IconClock, IconCalendar } from '@tabler/icons-react';
-import { Editor } from '@/components/Editor';
-import { BlogPreview } from '@/components/BlogPreview';
-import TextAlign from '@tiptap/extension-text-align';
-import Subscript from '@tiptap/extension-subscript';
-import Superscript from '@tiptap/extension-superscript';
-import Link from '@tiptap/extension-link';
+import { IconArrowLeft, IconClock, IconCalendar, IconEye, IconEyeOff } from '@tabler/icons-react';
+// Fix: Import TiptapEditor from the correct path
+import TiptapEditor from '@/components/TiptapEditor';
+import { uploadToCloudinary } from '@/utils/cloudinary';
+import { RichTextContent } from '@/components/RichTextContent';
+import { format } from 'date-fns';
 
 interface Category {
   id: number;
@@ -48,54 +50,43 @@ interface Blog {
   metaDescription: string;
   ogTitle: string;
   ogDescription: string;
-  category: { id: number; name: string };
-  categoryId?: number;
+  category: { id: number; name: string } | null;
+  categoryId?: number | null;
   tags: Array<{ id: number; name: string }>;
   locale: string;
   authorName?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function EditBlog() {
   const router = useRouter();
   const params = useParams() as { slug: string };
+  const searchParams = useSearchParams();
+  const locale = searchParams?.get('locale') || 'en';
   const [blog, setBlog] = useState<Blog | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
+  const [content, setContent] = useState<string>('');
+  const [showPreview, setShowPreview] = useState(false);
 
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Underline,
-      Image.configure({
-        HTMLAttributes: {
-          class: 'max-w-full h-auto',
-        },
-      }),
-      TextAlign.configure({
-        types: ['heading', 'paragraph'],
-      }),
-      Subscript,
-      Superscript,
-      Link.configure({
-        openOnClick: false,
-      }),
-    ],
-    content: '',
-    editorProps: {
-      attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',
-      },
-    },
-    onUpdate: ({ editor }) => {
-      if (blog) {
-        setBlog(prev => ({
-          ...prev!,
-          content: editor.getHTML()
-        }));
-      }
+  // Handle image upload for TipTap
+  const handleImageUpload = async (file: File): Promise<string> => {
+    try {
+      const uploadResult = await uploadToCloudinary(file, 'blogs');
+      return uploadResult.secure_url;
+    } catch (error) {
+      console.error('Image upload failed:', error);
+      notifications.show({
+        title: 'Upload Failed',
+        message: 'Failed to upload image. Please try again.',
+        color: 'red'
+      });
+      throw error;
     }
-  });
+  };
 
   useEffect(() => {
     if (!params?.slug) return;
@@ -103,7 +94,7 @@ export default function EditBlog() {
     const fetchData = async () => {
       try {
         const [blogRes, categoriesRes, tagsRes] = await Promise.all([
-          fetch(`/api/blogs/${params.slug}?locale=en`),
+          fetch(`/api/blogs/${params.slug}?locale=${locale}`),
           fetch('/api/categories'),
           fetch('/api/tags')
         ]);
@@ -114,15 +105,19 @@ export default function EditBlog() {
           tagsRes.json()
         ]);
 
+        if (blogData.error) {
+          throw new Error(blogData.error);
+        }
+
         setBlog(blogData);
+        setContent(blogData.content || '');
         setCategories(categoriesData);
         setTags(tagsData);
-        editor?.commands.setContent(blogData.content);
       } catch (error) {
         console.error('Error fetching data:', error);
         notifications.show({
           title: 'Error',
-          message: 'Failed to fetch data',
+          message: error instanceof Error ? error.message : 'Failed to fetch data',
           color: 'red'
         });
       } finally {
@@ -131,27 +126,35 @@ export default function EditBlog() {
     };
 
     fetchData();
-  }, [params?.slug, editor]);
+  }, [params?.slug, locale]);
+
+  const handleContentChange = (newContent: string) => {
+    setContent(newContent);
+  };
 
   const handleSubmit = async () => {
-    setLoading(true);
+    if (!blog) return;
+
+    setSaving(true);
     try {
+      // Prepare tag connections in the format expected by Prisma
+      const tagConnections = blog.tags.map(tag => ({ id: tag.id }));
+
       const response = await fetch(`/api/blogs/${params.slug}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title: blog?.title,
-          content: editor?.getHTML() || '',
-          status: blog?.status,
-          metaDescription: blog?.metaDescription,
-          ogTitle: blog?.ogTitle,
-          ogDescription: blog?.ogDescription,
-          categoryId: blog?.category?.id,
-          locale: blog?.locale || 'en',
-          authorName: blog?.authorName || 'Admin',
-          tags: blog?.tags.map(tag => ({ id: tag.id }))
+          title: blog.title,
+          content: content,
+          status: blog.status,
+          metaDescription: blog.metaDescription,
+          ogTitle: blog.ogTitle || blog.title,
+          ogDescription: blog.ogDescription || blog.metaDescription,
+          categoryId: blog.category?.id || null,
+          locale: locale,
+          tags: tagConnections
         }),
       });
 
@@ -166,7 +169,7 @@ export default function EditBlog() {
         color: 'green'
       });
 
-      router.push(`/blogs/${params.slug}`);
+      router.push(`/blogs/${params.slug}?locale=${locale}`);
     } catch (error) {
       console.error('Error updating blog:', error);
       notifications.show({
@@ -175,12 +178,30 @@ export default function EditBlog() {
         color: 'red'
       });
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  if (loading) return <div>Loading...</div>;
-  if (!blog) return <div>Blog not found</div>;
+  // Format date for preview
+  const formattedDate = blog?.createdAt
+    ? format(new Date(blog.createdAt), 'MMMM dd, yyyy')
+    : '';
+
+  if (loading) {
+    return (
+      <Box p="xl">
+        <LoadingOverlay visible={true} />
+      </Box>
+    );
+  }
+
+  if (!blog) {
+    return (
+      <Box p="xl">
+        <Text>Blog not found. <Button onClick={() => router.push('/blogs')}>Return to Blog List</Button></Text>
+      </Box>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -204,21 +225,37 @@ export default function EditBlog() {
             <Group>
               <Group gap="xs">
                 <IconClock size={16} />
-                <Text size="sm">Last modified: {new Date().toLocaleDateString()}</Text>
+                <Text size="sm">Last modified: {new Date(blog.updatedAt).toLocaleDateString()}</Text>
               </Group>
-              <Group gap="xs">
-                <IconCalendar size={16} />
-                <Text size="sm">Created: {new Date().toLocaleDateString()}</Text>
-              </Group>
+
+              <Button
+                variant={showPreview ? "filled" : "light"}
+                leftSection={showPreview ? <IconEyeOff size={16} /> : <IconEye size={16} />}
+                onClick={() => setShowPreview(!showPreview)}
+              >
+                {showPreview ? "Hide Preview" : "Show Preview"}
+              </Button>
+
+              <Tabs defaultValue={locale}>
+                <Tabs.List>
+                  <Tabs.Tab value="en" onClick={() => router.push(`/blogs/${params.slug}/edit?locale=en`)}>
+                    English
+                  </Tabs.Tab>
+                  <Tabs.Tab value="hi" onClick={() => router.push(`/blogs/${params.slug}/edit?locale=hi`)}>
+                    Hindi
+                  </Tabs.Tab>
+                </Tabs.List>
+              </Tabs>
+
               <Button
                 variant="light"
-                onClick={() => router.push(`/blogs/${params.slug}`)}
+                onClick={() => router.push(`/blogs/${params.slug}?locale=${locale}`)}
               >
-                Preview
+                View Blog
               </Button>
               <Button
                 onClick={handleSubmit}
-                loading={loading}
+                loading={saving}
               >
                 Publish Changes
               </Button>
@@ -228,115 +265,204 @@ export default function EditBlog() {
       </header>
 
       <div className="w-full px-[5%] py-4">
-        <div>
-          <Grid gutter="md">
-            <Grid.Col span={7} p="xs">
-              <Stack gap="md">
-                <Paper shadow="sm" p="sm" withBorder>
-                  <TextInput
-                    label="Title"
-                    placeholder="Enter blog title"
-                    value={blog?.title}
-                    onChange={(e) => setBlog({ ...blog!, title: e.target.value })}
-                    required
-                    size="lg"
-                  />
-                </Paper>
+        <Grid gutter="md">
+          {/* Expanded Editor Column - Adjust width based on preview state */}
+          <Grid.Col span={{ base: 12, md: showPreview ? 7 : 10 }} p="xs">
+            <Stack gap="md">
+              <Paper shadow="sm" p="sm" withBorder>
+                <TextInput
+                  label="Title"
+                  placeholder="Enter blog title"
+                  value={blog?.title || ''}
+                  onChange={(e) => setBlog({ ...blog!, title: e.target.value })}
+                  required
+                  size="lg"
+                />
+              </Paper>
 
-                <Paper shadow="sm" withBorder>
-                  <Editor editor={editor} />
-                </Paper>
+              <Paper shadow="sm" p="sm" withBorder style={{ minHeight: '500px' }}>
+                <Text fw={500} size="sm" mb={8}>Content</Text>
+                {/* Using the TiptapEditor with image upload capability */}
+                <TiptapEditor
+                  content={content}
+                  onChange={handleContentChange}
+                  onImageUpload={handleImageUpload}
+                  placeholder="Start writing your blog content here..."
+                />
+              </Paper>
+            </Stack>
+          </Grid.Col>
 
-                <Paper shadow="sm" p="sm" withBorder>
-                  <Stack gap="md">
-                    <Title order={4}>SEO Settings</Title>
-                    <TextInput
-                      label="Meta Description"
-                      placeholder="Enter meta description"
-                      value={blog?.metaDescription}
-                      onChange={(e) => setBlog({ ...blog!, metaDescription: e.target.value })}
-                    />
-                    <TextInput
-                      label="OG Title"
-                      placeholder="Enter OG title"
-                      value={blog?.ogTitle}
-                      onChange={(e) => setBlog({ ...blog!, ogTitle: e.target.value })}
-                    />
-                    <TextInput
-                      label="OG Description"
-                      placeholder="Enter OG description"
-                      value={blog?.ogDescription}
-                      onChange={(e) => setBlog({ ...blog!, ogDescription: e.target.value })}
-                    />
-                  </Stack>
-                </Paper>
-              </Stack>
+          {/* Preview Column - Only visible when preview is enabled */}
+          {showPreview && (
+            <Grid.Col span={{ base: 12, md: 3 }} p="xs">
+              <Paper shadow="sm" p="md" withBorder style={{ minHeight: '500px', position: 'sticky', top: '20px' }}>
+                <ScrollArea h="calc(100vh - 150px)" type="auto">
+                  <Title order={4} mb="md">Preview</Title>
+                  <Divider mb="md" />
+
+                  <div className="blog-preview">
+                    <Title order={2} mb="xs">{blog.title || 'Untitled Blog'}</Title>
+
+                    {/* Author and Date */}
+                    <Group mb="md">
+                      <Text size="sm" c="dimmed">By {blog.authorName || 'Admin'}</Text>
+                      <Text size="sm" c="dimmed">•</Text>
+                      <Text size="sm" c="dimmed">{formattedDate}</Text>
+                    </Group>
+
+                    {/* Category and Tags */}
+                    <Group mb="lg">
+                      {blog.category && (
+                        <Badge color="blue">{blog.category.name}</Badge>
+                      )}
+                      {blog.tags && blog.tags.map(tag => (
+                        <Badge key={tag.id} variant="outline">{tag.name}</Badge>
+                      ))}
+                    </Group>
+
+                    <Divider mb="md" />
+
+                    {/* Blog Content */}
+                    <div className="blog-content">
+                      <RichTextContent content={content} />
+                    </div>
+                  </div>
+                </ScrollArea>
+              </Paper>
             </Grid.Col>
+          )}
 
-            <Grid.Col span={5} p="xs">
-              <Stack gap="md">
-                <Paper shadow="sm" p="sm" withBorder>
-                  <Title order={4} mb="sm">Preview</Title>
-                  <BlogPreview
-                    title={blog?.title || ''}
-                    content={blog?.content || ''}
-                    category={blog?.category}
-                    tags={blog?.tags}
+          {/* Compact Settings Column - Adjust width based on preview state */}
+          <Grid.Col span={{ base: 12, md: showPreview ? 2 : 2 }} p="xs">
+            <Stack gap="xs">
+              <Paper shadow="xs" p="xs" withBorder>
+                <Title order={5} mb="xs" size="sm">Publishing</Title>
+                <Stack gap="xs">
+                  <Select
+                    label="Status"
+                    size="xs"
+                    value={blog?.status || ''}
+                    onChange={(value) => setBlog({ ...blog!, status: value || 'draft' })}
+                    data={[
+                      { value: 'draft', label: 'Draft' },
+                      { value: 'published', label: 'Published' },
+                      { value: 'archived', label: 'Archived' },
+                    ]}
                   />
-                </Paper>
-
-                <Paper shadow="sm" p="sm" withBorder>
-                  <Stack gap="md">
-                    <Title order={4}>Publishing Settings</Title>
-                    <Select
-                      label="Status"
-                      value={blog?.status}
-                      onChange={(value) => setBlog({ ...blog!, status: value || 'draft' })}
-                      data={[
-                        { value: 'draft', label: 'Draft' },
-                        { value: 'published', label: 'Published' },
-                        { value: 'archived', label: 'Archived' },
-                      ]}
-                    />
-                    <Select
-                      label="Category"
-                      value={blog?.category?.id.toString()}
-                      onChange={(value) => setBlog({
+                  <Select
+                    label="Category"
+                    size="xs"
+                    value={blog?.category?.id?.toString() || ''}
+                    onChange={(value) => {
+                      const selectedCategory = value ? categories.find(c => c.id.toString() === value) : null;
+                      setBlog({
                         ...blog!,
-                        category: {
-                          id: parseInt(value || '0'),
-                          name: categories.find((c: Category) => c.id.toString() === value)?.name || ''
-                        },
-                        categoryId: parseInt(value || '0')
-                      })}
-                      data={categories.map((cat: Category) => ({
-                        value: cat.id.toString(),
-                        label: cat.name
-                      }))}
-                    />
-                    <MultiSelect
-                      label="Tags"
-                      value={blog?.tags.map(tag => tag.id.toString())}
-                      onChange={(values) => setBlog({
-                        ...blog!,
-                        tags: values.map(v => ({
+                        category: selectedCategory
+                          ? { id: selectedCategory.id, name: selectedCategory.name }
+                          : null,
+                        categoryId: selectedCategory ? selectedCategory.id : null
+                      });
+                    }}
+                    data={categories.map((cat: Category) => ({
+                      value: cat.id.toString(),
+                      label: cat.name
+                    }))}
+                    clearable
+                  />
+                  <MultiSelect
+                    label="Tags"
+                    size="xs"
+                    value={(blog?.tags || []).map(tag => tag.id.toString())}
+                    onChange={(values) => setBlog({
+                      ...blog!,
+                      tags: values.map(v => {
+                        const foundTag = tags.find((t: Tag) => t.id.toString() === v);
+                        return {
                           id: parseInt(v),
-                          name: tags.find((t: Tag) => t.id.toString() === v)?.name || ''
-                        }))
-                      })}
-                      data={tags.map((tag: Tag) => ({
-                        value: tag.id.toString(),
-                        label: tag.name,
-                        key: `tag-${tag.id}`
-                      }))}
-                    />
-                  </Stack>
-                </Paper>
-              </Stack>
-            </Grid.Col>
-          </Grid>
-        </div>
+                          name: foundTag?.name || ''
+                        };
+                      })
+                    })}
+                    data={tags.map((tag: Tag) => ({
+                      value: tag.id.toString(),
+                      label: tag.name,
+                    }))}
+                    searchable
+                    clearable
+                  />
+
+                  {/* Compact SEO fields */}
+                  <Title order={5} mt="sm" mb="xs" size="sm">SEO</Title>
+                  <TextInput
+                    label="Meta Description"
+                    size="xs"
+                    placeholder="SEO description"
+                    value={blog?.metaDescription || ''}
+                    onChange={(e) => setBlog({ ...blog!, metaDescription: e.target.value })}
+                  />
+                  <TextInput
+                    label="OG Title"
+                    size="xs"
+                    placeholder="Social title"
+                    value={blog?.ogTitle || ''}
+                    onChange={(e) => setBlog({ ...blog!, ogTitle: e.target.value })}
+                  />
+                  <TextInput
+                    label="OG Description"
+                    size="xs"
+                    placeholder="Social description"
+                    value={blog?.ogDescription || ''}
+                    onChange={(e) => setBlog({ ...blog!, ogDescription: e.target.value })}
+                  />
+                </Stack>
+              </Paper>
+
+              <Button
+                fullWidth
+                onClick={handleSubmit}
+                loading={saving}
+              >
+                Publish Changes
+              </Button>
+            </Stack>
+          </Grid.Col>
+        </Grid>
       </div>
+
+      <style jsx global>{`
+        .blog-preview {
+          font-family: var(--mantine-font-family);
+        }
+        
+        .blog-content {
+          font-size: 1rem;
+          line-height: 1.7;
+        }
+        
+        .blog-content h1,
+        .blog-content h2 {
+          margin-top: 1.5rem;
+          margin-bottom: 0.75rem;
+        }
+        
+        .blog-content p {
+          margin-bottom: 1rem;
+        }
+        
+        .blog-content img {
+          max-width: 100%;
+          height: auto;
+          border-radius: 4px;
+          margin: 1rem 0;
+        }
+        
+        @media (max-width: 768px) {
+          .blog-preview {
+            margin-top: 1rem;
+          }
+        }
+      `}</style>
     </div>
   );
-} 
+}

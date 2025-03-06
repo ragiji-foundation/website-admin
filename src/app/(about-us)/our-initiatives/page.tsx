@@ -20,7 +20,7 @@ import { FileButton } from '@mantine/core';
 
 import { handleImageUpload } from '@/utils/imageUpload';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import TipTapEditor from '@/components/TipTapEditor/TipTapEditor';
+import TiptapEditor from '@/components/TiptapEditor';
 
 interface Initiative {
   id: number;
@@ -198,14 +198,14 @@ export default function InitiativesAdmin() {
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 />
-                <TipTapEditor
-                  label="Description"
-                  content={formData.description}
-                  onChange={(htmlContent) => setFormData({ ...formData, description: htmlContent })}
-                  placeholder="Enter initiative description..."
-                  required={true}
-                  minHeight={200}
-                />
+   <TiptapEditor
+  label="Description"
+  content={formData.description}
+  onChange={(htmlContent) => setFormData({ ...formData, description: htmlContent })}
+  placeholder="Enter initiative description..."
+  required={true}
+  minHeight={300}
+/>
                 <Group align="flex-end">
                   <TextInput
                     label="Image URL"

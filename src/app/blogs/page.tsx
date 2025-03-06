@@ -19,7 +19,8 @@ import {
   Alert,
   MultiSelect,
 } from '@mantine/core';
-import { IconSearch, IconEdit, IconTrash, IconAlertCircle } from '@tabler/icons-react';
+import { IconSearch, IconEdit, IconTrash, IconAlertCircle, IconPhoto } from '@tabler/icons-react';
+import { extractFirstImageUrl, stripHtml, truncateText } from '@/utils/contentUtils';
 
 interface Blog {
   id: number;
@@ -164,6 +165,18 @@ function BlogListPageContent() {
     }
   };
 
+  // Function to get thumbnail image for a blog
+  const getBlogThumbnail = (blog: Blog): string => {
+    // First try to extract image from content
+    if (typeof window !== 'undefined') {
+      const contentImage = extractFirstImageUrl(blog.content);
+      if (contentImage) return contentImage;
+    }
+
+    // Fallback to default image
+    return '/default-blog-image.jpg';
+  };
+
   return (
     <Container size="xl">
       <LoadingOverlay visible={isLoading} />
@@ -249,22 +262,48 @@ function BlogListPageContent() {
           <Grid.Col key={blog.id} span={{ base: 12, md: 6 }}>
             <Card shadow="sm" padding="lg">
               <Card.Section>
-                <Image
-                  src={blog.author.image || '/default-blog-image.jpg'}
-                  height={160}
-                  alt={blog.title}
-                />
+                <div style={{ position: 'relative', height: '160px', overflow: 'hidden' }}>
+                  <Image
+                    src={getBlogThumbnail(blog)}
+                    height={160}
+                    fallbackSrc="/default-blog-image.jpg"
+                    style={{ objectFit: 'cover' }}
+                    alt={blog.title}
+                    onError={(e) => {
+                      // Fallback on error
+                      const target = e.target as HTMLImageElement;
+                      target.src = '/default-blog-image.jpg';
+                    }}
+                  />
+                  {!extractFirstImageUrl(blog.content) && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: 'rgba(0,0,0,0.03)'
+                      }}
+                    >
+                      <IconPhoto size={32} stroke={1.5} color="rgba(0,0,0,0.2)" />
+                    </div>
+                  )}
+                </div>
               </Card.Section>
 
               <Group justify="apart" mt="md" mb="xs">
-                <Text fw={500}>{blog.title}</Text>
+                <Text fw={500} lineClamp={1}>{blog.title}</Text>
                 <Badge color={blog.status === 'published' ? 'green' : 'yellow'}>
                   {blog.status}
                 </Badge>
               </Group>
 
               <Text size="sm" color="dimmed" lineClamp={2}>
-                {blog.content.replace(/<[^>]*>/g, '')}
+                {stripHtml(blog.content)}
               </Text>
 
               <Group mt="md" gap="xs">
@@ -327,4 +366,4 @@ export default function BlogListPage() {
       <BlogListPageContent />
     </Suspense>
   );
-} 
+}

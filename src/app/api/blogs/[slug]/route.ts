@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
+// Fixed admin user ID for all blog operations
+const DEFAULT_ADMIN_USER_ID = 1; // Use an ID that exists in your database
+
 export async function GET(
   request: NextRequest,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -81,7 +84,8 @@ export async function PUT(
         metaDescription: data.metaDescription,
         ogTitle: data.ogTitle,
         ogDescription: data.ogDescription,
-        authorName: data.authorName,
+        authorName: data.authorName || 'Admin',
+        authorId: DEFAULT_ADMIN_USER_ID, // Use fixed admin user ID
         categoryId: data.categoryId,
         tags: {
           set: [],

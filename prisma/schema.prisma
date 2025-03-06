@@ -221,14 +221,14 @@ model Award {
 model Feature {
   id          String   @id @default(cuid())
   title       String
-  description Json
-  mediaType   String
-  mediaUrl    String
-  thumbnail   String?
+  description String   @db.Text
+  mediaType   String   // Used as "slug" in API
+  mediaUrl    String   // Used as mediaItem.url in API
+  thumbnail   String?  // Used as mediaItem.thumbnail in API
   order       Int      @default(0)
-  section     String
+  section     String?  // Used as "category" in API
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@map("features")
 }

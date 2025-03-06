@@ -21,6 +21,7 @@ import {
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconEye, IconDeviceFloppy, IconPlus, IconTrash } from '@tabler/icons-react';
+// Fix the import path to use the correct component
 import TipTapEditor from '@/components/TipTapEditor/TipTapEditor';
 import { MediaUpload } from '@/components/MediaUpload';
 import OurStoryPreview from '@/components/previews/OurStoryPreview';

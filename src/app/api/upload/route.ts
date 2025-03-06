@@ -13,107 +13,54 @@ cloudinary.config({
 
 export async function POST(request: NextRequest) {
   try {
-    // Check if formData can be parsed
-    let fileData: Blob | null = null;
-    let fileName: string = '';
-    let fileType: string = '';
-    let folder = 'uploads';
-    let tags = '';
+    // Check if the user is authenticated (add your auth logic here)
+    // const session = await getServerSession(authOptions);
+    // if (!session) {
+    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // }
 
-    try {
-      const formData = await request.formData();
-      const fileEntry = formData.get('file');
+    const formData = await request.formData();
+    const file = formData.get('file') as File;
+    const folder = formData.get('folder') as string || 'uploads';
 
-      // Check if fileEntry exists and has necessary properties
-      if (fileEntry &&
-        typeof fileEntry === 'object' &&
-        'arrayBuffer' in fileEntry &&
-        typeof fileEntry.arrayBuffer === 'function' &&
-        'name' in fileEntry &&
-        'type' in fileEntry) {
-        fileData = fileEntry as Blob;
-        fileName = fileEntry.name as string;
-        fileType = fileEntry.type as string;
-      } else {
-        throw new Error('Invalid file format');
-      }
-
-      if (formData.has('folder')) {
-        folder = formData.get('folder') as string;
-      }
-
-      if (formData.has('tags')) {
-        tags = formData.get('tags') as string;
-      }
-    } catch (error) {
-      console.error('Error parsing formData:', error);
-      return NextResponse.json(
-        { error: 'Invalid form data' },
-        { status: 400 }
-      );
+    if (!file) {
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    if (!fileData) {
-      return NextResponse.json(
-        { error: 'No file provided' },
-        { status: 400 }
-      );
-    }
+    // Convert file to buffer
+    const buffer = Buffer.from(await file.arrayBuffer());
 
-    // We need to convert the Blob to a buffer that can be uploaded to Cloudinary
-    const arrayBuffer = await fileData.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    // Convert the file to a base64 data URI
-    const base64Data = buffer.toString('base64');
-    const dataURI = `data:${fileType};base64,${base64Data}`;
-
-    console.log(`Processing file: ${fileName}, size: ${buffer.length} bytes`);
-
-    // Upload to Cloudinary using the Node SDK
-    const uploadResult = await new Promise((resolve, reject) => {
-      const uploadOptions = {
-        folder,
-        upload_preset: 'ragiji',
-        resource_type: 'auto',
-      } as any;
-
-      if (tags) {
-        uploadOptions['tags'] = tags.split(',');
-      }
-
-      cloudinary.uploader.upload(dataURI, uploadOptions, (error, result) => {
-        if (error) {
-          console.error('Cloudinary upload error:', error);
-          reject(error);
-          return;
+    // Create a promise that will resolve with the Cloudinary upload result
+    const uploadPromise = new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder,
+          resource_type: 'auto',
+        },
+        (error, result) => {
+          if (error) {
+            console.error('Cloudinary upload error:', error);
+            reject(error);
+          } else {
+            resolve(result);
+          }
         }
-        resolve(result);
-      });
+      );
+
+      // Write buffer to stream
+      uploadStream.write(buffer);
+      uploadStream.end();
     });
 
-    console.log('Upload successful:', uploadResult);
+    // Wait for upload to complete
+    const result = await uploadPromise;
 
-    return NextResponse.json({
-      url: (uploadResult as any).secure_url,
-      publicId: (uploadResult as any).public_id,
-      width: (uploadResult as any).width,
-      height: (uploadResult as any).height,
-      format: (uploadResult as any).format,
-      resourceType: (uploadResult as any).resource_type
-    });
+    return NextResponse.json(result);
   } catch (error) {
-    console.error('Error in upload route:', error);
+    console.error('Error uploading file:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to upload file' },
+      { error: 'Failed to upload file' },
       { status: 500 }
     );
   }
 }
-
-// This is not needed for Next.js App Router API routes
-// export const config = {
-//   api: {
-//     bodyParser: false,
-//   },
-// };
