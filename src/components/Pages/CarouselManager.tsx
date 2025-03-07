@@ -51,13 +51,48 @@ export function CarouselManager() {
     try {
       const response = await fetch('/api/carousel');
       const data = await response.json();
-      setItems(data);
+
+      // Fixed: Handle API response that returns an object with data inside
+      if (Array.isArray(data)) {
+        setItems(data);
+      } else if (data && typeof data === 'object') {
+        // Check common API response patterns
+        if (Array.isArray(data.data)) {
+          setItems(data.data);
+        } else if (Array.isArray(data.items)) {
+          setItems(data.items);
+        } else if (Array.isArray(data.carousel)) {
+          setItems(data.carousel);
+        } else if (Array.isArray(data.results)) {
+          setItems(data.results);
+        } else {
+          // If no array found, initialize as empty array
+          setItems([]);
+          console.error('Expected carousel data to be an array or contain an array but received:', data);
+          notifications.show({
+            title: 'Data Error',
+            message: 'Received invalid data format for carousel',
+            color: 'red'
+          });
+        }
+      } else {
+        // If data is not an object or array, initialize as empty array
+        setItems([]);
+        console.error('Expected carousel data to be an array but received:', data);
+        notifications.show({
+          title: 'Data Error',
+          message: 'Received invalid data format for carousel',
+          color: 'red'
+        });
+      }
     } catch (error) {
+      console.error('Error fetching carousel data:', error);
       notifications.show({
         title: 'Error',
-        message: 'Failed to fetch carousel items',
-        color: 'red',
+        message: 'Failed to fetch carousel data',
+        color: 'red'
       });
+      setItems([]);
     } finally {
       setLoading(false);
     }

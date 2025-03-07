@@ -33,7 +33,7 @@ export function ImageViewer({ opened, onClose, image }: ImageViewerProps) {
         )}
         <Group>
           <Badge size="lg">{image.category}</Badge>
-          <CopyButton value={image.imageUrl}>
+          <CopyButton value={image.imageUrl || ''}>
             {({ copied, copy }) => (
               <Button
                 variant="light"

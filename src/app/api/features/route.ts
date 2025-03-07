@@ -28,10 +28,10 @@ export async function GET(request: NextRequest) {
       isPublished: true // Hardcoded since it's not in DB schema
     }));
 
-    return withCors(NextResponse.json(transformedFeatures), request);
+    return withCors(NextResponse.json(transformedFeatures));
   } catch (error) {
     console.error('Error fetching features:', error);
-    return corsError('Failed to fetch features', 500, request);
+    return corsError('Failed to fetch features', 500);
   }
 }
 
@@ -80,13 +80,13 @@ export async function POST(request: NextRequest) {
       isPublished: true // Hardcoded since it's not in DB schema
     };
 
-    return withCors(NextResponse.json(transformedFeature, { status: 201 }), request);
+    return withCors(NextResponse.json(transformedFeature, { status: 201 }));
   } catch (error) {
     console.error('Error creating feature:', error);
-    return corsError('Failed to create feature', 500, request);
+    return corsError('Failed to create feature', 500);
   }
 }
 
 export async function OPTIONS(request: NextRequest) {
-  return withCors(new NextResponse(null, { status: 200 }), request);
+  return withCors(new NextResponse(null, { status: 200 }));
 }

@@ -87,26 +87,36 @@ export function getTransformedUrl(
   height?: number,
   options: { crop?: string; quality?: number } = {}
 ): string {
-  if (!url || !url.includes('cloudinary.com')) {
+  if (!url || typeof url !== 'string') {
+    console.warn('Invalid URL passed to getTransformedUrl:', url);
+    return '/placeholder.svg';
+  }
+
+  if (!url.includes('cloudinary.com')) {
     return url;
   }
 
   const { crop = 'fill', quality = 80 } = options;
 
-  // Find the upload part of the URL
-  const uploadIndex = url.indexOf('/upload/');
-  if (uploadIndex === -1) return url;
+  try {
+    // Find the upload part of the URL
+    const uploadIndex = url.indexOf('/upload/');
+    if (uploadIndex === -1) return url;
 
-  // Construct the transformation string
-  let transformation = 'c_' + crop;
+    // Construct the transformation string
+    let transformation = 'c_' + crop;
 
-  if (width) transformation += ',w_' + width;
-  if (height) transformation += ',h_' + height;
+    if (width) transformation += ',w_' + width;
+    if (height) transformation += ',h_' + height;
 
-  transformation += ',q_' + quality;
+    transformation += ',q_' + quality;
 
-  // Insert transformation into URL
-  return url.slice(0, uploadIndex + 8) + transformation + '/' + url.slice(uploadIndex + 8);
+    // Insert transformation into URL
+    return url.slice(0, uploadIndex + 8) + transformation + '/' + url.slice(uploadIndex + 8);
+  } catch (error) {
+    console.error('Error transforming URL:', error);
+    return url;
+  }
 }
 
 /**

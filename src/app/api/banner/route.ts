@@ -11,7 +11,10 @@ const VALID_BANNER_TYPES: BannerType[] = [
 ];
 
 // GET all banners
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Add CORS headers for all origins during development
+  const origin = request.headers.get('origin') || '*';
+
   try {
     const banners = await prisma.banner.findMany({
       orderBy: { updatedAt: 'desc' }

@@ -29,13 +29,13 @@ export async function GET(
     });
 
     if (!story) {
-      return corsError('Success story not found', 404, request);
+      return corsError('Success story not found', 404);
     }
 
-    return withCors(NextResponse.json(story), request);
+    return withCors(NextResponse.json(story));
   } catch (error) {
     console.error(`Error fetching success story with slug ${context.params.slug}:`, error);
-    return corsError('Failed to fetch success story', 500, request);
+    return corsError('Failed to fetch success story', 500);
   }
 }
 
@@ -55,7 +55,7 @@ export async function PUT(
     });
 
     if (!existingStory) {
-      return corsError('Success story not found', 404, request);
+      return corsError('Success story not found', 404);
     }
 
     const story = await prisma.successStory.update({
@@ -63,10 +63,10 @@ export async function PUT(
       data: validatedData,
     });
 
-    return withCors(NextResponse.json(story), request);
+    return withCors(NextResponse.json(story));
   } catch (error) {
     console.error(`Failed to update success story with slug ${context.params.slug}:`, error);
-    return corsError('Failed to update success story', 500, request);
+    return corsError('Failed to update success story', 500);
   }
 }
 
@@ -84,20 +84,20 @@ export async function DELETE(
     });
 
     if (!existingStory) {
-      return corsError('Success story not found', 404, request);
+      return corsError('Success story not found', 404);
     }
 
     await prisma.successStory.delete({
       where: { id: existingStory.id }, // Use the ID for deletion
     });
 
-    return withCors(NextResponse.json({ message: 'Success story deleted' }, request), request);
+    return withCors(NextResponse.json({ message: 'Success story deleted' }));
   } catch (error) {
     console.error(`Failed to delete success story with slug ${context.params.slug}:`, error);
-    return corsError('Failed to delete success story', 500, request);
+    return corsError('Failed to delete success story', 500);
   }
 }
 
 export async function OPTIONS(request: NextRequest) {
-  return withCors(new NextResponse(null, { status: 200 }), request);
+  return withCors(new NextResponse(null, { status: 200 }));
 }

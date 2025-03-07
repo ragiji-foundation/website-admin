@@ -40,7 +40,7 @@ export function ImageCard({ item, onDelete, onClick }: ImageCardProps) {
           {item.category}
         </Badge>
         <Group justify="space-between" mt="xs">
-          <CopyButton value={item.imageUrl}>
+          <CopyButton value={item.imageUrl ?? ''}>
             {({ copied, copy }) => (
               <Tooltip label={copied ? 'Copied!' : 'Copy URL'}>
                 <ActionIcon
@@ -61,7 +61,7 @@ export function ImageCard({ item, onDelete, onClick }: ImageCardProps) {
             color="red"
             onClick={(e) => {
               e.stopPropagation();
-              onDelete(item.id);
+              onDelete(Number(item.id));
             }}
           >
             <IconTrash size={16} />

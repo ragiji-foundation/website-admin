@@ -16,8 +16,12 @@ import {
 } from '@mantine/core';
 import { formatDate } from '@/utils/date';
 import { truncateText, stripHtml } from '@/utils/strings';
-import { IconPlus, IconStar, IconPencil, IconTrash } from '@tabler/icons-react';
-import { DeleteSuccessStory } from '@/components/SuccessStories/DeleteSuccessStory';
+import { IconPlus, IconStar, IconPencil } from '@tabler/icons-react';
+import { StoryDeleteButton } from '@/components/SuccessStories/StoryDeleteButton';
+import { deleteSuccessStory } from '@/actions/story-actions';
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Success Stories | Admin Dashboard',
@@ -38,24 +42,6 @@ async function getSuccessStories() {
   } catch (error) {
     console.error('Error loading success stories:', error);
     return { data: [] };
-  }
-}
-
-async function deleteSuccessStory(id: string) {
-  'use server';
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/success-stories/${id}`, {
-      method: 'DELETE',
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to delete success story');
-    }
-
-    return { success: true };
-  } catch (error) {
-    console.error('Error deleting success story:', error);
-    return { success: false };
   }
 }
 
@@ -154,13 +140,7 @@ export default async function SuccessStoriesPage() {
                   Edit
                 </Button>
 
-                <DeleteSuccessStory
-                  storyId={story.id}
-                  onDelete={async (id) => {
-                    'use server';
-                    await deleteSuccessStory(id);
-                  }}
-                />
+                <StoryDeleteButton storyId={story.id} />
               </Group>
             </Card>
           ))}

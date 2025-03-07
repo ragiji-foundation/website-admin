@@ -1,6 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { notifications } from '@mantine/notifications';
-import { GalleryItem } from '@/types/gallery';
+
+export interface GalleryItem {
+  id: number | string; // Support both number and string IDs
+  title: string;
+  imageUrl?: string;
+  url?: string; // Support both formats
+  category?: string;
+  description?: string;
+  createdAt: string;
+}
 
 export function useGallery() {
   const [images, setImages] = useState<GalleryItem[]>([]);
@@ -8,35 +17,60 @@ export function useGallery() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchImages = async () => {
+  const fetchImages = useCallback(async () => {
     try {
-      const url = new URL('/api/gallery', window.location.origin);
-      if (selectedCategory) {
-        url.searchParams.append('category', selectedCategory);
-      }
-
-      const response = await fetch(url.toString());
+      setLoading(true);
+      const response = await fetch('/api/gallery');
       if (!response.ok) throw new Error('Failed to fetch images');
+
       const data = await response.json();
-      setImages(data);
+
+      // Normalize the data to ensure consistent field names
+      const normalizedImages = data.map((item: any) => ({
+        id: item.id,
+        title: item.title || 'Untitled',
+        imageUrl: item.imageUrl || item.url || '',
+        url: item.url || item.imageUrl || '',
+        category: item.category || 'general',
+        description: item.description || '',
+        createdAt: item.createdAt || new Date().toISOString()
+      }));
+
+      setImages(normalizedImages);
     } catch (error) {
+      console.error('Gallery fetch error:', error);
       notifications.show({
         title: 'Error',
-        message: 'Failed to fetch images',
-        color: 'red',
+        message: 'Failed to fetch gallery images',
+        color: 'red'
       });
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchImages();
-  }, [selectedCategory]);
+  }, [fetchImages]);
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this image?')) return;
+  const filteredImages = images.filter(
+    (image) =>
+      (selectedCategory === null || image.category === selectedCategory) &&
+      (searchQuery === '' ||
+        image.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (image.description &&
+          image.description.toLowerCase().includes(searchQuery.toLowerCase())))
+  );
 
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  const handleCategoryChange = (category: string | null) => {
+    setSelectedCategory(category);
+  };
+
+  const handleDelete = async (id: number | string) => {
     try {
       const response = await fetch(`/api/gallery/${id}`, {
         method: 'DELETE',
@@ -44,18 +78,19 @@ export function useGallery() {
 
       if (!response.ok) throw new Error('Failed to delete image');
 
+      setImages((prev) => prev.filter((img) => img.id !== id));
+
       notifications.show({
         title: 'Success',
         message: 'Image deleted successfully',
-        color: 'green',
+        color: 'green'
       });
-
-      fetchImages();
     } catch (error) {
+      console.error('Gallery delete error:', error);
       notifications.show({
         title: 'Error',
         message: 'Failed to delete image',
-        color: 'red',
+        color: 'red'
       });
     }
   };
@@ -64,35 +99,29 @@ export function useGallery() {
     try {
       const response = await fetch('/api/gallery', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(formData),
       });
 
       if (!response.ok) throw new Error('Failed to add image');
 
+      await fetchImages();
+
       notifications.show({
         title: 'Success',
         message: 'Image added successfully',
-        color: 'green',
+        color: 'green'
       });
-
-      fetchImages();
     } catch (error) {
       notifications.show({
         title: 'Error',
         message: 'Failed to add image',
-        color: 'red',
+        color: 'red'
       });
     }
   };
-
-  const filteredImages = images.filter(image => {
-    const matchesCategory = !selectedCategory || image.category === selectedCategory;
-    const matchesSearch = !searchQuery ||
-      image.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      image.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
 
   return {
     images,
@@ -101,8 +130,9 @@ export function useGallery() {
     searchQuery,
     filteredImages,
     handleDelete,
-    handleSearch: setSearchQuery,
-    handleCategoryChange: setSelectedCategory,
+    handleSearch,
+    handleCategoryChange,
     handleSubmit,
+    refreshImages: fetchImages,
   };
 }

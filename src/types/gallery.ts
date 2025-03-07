@@ -1,9 +1,12 @@
 export interface GalleryItem {
-  id: number;
+  id: string | number;
   title: string;
   description?: string;
-  imageUrl: string;
-  category: string;
+  imageUrl?: string; // Make imageUrl optional with the ? syntax
+  category?: string; // Make category optional
+  tags?: string[];
+  createdAt: string | Date;
+  updatedAt?: string | Date;
 }
 
 export const CATEGORIES = [

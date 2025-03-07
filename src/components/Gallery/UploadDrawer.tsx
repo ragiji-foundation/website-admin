@@ -2,7 +2,7 @@ import { Drawer, Stack, TextInput, Select, Box, Button, Image } from '@mantine/c
 import { FileButton } from '@mantine/core';
 import { CATEGORIES } from '@/types/gallery';
 import { useState } from 'react';
-import { handleImageUpload } from '@/utils/imageUpload';
+import { uploadToCloudinary } from '@/utils/cloudinary';
 import { notifications } from '@mantine/notifications';
 
 interface UploadDrawerProps {
@@ -18,15 +18,25 @@ export function UploadDrawer({ opened, onClose, onSubmit }: UploadDrawerProps) {
     description: '',
     imageUrl: '',
     category: '',
+    publicId: '',
   });
 
   const onImageUpload = async (file: File | null) => {
     try {
       setLoading(true);
-      // Use our utility that calls the centralized API endpoint
-      const url = await handleImageUpload(file, 'gallery');
-      if (url) {
-        setFormData(prev => ({ ...prev, imageUrl: url }));
+
+      const result = await uploadToCloudinary(file!, {
+        folder: 'gallery',
+        tags: ['gallery', 'content-library'],
+        resourceType: 'image'
+      });
+
+      if (result.url) {
+        setFormData(prev => ({
+          ...prev,
+          imageUrl: result.url,
+          publicId: result.publicId
+        }));
         notifications.show({
           title: 'Success',
           message: 'Image uploaded successfully',
@@ -35,7 +45,11 @@ export function UploadDrawer({ opened, onClose, onSubmit }: UploadDrawerProps) {
       }
     } catch (error) {
       console.error('Upload failed:', error);
-      // Error notifications are handled in the utility function
+      notifications.show({
+        title: 'Error',
+        message: error instanceof Error ? error.message : 'Failed to upload image',
+        color: 'red',
+      });
     } finally {
       setLoading(false);
     }
@@ -43,11 +57,19 @@ export function UploadDrawer({ opened, onClose, onSubmit }: UploadDrawerProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const validFormData = {
+      title: formData.title,
+      description: formData.description,
+      imageUrl: formData.imageUrl,
+      category: formData.category,
+    };
+
     setLoading(true);
-    await onSubmit(formData);
+    await onSubmit(validFormData);
     setLoading(false);
     onClose();
-    setFormData({ title: '', description: '', imageUrl: '', category: '' });
+    setFormData({ title: '', description: '', imageUrl: '', category: '', publicId: '' });
   };
 
   return (

@@ -20,10 +20,10 @@ export async function GET(request: NextRequest) {
       orderBy: { order: 'asc' } // Use `order` field for sorting
     });
 
-    return withCors(NextResponse.json(stories), request);
+    return withCors(NextResponse.json(stories));
   } catch (error) {
     console.error('Failed to fetch success stories:', error);
-    return corsError('Failed to fetch success stories', 500, request);
+    return corsError('Failed to fetch success stories', 500);
   }
 }
 
@@ -38,16 +38,16 @@ export async function POST(request: NextRequest) {
       data: validatedData as SuccessStoryInput
     });
     
-    return withCors(NextResponse.json(story, { status: 201 }), request);
+    return withCors(NextResponse.json(story, { status: 201 }));
   } catch (error: any) {
     console.error('Failed to create success story:', error);
     if (error instanceof z.ZodError) {
-      return corsError('Validation error: ' + error.errors[0].message, 400, request);
+      return corsError('Validation error: ' + error.errors[0].message, 400);
     }
-    return corsError('Failed to create success story', 500, request);
+    return corsError('Failed to create success story', 500);
   }
 }
 
 export async function OPTIONS(request: NextRequest) {
-  return withCors(new NextResponse(null, { status: 200 }), request);
+  return withCors(new NextResponse(null, { status: 200 }));
 }

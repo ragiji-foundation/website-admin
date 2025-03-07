@@ -17,7 +17,7 @@ export async function GET(
     });
 
     if (!feature) {
-      return corsError('Feature not found', 404, request);
+      return corsError('Feature not found', 404);
     }
 
     // Transform the database model to match our API format
@@ -37,10 +37,10 @@ export async function GET(
       updatedAt: feature.updatedAt
     };
 
-    return withCors(NextResponse.json(transformedFeature), request);
+    return withCors(NextResponse.json(transformedFeature));
   } catch (error) {
     console.error(`Error fetching feature:`, error);
-    return corsError('Failed to fetch feature', 500, request);
+    return corsError('Failed to fetch feature', 500);
   }
 }
 
@@ -61,7 +61,7 @@ export async function PUT(
     });
 
     if (!existingFeature) {
-      return corsError('Feature not found', 404, request);
+      return corsError('Feature not found', 404);
     }
 
     // Transform the API format to match the database schema
@@ -99,10 +99,10 @@ export async function PUT(
       updatedAt: updatedFeature.updatedAt
     };
 
-    return withCors(NextResponse.json(transformedFeature), request);
+    return withCors(NextResponse.json(transformedFeature));
   } catch (error) {
     console.error(`Error updating feature:`, error);
-    return corsError('Failed to update feature', 500, request);
+    return corsError('Failed to update feature', 500);
   }
 }
 
@@ -122,7 +122,7 @@ export async function DELETE(
     });
 
     if (!existingFeature) {
-      return corsError('Feature not found', 404, request);
+      return corsError('Feature not found', 404);
     }
 
     // Delete the feature
@@ -130,13 +130,13 @@ export async function DELETE(
       where: { id }
     });
 
-    return withCors(NextResponse.json({ message: 'Feature deleted' }), request);
+    return withCors(NextResponse.json({ message: 'Feature deleted' }));
   } catch (error) {
     console.error(`Error deleting feature:`, error);
-    return corsError('Failed to delete feature', 500, request);
+    return corsError('Failed to delete feature', 500);
   }
 }
 
 export async function OPTIONS(request: NextRequest) {
-  return withCors(new NextResponse(null, { status: 200 }), request);
+  return withCors(new NextResponse(null, { status: 200 }));
 }
