@@ -60,6 +60,7 @@ export const navItems: NavItem[] = [
   { link: '/banner', label: 'Banner', icon: IconCrop },
   { divider: true, dividerLabel: 'HOME' },
   {link: '/features', label: 'Features', icon: IconFileText},
+  { link: '/testimonials', label: 'Testimonials', icon: IconQuote },
   { link: '/home', label: 'HOME', icon: IconHome },
   { divider: true, dividerLabel: 'ABOUT' },
   { link: '/the-need', label: 'THE NEED', icon: IconUsers },
@@ -85,7 +86,7 @@ export const navItems: NavItem[] = [
   { divider: true },
   { link: '/enquiries', label: 'Enquiries', icon: IconMailbox },
   { link: '/applications', label: 'Join Applications', icon: IconUserPlus },
-  { link: '/testimonials', label: 'Testimonials', icon: IconQuote },
+ 
   { divider: true },
   { link: '/settings', label: 'Settings', icon: IconSettings },
   { link: '/docs', label: 'Documentation', icon: IconFileText }

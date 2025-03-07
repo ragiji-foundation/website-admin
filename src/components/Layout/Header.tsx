@@ -38,6 +38,7 @@ export function Header({ settings }: HeaderProps) {
           alt="Ragiji Foundation Logo"
           w={52}
           h={52}
+      
         />
         <Text size="xl" fw={700}>
           {settings?.siteName || 'Ragiji Foundation '}

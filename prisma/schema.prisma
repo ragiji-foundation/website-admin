@@ -370,3 +370,4 @@ model Event {
   @@index([visitorId])
   @@index([sessionId])
 }
+
