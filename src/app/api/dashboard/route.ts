@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma';
 
 export async function GET() {
   try {
-    // Fetch aggregate data from database using Prisma
+    // Content statistics
     const [
       totalBlogs,
       totalCenters,
@@ -11,19 +11,10 @@ export async function GET() {
       totalCareers,
       totalUsers
     ] = await Promise.all([
-      // Count total blogs
       prisma.blog.count(),
-
-      // Count total centers
       prisma.center.count(),
-
-      // Count total initiatives
       prisma.initiative.count(),
-
-      // Count total careers/job openings
       prisma.career.count(),
-
-      // Count total users
       prisma.user.count()
     ]);
 
@@ -38,26 +29,70 @@ export async function GET() {
     startOfMonth.setHours(0, 0, 0, 0);
 
     const blogsThisMonth = await prisma.blog.count({
-      where: {
-        createdAt: {
-          gte: startOfMonth
-        }
-      }
+      where: { createdAt: { gte: startOfMonth } }
     });
 
     // Calculate content completion percentage
-    // Formula: (published blogs / total blogs) * 100
     const contentProgress = totalBlogs > 0
       ? Math.round((publishedBlogs / totalBlogs) * 100)
       : 0;
 
-    // For analytics data like pageViews and visitors,
-    // you would typically integrate with an analytics service
-    // Here we're using placeholder values
+    // Get analytics data from our database
+    // For monthly visitors, count unique visitors in the last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const [totalPageViews, uniqueVisitorsThisMonth, activeSessionsToday] = await Promise.all([
+      // Count total pageviews
+      prisma.pageView.count(),
+
+      // Count unique visitors in the last 30 days
+      prisma.visitor.count({
+        where: {
+          lastVisit: { gte: thirtyDaysAgo }
+        }
+      }),
+
+      // Count active sessions today (proxy for "active users")
+      prisma.pageView.groupBy({
+        by: ['sessionId'],
+        where: {
+          timestamp: {
+            gte: new Date(new Date().setHours(0, 0, 0, 0))
+          }
+        },
+        _count: true
+      }).then(results => results.length)
+    ]);
+
+    // Monthly pageviews
+    const monthlyPageViews = await prisma.pageView.count({
+      where: { timestamp: { gte: thirtyDaysAgo } }
+    });
+
+    // Most popular pages
+    const popularPages = await prisma.pageView.groupBy({
+      by: ['path'],
+      _count: {
+        path: true
+      },
+      orderBy: {
+        _count: {
+          path: 'desc'
+        }
+      },
+      take: 5
+    });
+
     const analyticsData = {
-      activeUsers: 150, // Replace with actual analytics data if available
-      monthlyVisitors: 1000, // Replace with actual analytics data if available
-      pageViews: 5000 // Replace with actual analytics data if available
+      pageViews: totalPageViews,
+      monthlyPageViews,
+      monthlyVisitors: uniqueVisitorsThisMonth,
+      activeUsers: activeSessionsToday,
+      popularPages: popularPages.map(page => ({
+        path: page.path,
+        views: page._count.path
+      }))
     };
 
     const dashboardData = {

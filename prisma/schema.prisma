@@ -228,7 +228,7 @@ model Feature {
   order       Int      @default(0)
   section     String?
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @default(now())
 
   @@map("features")
 }
@@ -268,7 +268,7 @@ model Stat {
   icon      String?
   order     Int      @default(0)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now())
 
   @@map("stats")
 }
@@ -325,4 +325,48 @@ model Timeline {
   order      Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+// Analytics models
+model PageView {
+  id        Int      @id @default(autoincrement())
+  path      String
+  referrer  String?
+  userAgent String?
+  ipAddress String?
+  sessionId String
+  timestamp DateTime @default(now())
+  visitorId String
+
+  @@index([path])
+  @@index([timestamp])
+  @@index([visitorId])
+  @@index([sessionId])
+}
+
+model Visitor {
+  id              String   @id
+  firstVisit      DateTime @default(now())
+  lastVisit       DateTime @default(now())
+  visitCount      Int      @default(1)
+  country         String?
+  city            String?
+  device          String?
+  browser         String?
+  operatingSystem String?
+}
+
+model Event {
+  id        Int      @id @default(autoincrement())
+  name      String
+  data      Json?    @default("{}")
+  path      String?
+  visitorId String
+  sessionId String
+  timestamp DateTime @default(now())
+
+  @@index([name])
+  @@index([timestamp])
+  @@index([visitorId])
+  @@index([sessionId])
 }
