@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma';
 import { BannerType } from '@/types/banner';
 import { withCors, corsError } from '@/utils/cors';
 
-// Define valid banner types for validation
+// Update this list to ensure we have the correct types
 const VALID_BANNER_TYPES: BannerType[] = [
   'blog', 'about', 'initiatives', 'successstories', 'home', 'media',
   'electronicmedia', 'gallery', 'newscoverage', 'ourstory', 'need',
