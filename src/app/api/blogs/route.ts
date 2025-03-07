@@ -16,6 +16,8 @@ const logError = (error: unknown, context: string) => {
   }
 };
 
+// Remove the duplicate CORS headers - they're handled by middleware
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
