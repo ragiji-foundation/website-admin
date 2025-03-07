@@ -1,6 +1,7 @@
 export const corsConfig = {
   allowedOrigins: [
     'http://localhost:3000',
+    'https://localhost:3000',
     'https://www.ragijifoundation.com',
     'https://ragijifoundation.com',
   ],
