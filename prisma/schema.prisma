@@ -221,12 +221,12 @@ model Award {
 model Feature {
   id          String   @id @default(cuid())
   title       String
-  description String   @db.Text
-  mediaType   String   // Used as "slug" in API
-  mediaUrl    String   // Used as mediaItem.url in API
-  thumbnail   String?  // Used as mediaItem.thumbnail in API
+  description String
+  mediaType   String
+  mediaUrl    String
+  thumbnail   String?
   order       Int      @default(0)
-  section     String?  // Used as "category" in API
+  section     String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -246,51 +246,51 @@ model FeatureSection {
 }
 
 model SuccessStory {
-  id          String   @id @default(cuid())
-  slug        String   @unique // Add the @unique attribute here
-  title       String
-  content     Json     // Rich text content
-  personName  String
-  location    String
-  imageUrl    String?
-  featured    Boolean  @default(false)
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  slug       String   @unique
+  title      String
+  content    Json
+  personName String
+  location   String
+  imageUrl   String?
+  featured   Boolean  @default(false)
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@map("success_stories")
 }
 
 model Stat {
-  id          String   @id @default(cuid())
-  label       String
-  value       String
-  icon        String?  // Icon name or URL
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  label     String
+  value     String
+  icon      String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("stats")
 }
 
 model TheNeed {
-  id          String   @id @default(cuid())
-  mainText    String   @db.Text
-  statistics  String   @db.Text
-  impact      String   @db.Text
-  imageUrl    String
+  id            String   @id @default(cuid())
+  mainText      String
+  statistics    String
+  impact        String
+  imageUrl      String
   statsImageUrl String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now())
-  isPublished Boolean  @default(false)
-  version     Int      @default(1)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now())
+  isPublished   Boolean  @default(false)
+  version       Int      @default(1)
 }
 
 model OurStory {
   id        String   @id @default(cuid())
   title     String
-  content   String   @db.Text
-  media     Json     // Stores MediaItem[]
+  content   String
+  media     Json
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -299,7 +299,7 @@ model OurStory {
 
 model OurModel {
   id          String   @id @default(cuid())
-  description String   @db.Text
+  description String
   imageUrl    String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -307,8 +307,8 @@ model OurModel {
 
 model VisionMission {
   id          String   @id @default(cuid())
-  vision      String   @db.Text
-  mission     String   @db.Text
+  vision      String
+  mission     String
   visionIcon  String
   missionIcon String
   createdAt   DateTime @default(now())

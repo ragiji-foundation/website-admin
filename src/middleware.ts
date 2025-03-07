@@ -2,44 +2,57 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { corsConfig } from '@/config/cors';
 
+// Define all allowed headers
+const allowedHeaders = [
+  'Content-Type',
+  'Authorization',
+  'X-Requested-With',
+  'Accept',
+  'Cache-Control',
+  'X-Auth-Token',
+  'Origin',
+  'Pragma',
+  'Referer',
+  'User-Agent'
+];
+
 const allowedOriginsString = corsConfig.allowedOrigins.join(', ');
 
 export function middleware(request: NextRequest) {
-  const formSubmissionApiRoutes = ['/api/contact', '/api/join-us'];
-  const requestPathname = new URL(request.url).pathname;
+  // Extract URL information
+  const url = new URL(request.url);
+  const origin = request.headers.get('origin') || '';
+  const isApiRoute = url.pathname.startsWith('/api/');
 
-  const isFormSubmissionRoute = formSubmissionApiRoutes.includes(requestPathname);
+  // If not an API route, skip middleware processing
+  if (!isApiRoute) {
+    return NextResponse.next();
+  }
 
-  // Handle preflight requests for ALL api Routes
-  if (request.url.includes('/api/') && request.method === 'OPTIONS') {
+  // Special handling for OPTIONS (preflight) requests
+  if (request.method === 'OPTIONS') {
     return new NextResponse(null, {
-      status: 200,
+      status: 204, // No content
       headers: {
-        'Access-Control-Allow-Origin': allowedOriginsString,
-        'Access-Control-Allow-Methods': isFormSubmissionRoute ? 'GET, OPTIONS, POST' : 'GET, OPTIONS', // POST for form submissions only
-        'Access-Control-Allow-Headers': [...corsConfig.allowedHeaders, 'Cache-Control'].join(', '),
-        'Access-Control-Max-Age': corsConfig.maxAge.toString(),
+        'Access-Control-Allow-Origin': corsConfig.allowedOrigins.includes(origin) ? origin : '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': allowedHeaders.join(', '),
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Max-Age': '86400', // 24 hours
       },
     });
   }
 
-  // Handle GET and POST requests
-  if (request.url.includes('/api/') && (request.method === 'GET' || request.method === 'POST')) {
-    const origin = request.headers.get('origin') || '';
+  // For actual API requests
+  const response = NextResponse.next();
 
-    if (corsConfig.allowedOrigins.includes(origin)) {
-      const response = NextResponse.next();
-      response.headers.set('Access-Control-Allow-Origin', origin);
-      response.headers.set('Access-Control-Allow-Methods', isFormSubmissionRoute ? 'GET, OPTIONS, POST' : 'GET, OPTIONS'); // POST for form submissions only
-      response.headers.set('Access-Control-Allow-Headers', [...corsConfig.allowedHeaders, 'Cache-Control'].join(', '));
+  // Set CORS headers
+  response.headers.set('Access-Control-Allow-Origin', corsConfig.allowedOrigins.includes(origin) ? origin : '*');
+  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  response.headers.set('Access-Control-Allow-Headers', allowedHeaders.join(', '));
+  response.headers.set('Access-Control-Allow-Credentials', 'true');
 
-      return response;
-    } else {
-      return new NextResponse(null, { status: 403, statusText: 'Forbidden' });
-    }
-  }
-
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
