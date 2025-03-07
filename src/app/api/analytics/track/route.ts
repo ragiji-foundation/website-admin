@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
-import { cookies } from 'next/headers';
+import  cookies  from 'next/headers';
 
 // Function to parse user agent
 function parseUserAgent(userAgent: string) {
@@ -30,6 +30,18 @@ function parseUserAgent(userAgent: string) {
   return { browser, os, device };
 }
 
+// Helper function to parse cookies from a cookie header
+function parseCookies(cookieHeader: string) {
+  const cookies: Record<string, string> = {};
+  cookieHeader.split(';').forEach(cookie => {
+    const [name, value] = cookie.trim().split('=');
+    if (name && value) {
+      cookies[name] = decodeURIComponent(value);
+    }
+  });
+  return cookies;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
@@ -40,10 +52,12 @@ export async function POST(request: NextRequest) {
       request.headers.get('x-real-ip') ||
       'Unknown';
 
-    // Get or create visitor ID and session ID
-    const cookieStore = cookies(); ies();
-    let visitorId = cookieStore.get('visitor_id')?.value;
-    let sessionId = cookieStore.get('session_id')?.value;
+    // Get cookies from request header instead of using cookies() API
+    const cookieHeader = request.headers.get('cookie') || '';
+    const parsedCookies = parseCookies(cookieHeader);
+
+    let visitorId = parsedCookies['visitor_id'];
+    let sessionId = parsedCookies['session_id'];
 
     const response = NextResponse.json({ success: true });
 

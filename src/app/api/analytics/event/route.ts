@@ -7,20 +7,28 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
     const { name, data: eventData, path } = data;
 
-    const cookieStore = cookies();
-    const visitorId = cookieStore.get('visitor_id')?.value;
-    const sessionId = cookieStore.get('session_id')?.value;
+    // Get cookies from request instead of using the cookies() API
+    const cookieHeader = request.headers.get('cookie') || '';
+    const parsedCookies = parseCookies(cookieHeader);
+
+    const visitorId = parsedCookies['visitor_id'];
+    const sessionId = parsedCookies['session_id'];
 
     if (!visitorId || !sessionId) {
       return NextResponse.json({ error: 'Missing visitor or session ID' }, { status: 400 });
     }
 
-    // Store event in database
-    // Note: You'll need to create an Event model in your schema
-    await prisma.$executeRaw`
-      INSERT INTO events (name, data, path, visitor_id, session_id, timestamp)
-      VALUES (${name}, ${JSON.stringify(eventData)}, ${path}, ${visitorId}, ${sessionId}, NOW())
-    `;
+    // Use Prisma's create method instead of raw SQL for type safety
+    await prisma.event.create({
+      data: {
+        name,
+        data: eventData as any, // Cast to any since we're storing JSON
+        path,
+        visitorId,
+        sessionId,
+        timestamp: new Date()
+      }
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -30,4 +38,16 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// Helper function to parse cookies from a cookie header
+function parseCookies(cookieHeader: string) {
+  const cookies: Record<string, string> = {};
+  cookieHeader.split(';').forEach(cookie => {
+    const [name, value] = cookie.trim().split('=');
+    if (name && value) {
+      cookies[name] = decodeURIComponent(value);
+    }
+  });
+  return cookies;
 }
