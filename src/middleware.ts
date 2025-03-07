@@ -16,13 +16,26 @@ const allowedHeaders = [
   'User-Agent'
 ];
 
-const allowedOriginsString = corsConfig.allowedOrigins.join(', ');
+// Update the corsConfig to include production domain
+const updatedAllowedOrigins = [
+  'http://localhost:3000',
+  'https://localhost:3000',
+  'https://www.ragijifoundation.com',
+  'https://ragijifoundation.com',
+  ...(corsConfig.allowedOrigins || [])
+];
+
+// Convert array to string for logging
+const allowedOriginsString = updatedAllowedOrigins.join(', ');
+console.log('CORS allowed origins:', allowedOriginsString);
 
 export function middleware(request: NextRequest) {
   // Extract URL information
   const url = new URL(request.url);
   const origin = request.headers.get('origin') || '';
   const isApiRoute = url.pathname.startsWith('/api/');
+
+  console.log(`Request from origin: ${origin} to path: ${url.pathname}`);
 
   // If not an API route, skip middleware processing
   if (!isApiRoute) {
@@ -34,7 +47,7 @@ export function middleware(request: NextRequest) {
     return new NextResponse(null, {
       status: 204, // No content
       headers: {
-        'Access-Control-Allow-Origin': corsConfig.allowedOrigins.includes(origin) ? origin : '*',
+        'Access-Control-Allow-Origin': updatedAllowedOrigins.includes(origin) ? origin : '*',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
         'Access-Control-Allow-Headers': allowedHeaders.join(', '),
         'Access-Control-Allow-Credentials': 'true',
@@ -47,7 +60,7 @@ export function middleware(request: NextRequest) {
   const response = NextResponse.next();
 
   // Set CORS headers
-  response.headers.set('Access-Control-Allow-Origin', corsConfig.allowedOrigins.includes(origin) ? origin : '*');
+  response.headers.set('Access-Control-Allow-Origin', updatedAllowedOrigins.includes(origin) ? origin : '*');
   response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   response.headers.set('Access-Control-Allow-Headers', allowedHeaders.join(', '));
   response.headers.set('Access-Control-Allow-Credentials', 'true');

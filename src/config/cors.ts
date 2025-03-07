@@ -1,9 +1,8 @@
 export const corsConfig = {
   allowedOrigins: [
-    'https://admin.ragijifoundation.com',
+    'http://localhost:3000',
     'https://www.ragijifoundation.com',
     'https://ragijifoundation.com',
-    'http://localhost:3000'
   ],
   allowedMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: [
