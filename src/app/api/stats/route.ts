@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { withCors, corsError } from '@/utils/cors';
+import type { Stat, StatCreateInput } from '@/types/stats';
 
-export async function GET() {
+export async function GET(
+  request: NextRequest
+): Promise<NextResponse<Stat[] | { error: string }>> {
   try {
     const stats = await prisma.stat.findMany({
       orderBy: { order: 'asc' }
@@ -13,11 +16,28 @@ export async function GET() {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(
+  request: NextRequest
+): Promise<NextResponse<Stat | { error: string }>> {
   try {
     const data = await request.json();
-    const stat = await prisma.stat.create({ data });
-    return NextResponse.json(stat);
+
+    // Get max order value
+    const maxOrder = await prisma.stat.findFirst({
+      orderBy: { order: 'desc' },
+      select: { order: true }
+    });
+
+    const nextOrder = (maxOrder?.order ?? -1) + 1;
+
+    const stat = await prisma.stat.create({
+      data: {
+        ...data,
+        order: nextOrder
+      }
+    });
+
+    return withCors(NextResponse.json(stat as Stat, { status: 201 }));
   } catch (error) {
     return NextResponse.json(
       { error: 'Failed to create stat' },
