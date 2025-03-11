@@ -31,11 +31,13 @@ export async function POST(
     const formData = await request.formData();
     const title = formData.get('title') as string;
     const link = formData.get('link') as string;
+    const type = formData.get('type') as 'image' | 'video';
     const active = formData.get('active') === 'true';
     const image = formData.get('image') as File;
+    const video = formData.get('video') as File;
 
-    if (!title || !image) {
-      return corsError('Title and image are required', 400);
+    if (!title || (!image && !video)) {
+      return corsError('Title and media file are required', 400);
     }
 
     // Get max order value
@@ -46,25 +48,35 @@ export async function POST(
 
     const nextOrder = (maxOrder?.order ?? -1) + 1;
 
-    // Upload image to blob storage
-    const blob = await put(image.name, image, {
-      access: 'public',
-    });
+    let imageUrl: string | undefined = undefined;
+    let videoUrl: string | undefined = undefined;
+
+    if (type === 'image' && image) {
+      const blob = await put(image.name, image, {
+        access: 'public',
+      });
+      imageUrl = blob.url;
+    } else if (type === 'video' && video) {
+      const blob = await put(video.name, video, {
+        access: 'public',
+      });
+      videoUrl = blob.url;
+    }
 
     const createData: CarouselCreateInput = {
       title,
-      imageUrl: blob.url,
+      type,
+      imageUrl,
+      videoUrl,
       link: link || '#',
       active,
       order: nextOrder,
     };
 
-    // Create carousel item
     const carouselItem = await prisma.carousel.create({
       data: createData,
     });
 
-    // Fix the return type
     const response = NextResponse.json(carouselItem, { status: 201 });
     return withCors(response) as NextResponse<Carousel>;
   } catch (error) {

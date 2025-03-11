@@ -1,5 +1,7 @@
 // types/carousel.ts
 
+export type CarouselType = 'image' | 'video';
+
 export type Carousel = {
   id: number;
   title: string;
@@ -9,6 +11,8 @@ export type Carousel = {
   order: number;
   createdAt: Date;
   updatedAt: Date;
+  type: CarouselType;
+  videoUrl?: string | null;
 };
 
 export type CarouselCreateInput = {
@@ -17,6 +21,8 @@ export type CarouselCreateInput = {
   link?: string;
   active?: boolean;
   order?: number;
+  type: CarouselType;
+  videoUrl?: string;
 };
 
 export type CarouselUpdateInput = Partial<CarouselCreateInput>;

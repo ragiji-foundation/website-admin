@@ -15,6 +15,8 @@ import {
   FileInput,
   rem,
   LoadingOverlay,
+  Select,
+  Box,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
@@ -27,6 +29,8 @@ interface CarouselItem {
   link: string;
   active: boolean;
   order: number;
+  type: 'image' | 'video';
+  videoUrl?: string;
 }
 
 export function CarouselManager() {
@@ -39,11 +43,18 @@ export function CarouselManager() {
     initialValues: {
       title: '',
       link: '#',
+      type: 'image' as 'image' | 'video',
       image: null as File | null,
+      video: null as File | null,
       active: true,
     },
     validate: {
       title: (value) => (!value ? 'Title is required' : null),
+      type: (value) => (!value ? 'Type is required' : null),
+      image: (value, values) =>
+        values.type === 'image' && !value && !editingItem ? 'Image is required' : null,
+      video: (value, values) =>
+        values.type === 'video' && !value && !editingItem ? 'Video is required' : null,
     },
   });
 
@@ -108,10 +119,14 @@ export function CarouselManager() {
       const formData = new FormData();
       formData.append('title', values.title);
       formData.append('link', values.link);
-      if (values.image) {
-        formData.append('image', values.image);
-      }
+      formData.append('type', values.type);
       formData.append('active', String(values.active));
+
+      if (values.type === 'image' && values.image) {
+        formData.append('image', values.image);
+      } else if (values.type === 'video' && values.video) {
+        formData.append('video', values.video);
+      }
 
       const url = editingItem
         ? `/api/carousel/${editingItem.id}`
@@ -237,13 +252,30 @@ export function CarouselManager() {
                         <div {...provided.dragHandleProps}>
                           <IconGripVertical style={{ cursor: 'grab' }} />
                         </div>
-                        <Image
-                          src={item.imageUrl}
-                          alt={item.title}
-                          w={100}
-                          h={60}
-                          fit="cover"
-                        />
+                        {item.type === 'image' ? (
+                          <Image
+                            src={item.imageUrl}
+                            alt={item.title}
+                            w={100}
+                            h={60}
+                            fit="cover"
+                          />
+                        ) : (
+                          <Box w={100} h={60} style={{ overflow: 'hidden' }}>
+                            <video
+                              src={item.videoUrl}
+                              loop
+                              muted
+                              autoPlay
+                              playsInline
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover'
+                              }}
+                            />
+                          </Box>
+                        )}
                         <Stack style={{ flex: 1 }}>
                           <Text fw={500}>{item.title}</Text>
                           <Text size="sm" c="dimmed">{item.link}</Text>
@@ -275,8 +307,10 @@ export function CarouselManager() {
                               form.setValues({
                                 title: item.title,
                                 link: item.link,
+                                type: item.type,
                                 active: item.active,
                                 image: null,
+                                video: null,
                               });
                               setModalOpen(true);
                             }}
@@ -322,13 +356,32 @@ export function CarouselManager() {
               label="Link"
               {...form.getInputProps('link')}
             />
-            <FileInput
-              label="Image"
-              accept="image/*"
-              leftSection={<IconUpload size={rem(14)} />}
-              {...form.getInputProps('image')}
-              required={!editingItem}
+            <Select
+              label="Type"
+              required
+              data={[
+                { value: 'image', label: 'Image' },
+                { value: 'video', label: 'Video' },
+              ]}
+              {...form.getInputProps('type')}
             />
+            {form.values.type === 'image' ? (
+              <FileInput
+                label="Image"
+                accept="image/*"
+                leftSection={<IconUpload size={rem(14)} />}
+                {...form.getInputProps('image')}
+                required={!editingItem}
+              />
+            ) : (
+              <FileInput
+                label="Video"
+                accept="video/*"
+                leftSection={<IconUpload size={rem(14)} />}
+                {...form.getInputProps('video')}
+                required={!editingItem}
+              />
+            )}
             <Switch
               label="Active"
               {...form.getInputProps('active', { type: 'checkbox' })}

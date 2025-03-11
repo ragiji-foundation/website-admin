@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { put, del } from '@vercel/blob';
-import type { Carousel, CarouselUpdateInput } from '@/types/carousel';
+import type { Carousel, CarouselUpdateInput, CarouselType } from '@/types/carousel';
 
 export async function GET(
   request: NextRequest,
@@ -28,7 +28,13 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(item);
+    // Cast to Carousel or add the missing type property
+    const carouselItem = {
+      ...item,
+      type: 'default' as CarouselType // Set a default type or fetch from DB if available
+    };
+
+    return NextResponse.json(carouselItem);
   } catch (err) {
     console.error('Error fetching carousel:', err);
     return NextResponse.json(
@@ -90,7 +96,13 @@ export async function PATCH(
       data: updateData,
     });
 
-    return NextResponse.json(updatedItem);
+    // Add the type property to match the Carousel type
+    const carouselItem = {
+      ...updatedItem,
+      type: 'default' as CarouselType // Set a default type or fetch from DB if available
+    };
+
+    return NextResponse.json(carouselItem);
   } catch (error) {
     console.error('Error updating carousel item:', error);
     return NextResponse.json(

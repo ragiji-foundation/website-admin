@@ -25,6 +25,7 @@ import {
   IconLayoutNavbarFilled,
   IconLayoutBottombarFilled,
 } from '@tabler/icons-react';
+import { link } from 'fs';
 
 export interface NavItem {
   link?: string;
@@ -59,9 +60,12 @@ export const navItems: NavItem[] = [
   { divider: true },
   { link: '/banner', label: 'Banner', icon: IconCrop },
   { divider: true, dividerLabel: 'HOME' },
+  {link: '/carousel', label: 'Carousel', icon: IconPyramid },
   {link: '/features', label: 'Features', icon: IconFileText},
+  { link: '/initiatives', label: 'Initiatives', icon: IconSettings },
+  { link: '/stats', label: 'Stats', icon: IconTags },
   { link: '/testimonials', label: 'Testimonials', icon: IconQuote },
-  { link: '/home', label: 'HOME', icon: IconHome },
+
   { divider: true, dividerLabel: 'ABOUT' },
   { link: '/the-need', label: 'THE NEED', icon: IconUsers },
   { link: '/our-story', label: 'OUR STORY', icon: IconMessage },
@@ -76,11 +80,11 @@ export const navItems: NavItem[] = [
   { link: '/gallery', label: 'GALLERY', icon: IconPhoto },
   { divider: true },
   { link: '/careers', label: 'CAREERS', icon: IconBriefcase },
-  { divider: true, dividerLabel: 'GLOBAL COMPONENTS' },
-  { link: '/logo', label: 'Logo', icon: IconPyramid },
-  { link: '/header', label: 'Header', icon: IconLayoutNavbar },
-  { link: '/navbar', label: 'Navbar', icon: IconLayoutNavbarFilled },
-  { link: '/footer', label: 'Footer', icon: IconLayoutBottombarFilled },
+  // { divider: true, dividerLabel: 'GLOBAL COMPONENTS' },
+  // { link: '/logo', label: 'Logo', icon: IconPyramid },
+  // { link: '/header', label: 'Header', icon: IconLayoutNavbar },
+  // { link: '/navbar', label: 'Navbar', icon: IconLayoutNavbarFilled },
+  // { link: '/footer', label: 'Footer', icon: IconLayoutBottombarFilled },
   { divider: true },
   { link: '/photo-library', label: 'Photo Library', icon: IconPhoto },
   { divider: true },
