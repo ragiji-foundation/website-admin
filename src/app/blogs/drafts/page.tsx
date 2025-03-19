@@ -22,10 +22,24 @@ import { IconSearch, IconEdit, IconEye, IconTrash } from '@tabler/icons-react';
 
 interface Draft {
   id: number;
+  slug: string;
+  locale: string;
   title: string;
   content: string;
-  slug: string;
   status: string;
+  authorName: string;
+  metaDescription: string | null;
+  ogTitle: string | null;
+  ogDescription: string | null;
+  authorId: number;
+  categoryId: number | null;
+  createdAt: string;
+  updatedAt: string;
+  author: {
+    id: number;
+    name: string;
+    image: string | null;
+  };
   category: {
     id: number;
     name: string;
@@ -36,12 +50,6 @@ interface Draft {
     name: string;
     slug: string;
   }>;
-  author: {
-    name: string;
-    image: string | null;
-  };
-  createdAt: string;
-  updatedAt: string;
 }
 
 interface PaginationData {

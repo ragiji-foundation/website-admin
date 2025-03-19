@@ -32,25 +32,30 @@ interface Tag {
 
 interface BlogPost {
   id: number;
+  slug: string;
+  locale: string;
   title: string;
   content: string;
-  metaDescription: string;
-  ogTitle: string;
-  ogDescription: string;
+  status: string;
+  authorName: string;
+  metaDescription: string | null;
+  ogTitle: string | null;
+  ogDescription: string | null;
+  authorId: number;
+  categoryId: number | null;
+  createdAt: string;
+  updatedAt: string;
+  author: {
+    id: number;
+    name: string;
+    image: string | null;
+  };
   category: {
     id: number;
     name: string;
     slug: string;
   } | null;
   tags: Tag[];
-  status: string;
-  author: {
-    name: string;
-    image: string | null;
-  };
-  createdAt: string;
-  updatedAt: string;
-  locale: string;
 }
 
 export default function BlogDetailPage() {

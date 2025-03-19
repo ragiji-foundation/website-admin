@@ -21,14 +21,14 @@ const logError = (error: unknown, context: string) => {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const locale = searchParams.get('locale') || 'en';
+    const locale = searchParams.get('locale') || 'en'; // Default to English
     const status = searchParams.get('status');
     const category = searchParams.get('category');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
 
     const where = {
-      locale,
+      locale, // Filter blogs by locale
       ...(status && { status }),
       ...(category && { category: { slug: category } }),
     };
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
 
     // Validate required fields
-    if (!data.title || !data.content || !data.locale) {
+    if (!data.title || !data.content || !data.locale || !data.authorName) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -89,12 +89,14 @@ export async function POST(request: NextRequest) {
     // Generate slug from title
     let slug = slugify(data.title, { lower: true, strict: true });
 
-    // Check if slug exists and append number if needed
-    const existingBlog = await prisma.blog.findFirst({
+    // Check for unique slug + locale combination
+    const existingBlog = await prisma.blog.findUnique({
       where: {
-        slug,
-        locale: data.locale,
-      },
+        slug_locale: {
+          slug,
+          locale: data.locale
+        }
+      }
     });
 
     if (existingBlog) {
@@ -109,29 +111,36 @@ export async function POST(request: NextRequest) {
       slug = `${slug}-${count + 1}`;
     }
 
-    // Create the blog post with fixed admin user
+    // Create the blog post
     const blog = await prisma.blog.create({
       data: {
         title: data.title,
         content: data.content,
-        status: data.status || 'draft',
-        locale: data.locale,
         slug: slug,
-        metaDescription: data.metaDescription || '',
-        ogTitle: data.ogTitle || '',
-        ogDescription: data.ogDescription || '',
-        authorName: data.authorName || 'Admin',
-        authorId: DEFAULT_ADMIN_USER_ID, // Use fixed admin user ID
+        locale: data.locale, // Save locale with blog post
+        status: data.status || 'draft',
+        authorName: data.authorName,
+        metaDescription: data.metaDescription || null,
+        ogTitle: data.ogTitle || null,
+        ogDescription: data.ogDescription || null,
+        authorId: DEFAULT_ADMIN_USER_ID,
         categoryId: data.categoryId ? parseInt(data.categoryId.toString()) : null,
-        tags: data.tags ? {
-          connect: data.tags.map((tag: { id: number }) => ({
+        tags: {
+          connect: data.tags?.map((tag: { id: number }) => ({
             id: parseInt(tag.id.toString())
-          }))
-        } : undefined
+          })) || []
+        }
       },
       include: {
         category: true,
         tags: true,
+        author: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          }
+        }
       },
     });
 

@@ -50,14 +50,14 @@ interface Blog {
   title: string;
   content: string;
   status: string;
+  authorName: string;
   metaDescription: string;
   ogTitle: string;
   ogDescription: string;
+  categoryId?: number | null;
   category?: { id: number; name: string };
-  categoryId?: number;
-  tags: Array<{ id: number; name: string }>;
   locale: string;
-  authorName?: string;
+  tags: Array<{ id: number; name: string }>;
 }
 
 const getBaseUrl = () => {
@@ -171,10 +171,11 @@ export default function CreateBlog() {
         title: blog.title,
         content: editor?.getHTML() || blog.content,
         status: blog.status,
+        authorName: blog.authorName || 'Admin',
         metaDescription: blog.metaDescription,
         ogTitle: blog.ogTitle || blog.title, // Use title as fallback
         ogDescription: blog.ogDescription || blog.metaDescription, // Use meta description as fallback
-        categoryId: blog.category?.id,
+        categoryId: blog.categoryId,
         locale: blog.locale,
         // Let the backend handle author association
         tags: blog.tags.map(tag => ({ id: tag.id }))

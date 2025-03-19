@@ -134,7 +134,7 @@
   opacity: 1;
 }
 
-.navButton[data-active="true"] {
+.navButton[dataActive="true"] {
   background-color: var(--mantine-color-blue-1);
   color: var(--mantine-color-blue-8);
   font-weight: 600;
