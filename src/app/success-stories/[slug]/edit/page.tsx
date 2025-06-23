@@ -1,103 +1,103 @@
 'use client';
-
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { Container, Title, Text, Box, Loader, Center } from '@mantine/core';
-import { SuccessStoryForm } from '@/components/SuccessStories/SuccessStoryForm';
+import { useState, useEffect } from 'react';
+import { Container, Title, Text, Box, LoadingOverlay } from '@mantine/core';
+import { SuccessStoryForm } from '@/components/SuccessStories/SuccessStoryFormUpdated';
+import { useRouter, useParams } from 'next/navigation';
 import { notifications } from '@mantine/notifications';
 
-interface SuccessStory {
+interface SuccessStoryData {
   id: string;
   slug: string;
   title: string;
-  content: any;
-  featured: boolean;
-  imageUrl: string;
+  titleHi?: string;
+  content: Record<string, any>;
+  contentHi?: Record<string, any>;
   personName: string;
+  personNameHi?: string;
   location: string;
+  locationHi?: string;
+  imageUrl?: string;
+  featured: boolean;
   order: number;
-  createdAt?: string;
-  updatedAt?: string;
 }
 
 export default function EditSuccessStoryPage() {
-  const params = useParams();
-  const router = useRouter();
-  const [successStory, setSuccessStory] = useState<SuccessStory | null>(null);
+  const [story, setStory] = useState<SuccessStoryData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const params = useParams();
+  const slug = (params?.slug ?? '') as string;
 
   useEffect(() => {
-    const fetchSuccessStory = async () => {
-      if (!params?.slug) {
-        setError('No slug provided');
-        setLoading(false);
-        return;
+    if (slug) {
+      fetchStory();
+    }
+  }, [slug]);
+
+  const fetchStory = async () => {
+    try {
+      const response = await fetch(`/api/success-stories/${slug}`);
+      if (!response.ok) throw new Error('Failed to fetch story');
+      const data = await response.json();
+      setStory(data);
+    } catch (error) {
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to fetch success story',
+        color: 'red',
+      });
+      router.push('/success-stories');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (data: any) => {
+    try {
+      // Merge the id from the loaded story into the form data
+      const payload = { ...data, id: story?.id };
+
+      const response = await fetch(`/api/success-stories/${story?.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update success story');
       }
 
-      try {
-        setLoading(true);
-        const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
-        const response = await fetch(
-          `/api/success-stories/${slug}`,
-          {
-            cache: 'no-store',
-          }
-        );
+      notifications.show({
+        title: 'Success',
+        message: 'Success story updated successfully',
+        color: 'green',
+      });
 
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error('Success story not found');
-          }
-          throw new Error('Failed to fetch success story');
-        }
+      router.push('/success-stories');
+    } catch (error) {
+      throw error; // Re-throw to be handled by the form
+    }
+  };
 
-        const data = await response.json();
-        setSuccessStory(data);
-      } catch (err) {
-        console.error('Error loading success story:', err);
-        setError(err instanceof Error ? err.message : 'An unknown error occurred');
-
-        notifications.show({
-          title: "Error",
-          message: err instanceof Error ? err.message : 'Failed to load success story',
-          color: "red",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSuccessStory();
-  }, [params?.slug]);
+  const handleCancel = () => {
+    router.push('/success-stories');
+  };
 
   if (loading) {
     return (
       <Container size="xl" py="xl">
-        <Center h={300}>
-          <Loader size="lg" />
-        </Center>
+        <LoadingOverlay visible />
       </Container>
     );
   }
 
-  if (error || !successStory) {
+  if (!story) {
     return (
       <Container size="xl" py="xl">
-        <Box mb="lg">
-          <Title order={1}>Error</Title>
-          <Text c="red">{error || 'Success story not found'}</Text>
-          <Box mt="md">
-            <Text
-              component="a"
-              onClick={() => router.push('/success-stories')}
-              c="blue"
-              style={{ cursor: 'pointer', textDecoration: 'underline' }}
-            >
-              Return to success stories
-            </Text>
-          </Box>
-        </Box>
+        <Title order={1}>Story Not Found</Title>
+        <Text c="dimmed">The requested success story could not be found.</Text>
       </Container>
     );
   }
@@ -106,11 +106,17 @@ export default function EditSuccessStoryPage() {
     <Container size="xl" py="xl">
       <Box mb="lg">
         <Title order={1}>Edit Success Story</Title>
-        <Text c="dimmed">Update the details of your success story</Text>
+        <Text c="dimmed">
+          Update the success story details and content
+        </Text>
       </Box>
 
       <Box>
-        <SuccessStoryForm initialData={successStory} isEditing={true} />
+        <SuccessStoryForm
+          initialData={story}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+        />
       </Box>
     </Container>
   );

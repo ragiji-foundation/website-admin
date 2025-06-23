@@ -10,7 +10,6 @@ import {
   Switch,
   Tabs,
   Text,
-  Code,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useTheNeed } from '@/context/TheNeedContext';
@@ -22,8 +21,11 @@ import { MediaUpload } from '@/components/MediaUpload';
 interface TheNeedSubmission {
   id?: string;
   mainText: string;
+  mainTextHi?: string;
   statistics: string;
+  statisticsHi?: string;
   impact: string;
+  impactHi?: string;
   imageUrl: string;
   statsImageUrl: string;
   isPublished: boolean;
@@ -33,8 +35,11 @@ export default function TheNeedAdminPage() {
   const { data, setData } = useTheNeed();
   const [loading, setLoading] = useState(false);
   const [mainText, setMainText] = useState('');
+  const [mainTextHi, setMainTextHi] = useState('');
   const [statistics, setStatistics] = useState('');
+  const [statisticsHi, setStatisticsHi] = useState('');
   const [impact, setImpact] = useState('');
+  const [impactHi, setImpactHi] = useState('');
 
   useEffect(() => {
     void fetchData();
@@ -44,8 +49,11 @@ export default function TheNeedAdminPage() {
     // Initialize TipTap editors with existing content when data is loaded
     if (data) {
       setMainText(data.mainText || '');
+      setMainTextHi(data.mainTextHi || '');
       setStatistics(data.statistics || '');
+      setStatisticsHi(data.statisticsHi || '');
       setImpact(data.impact || '');
+      setImpactHi(data.impactHi || '');
     }
   }, [data]);
 
@@ -88,7 +96,7 @@ export default function TheNeedAdminPage() {
       if (!mainText || !statistics || !impact) {
         notifications.show({
           title: 'Error',
-          message: 'All text fields are required',
+          message: 'All English text fields are required',
           color: 'red'
         });
         setLoading(false);
@@ -109,8 +117,11 @@ export default function TheNeedAdminPage() {
       // Create a data object with the optional id property in the type
       const submissionData: TheNeedSubmission = {
         mainText,
+        mainTextHi: mainTextHi || undefined,
         statistics,
+        statisticsHi: statisticsHi || undefined,
         impact,
+        impactHi: impactHi || undefined,
         imageUrl: data?.imageUrl || '',
         statsImageUrl: data?.statsImageUrl || '',
         isPublished: Boolean(data?.isPublished)
@@ -189,38 +200,74 @@ export default function TheNeedAdminPage() {
           <form onSubmit={handleSubmit}>
             <Stack gap="md">
               <Box>
-                <Title order={3}>Main Text</Title>
+                <Title order={3}>Main Text (English)</Title>
                 <TipTapEditor
                   content={mainText}
                   onChange={setMainText}
                   minHeight={300}
-                  label="Main Text"
+                  label="Main Text (English)"
                   required
-                  placeholder="Enter the main content here..."
+                  placeholder="Enter the main content in English..."
                 />
               </Box>
 
               <Box>
-                <Title order={3}>Statistics</Title>
+                <Title order={3}>Main Text (Hindi)</Title>
+                <TipTapEditor
+                  content={mainTextHi}
+                  onChange={setMainTextHi}
+                  minHeight={300}
+                  label="Main Text (Hindi)"
+                  required={false}
+                  placeholder="मुख्य सामग्री हिंदी में दर्ज करें..."
+                />
+              </Box>
+
+              <Box>
+                <Title order={3}>Statistics (English)</Title>
                 <TipTapEditor
                   content={statistics}
                   onChange={setStatistics}
                   minHeight={250}
-                  label="Statistics"
+                  label="Statistics (English)"
                   required
-                  placeholder="Enter statistics content here..."
+                  placeholder="Enter statistics content in English..."
                 />
               </Box>
 
               <Box>
-                <Title order={3}>Impact</Title>
+                <Title order={3}>Statistics (Hindi)</Title>
+                <TipTapEditor
+                  content={statisticsHi}
+                  onChange={setStatisticsHi}
+                  minHeight={250}
+                  label="Statistics (Hindi)"
+                  required={false}
+                  placeholder="आंकड़े हिंदी में दर्ज करें..."
+                />
+              </Box>
+
+              <Box>
+                <Title order={3}>Impact (English)</Title>
                 <TipTapEditor
                   content={impact}
                   onChange={setImpact}
                   minHeight={250}
-                  label="Impact"
+                  label="Impact (English)"
                   required
-                  placeholder="Enter impact content here..."
+                  placeholder="Enter impact content in English..."
+                />
+              </Box>
+
+              <Box>
+                <Title order={3}>Impact (Hindi)</Title>
+                <TipTapEditor
+                  content={impactHi}
+                  onChange={setImpactHi}
+                  minHeight={250}
+                  label="Impact (Hindi)"
+                  required={false}
+                  placeholder="प्रभाव हिंदी में दर्ज करें..."
                 />
               </Box>
 
@@ -290,9 +337,12 @@ export default function TheNeedAdminPage() {
           <Box mt="xl" p="md" style={{ background: '#f8f9fa', borderRadius: '8px' }}>
             <Text fw={500} mb="xs">Debug Information</Text>
             <Text size="sm">Data loaded: {data ? 'Yes' : 'No'}</Text>
-            <Text size="sm">Main text length: {mainText?.length || 0} chars</Text>
-            <Text size="sm">Statistics length: {statistics?.length || 0} chars</Text>
-            <Text size="sm">Impact length: {impact?.length || 0} chars</Text>
+            <Text size="sm">Main text (EN) length: {mainText?.length || 0} chars</Text>
+            <Text size="sm">Main text (HI) length: {mainTextHi?.length || 0} chars</Text>
+            <Text size="sm">Statistics (EN) length: {statistics?.length || 0} chars</Text>
+            <Text size="sm">Statistics (HI) length: {statisticsHi?.length || 0} chars</Text>
+            <Text size="sm">Impact (EN) length: {impact?.length || 0} chars</Text>
+            <Text size="sm">Impact (HI) length: {impactHi?.length || 0} chars</Text>
             <Text size="sm">Main image: {data?.imageUrl ? 'Present' : 'Missing'}</Text>
             <Text size="sm">Stats image: {data?.statsImageUrl ? 'Present' : 'Missing'}</Text>
           </Box>

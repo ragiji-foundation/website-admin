@@ -49,7 +49,9 @@ import { FallbackBanners } from './components/FallbackBanners';
 interface FormValues {
   type: BannerType;
   title: string;
+  titleHi: string;
   description: string;
+  descriptionHi: string;
   backgroundImage: File | null;
   previewUrl?: string;
 }
@@ -86,7 +88,9 @@ export default function BannerManagement() {
     initialValues: {
       type: '' as BannerType,
       title: '',
+      titleHi: '',
       description: '',
+      descriptionHi: '',
       backgroundImage: null,
       previewUrl: '',
     },
@@ -174,7 +178,9 @@ export default function BannerManagement() {
       const bannerData = {
         type: values.type,
         title: values.title,
+        titleHi: values.titleHi,
         description: values.description,
+        descriptionHi: values.descriptionHi,
         backgroundImage: imageUrl || undefined,
       };
 
@@ -336,20 +342,33 @@ export default function BannerManagement() {
             searchable
             nothingFoundMessage="Type not found"
             {...form.getInputProps('type')}
-          />
-          <TextInput
-            label="Title"
-            placeholder="Enter banner title"
-            required
-            {...form.getInputProps('title')}
-          />
+          />            <TextInput
+              label="Title"
+              placeholder="Enter banner title"
+              required
+              {...form.getInputProps('title')}
+            />
+
+            <TextInput
+              label="Title (Hindi)"
+              placeholder="बैनर का शीर्षक"
+              style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}
+              {...form.getInputProps('titleHi')}
+            />
           <Textarea
             label="Description"
             placeholder="Enter banner description (optional)"
             minRows={3}
-            autosize
-            {...form.getInputProps('description')}
-          />
+            autosize              {...form.getInputProps('description')}
+            />
+
+            <Textarea
+              label="Description (Hindi)"
+              placeholder="बैनर का विवरण"
+              rows={3}
+              style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}
+              {...form.getInputProps('descriptionHi')}
+            />
 
           <Stack gap="xs">
             <Text size="sm" fw={500}>Background Image</Text>

@@ -62,7 +62,7 @@ export async function GET() {
           }
         },
         _count: true
-      }).then(results => results.length)
+      }).then((results: Array<{ sessionId: string; _count: number }>) => results.length)
     ]);
 
     // Monthly pageviews
@@ -89,7 +89,7 @@ export async function GET() {
       monthlyPageViews,
       monthlyVisitors: uniqueVisitorsThisMonth,
       activeUsers: activeSessionsToday,
-      popularPages: popularPages.map(page => ({
+      popularPages: popularPages.map((page: { path: string; _count: { path: number } }) => ({
         path: page.path,
         views: page._count.path
       }))

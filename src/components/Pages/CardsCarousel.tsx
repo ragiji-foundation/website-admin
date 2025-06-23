@@ -9,6 +9,7 @@ import classes from './CardsCarousel.module.css';
 interface CarouselItem {
   id: number;
   title: string;
+  titleHi?: string;
   imageUrl: string;
   link: string;
   active: boolean;
@@ -17,7 +18,7 @@ interface CarouselItem {
   videoUrl?: string;
 }
 
-function Card({ imageUrl, videoUrl, title, type }: Pick<CarouselItem, 'imageUrl' | 'title' | 'type' | 'videoUrl'>) {
+function Card({ imageUrl, videoUrl, title, titleHi, type }: Pick<CarouselItem, 'imageUrl' | 'title' | 'titleHi' | 'type' | 'videoUrl'>) {
   return (
     <Paper
       shadow="md"
@@ -153,6 +154,7 @@ export function CardsCarousel() {
         imageUrl={item.imageUrl}
         videoUrl={item.videoUrl}
         title={item.title}
+        titleHi={item.titleHi}
         type={item.type}
       />
     </Carousel.Slide>

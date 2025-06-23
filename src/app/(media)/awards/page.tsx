@@ -26,10 +26,13 @@ import { IconPlus, IconEdit, IconTrash, IconUpload } from '@tabler/icons-react';
 interface Award {
   id: string;
   title: string;
+  titleHi?: string;
   year: string;
   description: string;
+  descriptionHi?: string;
   imageUrl: string;
   organization: string;
+  organizationHi?: string;
   createdAt: string;
 }
 
@@ -43,9 +46,12 @@ export default function AwardsManagementPage() {
   const form = useForm({
     initialValues: {
       title: '',
+      titleHi: '',
       year: new Date().getFullYear().toString(),
       description: '',
+      descriptionHi: '',
       organization: '',
+      organizationHi: '',
       imageUrl: '',
     },
     validate: {
@@ -196,9 +202,27 @@ export default function AwardsManagementPage() {
             <Table.Tbody>
               {awards.map((award) => (
                 <Table.Tr key={award.id}>
-                  <Table.Td>{award.title}</Table.Td>
+                  <Table.Td>
+                    <div>
+                      <Text>{award.title}</Text>
+                      {award.titleHi && (
+                        <Text size="sm" c="dimmed" style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}>
+                          {award.titleHi}
+                        </Text>
+                      )}
+                    </div>
+                  </Table.Td>
                   <Table.Td>{award.year}</Table.Td>
-                  <Table.Td>{award.organization}</Table.Td>
+                  <Table.Td>
+                    <div>
+                      <Text>{award.organization}</Text>
+                      {award.organizationHi && (
+                        <Text size="sm" c="dimmed" style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}>
+                          {award.organizationHi}
+                        </Text>
+                      )}
+                    </div>
+                  </Table.Td>
                   <Table.Td>
                     <Group gap="xs">
                       <ActionIcon
@@ -237,10 +261,16 @@ export default function AwardsManagementPage() {
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <Stack>
             <TextInput
-              label="Title"
-              placeholder="Award title"
+              label="Title (English)"
+              placeholder="Award title in English"
               required
               {...form.getInputProps('title')}
+            />
+            <TextInput
+              label="Title (Hindi)"
+              placeholder="पुरस्कार का शीर्षक हिंदी में"
+              style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}
+              {...form.getInputProps('titleHi')}
             />
             <TextInput
               label="Year"
@@ -249,17 +279,30 @@ export default function AwardsManagementPage() {
               {...form.getInputProps('year')}
             />
             <TextInput
-              label="Organization"
-              placeholder="Awarding organization"
+              label="Organization (English)"
+              placeholder="Awarding organization in English"
               required
               {...form.getInputProps('organization')}
             />
+            <TextInput
+              label="Organization (Hindi)"
+              placeholder="पुरस्कार देने वाली संस्था का नाम हिंदी में"
+              style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}
+              {...form.getInputProps('organizationHi')}
+            />
             <Textarea
-              label="Description"
-              placeholder="Award description"
+              label="Description (English)"
+              placeholder="Award description in English"
               required
               minRows={3}
               {...form.getInputProps('description')}
+            />
+            <Textarea
+              label="Description (Hindi)"
+              placeholder="पुरस्कार का विवरण हिंदी में"
+              minRows={3}
+              style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}
+              {...form.getInputProps('descriptionHi')}
             />
             <FileInput
               label="Award Image"

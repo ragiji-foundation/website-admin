@@ -13,6 +13,9 @@ interface TheNeedData {
   version?: number;
   createdAt?: string;
   updatedAt?: string;
+  mainTextHi?: string;
+  statisticsHi?: string;
+  impactHi?: string;
 }
 
 // Define the context type

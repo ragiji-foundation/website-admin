@@ -36,7 +36,9 @@ interface MediaItem {
 interface OurStoryData {
   id?: string;
   title: string;
+  titleHi?: string;
   content: string;
+  contentHi?: string;
   media: MediaItem[];
   isActive: boolean;
   version?: number;
@@ -45,13 +47,16 @@ interface OurStoryData {
 interface OurModelData {
   id?: string;
   description: string;
+  descriptionHi?: string;
   imageUrl: string;
 }
 
 interface VisionMissionData {
   id?: string;
   vision: string;
+  visionHi?: string;
   mission: string;
+  missionHi?: string;
   visionIcon: string;
   missionIcon: string;
 }
@@ -60,6 +65,7 @@ interface TimelineItem {
   id?: string;
   year: string;
   title: string;
+  titleHi?: string;
   centers: number;
   volunteers: number;
   children: number;
@@ -71,19 +77,24 @@ export default function OurStoryPage() {
   // State for each content type
   const [storyData, setStoryData] = useState<OurStoryData>({
     title: '',
+    titleHi: '',
     content: '',
+    contentHi: '',
     media: [],
     isActive: true,
   });
 
   const [modelData, setModelData] = useState<OurModelData>({
     description: '',
+    descriptionHi: '',
     imageUrl: '',
   });
 
   const [visionMissionData, setVisionMissionData] = useState<VisionMissionData>({
     vision: '',
+    visionHi: '',
     mission: '',
+    missionHi: '',
     visionIcon: '',
     missionIcon: '',
   });
@@ -92,6 +103,7 @@ export default function OurStoryPage() {
   const [newTimelineItem, setNewTimelineItem] = useState<TimelineItem>({
     year: '',
     title: '',
+    titleHi: '',
     centers: 0,
     volunteers: 0,
     children: 0,
@@ -137,7 +149,9 @@ export default function OurStoryPage() {
         setStoryData({
           id: data.story.id,
           title: data.story.title,
+          titleHi: data.story.titleHi,
           content: data.story.content,
+          contentHi: data.story.contentHi,
           media: mediaArray,
           isActive: data.story.isActive,
           version: data.story.version,
@@ -148,6 +162,7 @@ export default function OurStoryPage() {
         setModelData({
           id: data.model.id,
           description: data.model.description,
+          descriptionHi: data.model.descriptionHi,
           imageUrl: data.model.imageUrl,
         });
       }
@@ -156,7 +171,9 @@ export default function OurStoryPage() {
         setVisionMissionData({
           id: data.visionMission.id,
           vision: data.visionMission.vision,
+          visionHi: data.visionMission.visionHi,
           mission: data.visionMission.mission,
+          missionHi: data.visionMission.missionHi,
           visionIcon: data.visionMission.visionIcon,
           missionIcon: data.visionMission.missionIcon,
         });
@@ -394,6 +411,7 @@ export default function OurStoryPage() {
       setNewTimelineItem({
         year: '',
         title: '',
+        titleHi: '',
         centers: 0,
         volunteers: 0,
         children: 0,
@@ -497,18 +515,35 @@ export default function OurStoryPage() {
             <LoadingOverlay visible={loadingStory} />
             <Stack gap="md">
               <TextInput
-                label="Title"
+                label="Title (English)"
                 required
                 value={storyData.title}
                 onChange={(e) => setStoryData(prev => ({ ...prev, title: e.target.value }))}
                 placeholder="Our Story Title"
               />
 
+              <TextInput
+                label="Title (Hindi)"
+                value={storyData.titleHi || ''}
+                onChange={(e) => setStoryData(prev => ({ ...prev, titleHi: e.target.value }))}
+                placeholder="हमारी कहानी का शीर्षक"
+                style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}
+              />
+
               <Box>
-                <Text fw={500} mb="xs">Content</Text>
+                <Text fw={500} mb="xs">Content (English)</Text>
                 <TipTapEditor
                   content={storyData.content}
                   onChange={handleStoryContentChange}
+                  minHeight={400}
+                />
+              </Box>
+
+              <Box>
+                <Text fw={500} mb="xs">Content (Hindi)</Text>
+                <TipTapEditor
+                  content={storyData.contentHi || ''}
+                  onChange={(html) => setStoryData(prev => ({ ...prev, contentHi: html }))}
                   minHeight={400}
                 />
               </Box>
@@ -609,10 +644,19 @@ export default function OurStoryPage() {
             <LoadingOverlay visible={loadingModel} />
             <Stack gap="md">
               <Box>
-                <Text fw={500} mb="xs">Description</Text>
+                <Text fw={500} mb="xs">Description (English)</Text>
                 <TipTapEditor
                   content={modelData.description}
                   onChange={handleModelDescriptionChange}
+                  minHeight={300}
+                />
+              </Box>
+
+              <Box>
+                <Text fw={500} mb="xs">Description (Hindi)</Text>
+                <TipTapEditor
+                  content={modelData.descriptionHi || ''}
+                  onChange={(html) => setModelData(prev => ({ ...prev, descriptionHi: html }))}
                   minHeight={300}
                 />
               </Box>
@@ -649,10 +693,18 @@ export default function OurStoryPage() {
               <Grid>
                 <Grid.Col span={6}>
                   <Box>
-                    <Text fw={500} mb="xs">Vision Statement</Text>
+                    <Text fw={500} mb="xs">Vision Statement (English)</Text>
                     <TipTapEditor
                       content={visionMissionData.vision}
                       onChange={handleVisionChange}
+                      minHeight={200}
+                    />
+                  </Box>
+                  <Box mt="md">
+                    <Text fw={500} mb="xs">Vision Statement (Hindi)</Text>
+                    <TipTapEditor
+                      content={visionMissionData.visionHi || ''}
+                      onChange={(html) => setVisionMissionData(prev => ({ ...prev, visionHi: html }))}
                       minHeight={200}
                     />
                   </Box>
@@ -660,10 +712,18 @@ export default function OurStoryPage() {
 
                 <Grid.Col span={6}>
                   <Box>
-                    <Text fw={500} mb="xs">Mission Statement</Text>
+                    <Text fw={500} mb="xs">Mission Statement (English)</Text>
                     <TipTapEditor
                       content={visionMissionData.mission}
                       onChange={handleMissionChange}
+                      minHeight={200}
+                    />
+                  </Box>
+                  <Box mt="md">
+                    <Text fw={500} mb="xs">Mission Statement (Hindi)</Text>
+                    <TipTapEditor
+                      content={visionMissionData.missionHi || ''}
+                      onChange={(html) => setVisionMissionData(prev => ({ ...prev, missionHi: html }))}
                       minHeight={200}
                     />
                   </Box>
@@ -729,11 +789,18 @@ export default function OurStoryPage() {
                       />
                     </Grid.Col>
                     <Grid.Col span={4}>
-                      <TextInput
-                        label="Title"
-                        value={item.title}
-                        readOnly
-                      />
+                      <Stack gap="xs">
+                        <TextInput
+                          label="Title"
+                          value={item.title}
+                          readOnly
+                        />
+                        {item.titleHi && (
+                          <Text size="sm" c="dimmed" style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}>
+                            {item.titleHi}
+                          </Text>
+                        )}
+                      </Stack>
                     </Grid.Col>
                     <Grid.Col span={2}>
                       <NumberInput
@@ -802,16 +869,24 @@ export default function OurStoryPage() {
                       onChange={(e) => setNewTimelineItem(prev => ({ ...prev, year: e.target.value }))}
                       placeholder="e.g. 2020"
                     />
-                  </Grid.Col>
-                  <Grid.Col span={4}>
-                    <TextInput
-                      label="Title"
-                      required
-                      value={newTimelineItem.title}
-                      onChange={(e) => setNewTimelineItem(prev => ({ ...prev, title: e.target.value }))}
-                      placeholder="Milestone title"
-                    />
-                  </Grid.Col>
+                  </Grid.Col>                    <Grid.Col span={4}>
+                      <TextInput
+                        label="Title"
+                        required
+                        value={newTimelineItem.title}
+                        onChange={(e) => setNewTimelineItem(prev => ({ ...prev, title: e.target.value }))}
+                        placeholder="Milestone title"
+                      />
+                    </Grid.Col>
+                    <Grid.Col span={4}>
+                      <TextInput
+                        label="Title (Hindi)"
+                        value={newTimelineItem.titleHi || ''}
+                        onChange={(e) => setNewTimelineItem(prev => ({ ...prev, titleHi: e.target.value }))}
+                        placeholder="मील का पत्थर शीर्षक"
+                        style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}
+                      />
+                    </Grid.Col>
                   <Grid.Col span={2}>
                     <NumberInput
                       label="Centers"

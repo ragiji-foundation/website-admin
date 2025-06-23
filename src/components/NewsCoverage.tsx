@@ -25,11 +25,15 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 interface NewsArticle {
   id: number;
   title: string;
+  titleHi?: string;
   source: string;
   date: Date;
   imageUrl?: string;
   link?: string;
   description?: string;
+  descriptionHi?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function NewsCoverage() {
@@ -37,11 +41,13 @@ export default function NewsCoverage() {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
+    titleHi: '',
     source: '',
     date: new Date(),
     imageUrl: '',
     link: '',
-    description: ''
+    description: '',
+    descriptionHi: ''
   });
 
   useEffect(() => {
@@ -88,11 +94,13 @@ export default function NewsCoverage() {
 
       setFormData({
         title: '',
+        titleHi: '',
         source: '',
         date: new Date(),
         imageUrl: '',
         link: '',
-        description: ''
+        description: '',
+        descriptionHi: ''
       });
 
       fetchNews();
@@ -157,7 +165,6 @@ export default function NewsCoverage() {
 
   return (
     <ErrorBoundary>
-
       <Title order={2} mb="lg">Manage News Coverage</Title>
 
       <Grid>
@@ -166,36 +173,49 @@ export default function NewsCoverage() {
             <form onSubmit={handleSubmit}>
               <Stack>
                 <TextInput
-                  label="Title"
+                  label="Title (English)"
                   required
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 />
+                
+                <TextInput
+                  label="Title (Hindi)"
+                  value={formData.titleHi}
+                  onChange={(e) => setFormData({ ...formData, titleHi: e.target.value })}
+                  placeholder="समाचार का शीर्षक"
+                  style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}
+                />
+                
                 <TextInput
                   label="Source"
                   required
                   value={formData.source}
                   onChange={(e) => setFormData({ ...formData, source: e.target.value })}
                 />
+                
                 <DateInput
                   label="Date"
                   required
                   value={formData.date}
                   onChange={(date) => setFormData({ ...formData, date: date || new Date() })}
                 />
+                
                 <FileButton
                   onChange={onImageUpload}
                   accept="image/png,image/jpeg,image/gif,image/webp"
                 >
                   {(props) => <Button {...props}>Upload Image</Button>}
                 </FileButton>
+                
                 <TextInput
                   label="Link"
                   value={formData.link}
                   onChange={(e) => setFormData({ ...formData, link: e.target.value })}
                 />
+                
                 <Textarea
-                  label="Description"
+                  label="Description (English)"
                   required
                   minRows={4}
                   maxRows={8}
@@ -208,7 +228,26 @@ export default function NewsCoverage() {
                   }}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                />                  <Group justify="flex-end">
+                />
+
+                <Textarea
+                  label="Description (Hindi)"
+                  minRows={4}
+                  maxRows={8}
+                  styles={{
+                    input: {
+                      height: '120px',
+                      minHeight: '120px',
+                      resize: 'vertical',
+                      fontFamily: 'Noto Sans Devanagari, sans-serif',
+                    },
+                  }}
+                  value={formData.descriptionHi}
+                  onChange={(e) => setFormData({ ...formData, descriptionHi: e.target.value })}
+                  placeholder="समाचार का विवरण"
+                />
+                
+                <Group justify="flex-end">
                   <Button type="submit" loading={loading}>
                     Add News
                   </Button>
@@ -225,7 +264,19 @@ export default function NewsCoverage() {
               {news.map((item) => (
                 <Paper key={item.id} shadow="xs" p="sm">
                   <Group justify="space-between" mb="xs">
-                    <Title order={4}>{item.title}</Title>
+                    <div style={{ flex: 1 }}>
+                      <Title order={4} mb="xs">{item.title}</Title>
+                      {item.titleHi && (
+                        <Text 
+                          size="sm" 
+                          c="dimmed" 
+                          mb="xs"
+                          style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}
+                        >
+                          {item.titleHi}
+                        </Text>
+                      )}
+                    </div>
                     <Group gap="xs">
                       <ActionIcon
                         color="blue"
@@ -241,9 +292,11 @@ export default function NewsCoverage() {
                       </ActionIcon>
                     </Group>
                   </Group>
+                  
                   <Text size="sm" c="dimmed" mb="xs">
                     {item.source} - {formatDate(new Date(item.date))}
                   </Text>
+                  
                   {item.imageUrl && (
                     <Image
                       src={item.imageUrl}
@@ -253,9 +306,21 @@ export default function NewsCoverage() {
                       mb="xs"
                     />
                   )}
+                  
                   {item.description && (
-                    <Text size="sm" lineClamp={3}>
+                    <Text size="sm" lineClamp={3} mb="xs">
                       {item.description}
+                    </Text>
+                  )}
+                  
+                  {item.descriptionHi && (
+                    <Text 
+                      size="sm" 
+                      lineClamp={3} 
+                      c="dimmed"
+                      style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}
+                    >
+                      {item.descriptionHi}
                     </Text>
                   )}
                 </Paper>
@@ -264,7 +329,6 @@ export default function NewsCoverage() {
           </Paper>
         </Grid.Col>
       </Grid>
-
     </ErrorBoundary>
   );
-} 
+}

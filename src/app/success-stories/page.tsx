@@ -1,151 +1,297 @@
-import { Metadata } from 'next';
-import Link from 'next/link';
-import Image from 'next/image';
+'use client';
+import { useState, useEffect } from 'react';
 import {
   Container,
   Title,
-  Text,
   Button,
-  Card,
   Group,
-  SimpleGrid,
-  Box,
-  Stack,
+  Table,
+  ActionIcon,
   Badge,
-  Flex
+  Text,
+  Image,
+  Modal,
+  Stack,
+  Box,
+  Card,
+  Grid,
 } from '@mantine/core';
-import { formatDate } from '@/utils/date';
-import { truncateText, stripHtml } from '@/utils/strings';
-import { IconPlus, IconStar, IconPencil } from '@tabler/icons-react';
-import { StoryDeleteButton } from '@/components/SuccessStories/StoryDeleteButton';
-import { deleteSuccessStory } from '@/actions/story-actions';
+import { notifications } from '@mantine/notifications';
+import { IconPlus, IconEdit, IconTrash, IconEye } from '@tabler/icons-react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
-// Force dynamic rendering
-export const dynamic = 'force-dynamic';
-
-export const metadata: Metadata = {
-  title: 'Success Stories | Admin Dashboard',
-  description: 'Manage success stories for your website',
-};
-
-async function getSuccessStories() {
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/success-stories`, {
-      cache: 'no-store',
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch success stories');
-    }
-
-    return response.json();
-  } catch (error) {
-    console.error('Error loading success stories:', error);
-    return { data: [] };
-  }
+interface SuccessStory {
+  id: string;
+  slug: string;
+  title: string;
+  titleHi?: string;
+  content: Record<string, any>;
+  contentHi?: Record<string, any>;
+  personName: string;
+  personNameHi?: string;
+  location: string;
+  locationHi?: string;
+  imageUrl?: string;
+  featured: boolean;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export default async function SuccessStoriesPage() {
-  const { data: successStories = [] } = await getSuccessStories();
+export default function SuccessStoriesPage() {
+  const [stories, setStories] = useState<SuccessStory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [deleteModal, setDeleteModal] = useState<string | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    fetchStories();
+  }, []);
+
+  const fetchStories = async () => {
+    try {
+      const response = await fetch('/api/success-stories');
+      if (!response.ok) throw new Error('Failed to fetch stories');
+      const data = await response.json();
+      setStories(data);
+    } catch (error) {
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to fetch success stories',
+        color: 'red',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      const response = await fetch(`/api/success-stories/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) throw new Error('Failed to delete story');
+
+      notifications.show({
+        title: 'Success',
+        message: 'Success story deleted successfully',
+        color: 'green',
+      });
+
+      setStories(stories.filter(story => story.id !== id));
+      setDeleteModal(null);
+    } catch (error) {
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to delete success story',
+        color: 'red',
+      });
+    }
+  };
+
+  const toggleFeatured = async (id: string, featured: boolean) => {
+    try {
+      const response = await fetch(`/api/success-stories/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ featured: !featured }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update story');
+
+      await fetchStories();
+      notifications.show({
+        title: 'Success',
+        message: 'Story updated successfully',
+        color: 'green',
+      });
+    } catch (error) {
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to update story',
+        color: 'red',
+      });
+    }
+  };
 
   return (
     <Container size="xl" py="xl">
-      <Group justify="space-between" mb="lg">
-        <Box>
+      <Group justify="space-between" mb="xl">
+        <div>
           <Title order={1}>Success Stories</Title>
-          <Text c="dimmed">
-            Manage your client success stories
-          </Text>
-        </Box>
+          <Text c="dimmed">Manage client success stories and testimonials</Text>
+        </div>
         <Button
           component={Link}
           href="/success-stories/new"
-          leftSection={<IconPlus size="1rem" />}
+          leftSection={<IconPlus size={16} />}
         >
-          Add New Story
+          Add Success Story
         </Button>
       </Group>
 
-      {successStories.length === 0 ? (
-        <Box ta="center" py="xl">
-          <Text size="xl" c="dimmed" mb="md">
-            No success stories found
-          </Text>
-          <Button
-            component={Link}
-            href="/success-stories/new"
-          >
-            Create your first success story
-          </Button>
-        </Box>
-      ) : (
-        <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
-          {successStories.map((story: any) => (
-            <Card key={story.id} shadow="sm" padding="lg" radius="md" withBorder>
-              <Card.Section>
-                <Box pos="relative" h={200}>
+      <Card withBorder>
+        <Grid>
+          {stories.map((story) => (
+            <Grid.Col key={story.id} span={{ base: 12, md: 6, lg: 4 }}>
+              <Card shadow="sm" p="md" h="100%">
+                <Card.Section>
                   {story.imageUrl ? (
                     <Image
                       src={story.imageUrl}
+                      height={160}
                       alt={story.title}
-                      fill
-                      style={{ objectFit: 'cover' }}
+                      fit="cover"
                     />
                   ) : (
-                    <Flex
-                      h={200}
-                      w="100%"
+                    <Box
+                      h={160}
                       bg="gray.1"
-                      align="center"
-                      justify="center"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
                     >
-                      <Text c="gray.6">No image</Text>
-                    </Flex>
+                      <Text c="dimmed">No Image</Text>
+                    </Box>
                   )}
+                </Card.Section>
 
-                  {story.featured && (
-                    <Badge
+                <Stack gap="xs" mt="md">
+                  <Group justify="space-between" align="flex-start">
+                    <div style={{ flex: 1 }}>
+                      <Text fw={600} lineClamp={2}>
+                        {story.title}
+                      </Text>
+                      {story.titleHi && (
+                        <Text
+                          size="sm"
+                          c="dimmed"
+                          lineClamp={2}
+                          style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}
+                        >
+                          {story.titleHi}
+                        </Text>
+                      )}
+                    </div>
+                    {story.featured && (
+                      <Badge color="yellow" size="sm">
+                        Featured
+                      </Badge>
+                    )}
+                  </Group>
+
+                  <div>
+                    <Text size="sm" fw={500}>
+                      {story.personName}
+                    </Text>
+                    {story.personNameHi && (
+                      <Text
+                        size="xs"
+                        c="dimmed"
+                        style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}
+                      >
+                        {story.personNameHi}
+                      </Text>
+                    )}
+                  </div>
+
+                  <div>
+                    <Text size="sm" c="dimmed">
+                      {story.location}
+                    </Text>
+                    {story.locationHi && (
+                      <Text
+                        size="xs"
+                        c="dimmed"
+                        style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}
+                      >
+                        {story.locationHi}
+                      </Text>
+                    )}
+                  </div>
+
+                  <Group justify="space-between" mt="md">
+                    <Group gap="xs">
+                      <ActionIcon
+                        variant="light"
+                        color="blue"
+                        component={Link}
+                        href={`/success-stories/${story.slug}/edit`}
+                      >
+                        <IconEdit size={16} />
+                      </ActionIcon>
+                      <ActionIcon
+                        variant="light"
+                        color="green"
+                        onClick={() => window.open(`/success-stories/${story.slug}`, '_blank')}
+                      >
+                        <IconEye size={16} />
+                      </ActionIcon>
+                      <ActionIcon
+                        variant="light"
+                        color="red"
+                        onClick={() => setDeleteModal(story.id)}
+                      >
+                        <IconTrash size={16} />
+                      </ActionIcon>
+                    </Group>
+                    <Button
+                      size="xs"
+                      variant={story.featured ? "filled" : "light"}
                       color="yellow"
-                      pos="absolute"
-                      top={8}
-                      right={8}
-                      leftSection={<IconStar size="0.8rem" />}
+                      onClick={() => toggleFeatured(story.id, story.featured)}
                     >
-                      Featured
-                    </Badge>
-                  )}
-                </Box>
-              </Card.Section>
-
-              <Stack mt="md" gap="xs">
-                <Title order={3} lineClamp={2}>{story.title}</Title>
-                <Stack gap={2}>
-                  <Text size="sm" c="dimmed">By {story.clientName}</Text>
-                  <Text size="sm" c="dimmed">{story.clientCompany}</Text>
-                  <Text size="sm" c="dimmed">{formatDate(story.publishedDate)}</Text>
+                      {story.featured ? 'Unfeature' : 'Feature'}
+                    </Button>
+                  </Group>
                 </Stack>
-
-                <Text mt="sm" size="sm" lineClamp={3} c="dimmed">
-                  {truncateText(stripHtml(story.content), 150)}
-                </Text>
-              </Stack>
-
-              <Group mt="xl" justify="space-between" pt="sm" style={{ borderTop: '1px solid #e9ecef' }}>
-                <Button
-                  variant="default"
-                  component={Link}
-                  href={`/success-stories/${story.slug}/edit`}
-                  leftSection={<IconPencil size="1rem" />}
-                >
-                  Edit
-                </Button>
-
-                <StoryDeleteButton storyId={story.id} />
-              </Group>
-            </Card>
+              </Card>
+            </Grid.Col>
           ))}
-        </SimpleGrid>
-      )}
+        </Grid>
+
+        {stories.length === 0 && !loading && (
+          <Box ta="center" py="xl">
+            <Text c="dimmed" mb="md">
+              No success stories found
+            </Text>
+            <Button
+              component={Link}
+              href="/success-stories/new"
+              leftSection={<IconPlus size={16} />}
+            >
+              Create Your First Story
+            </Button>
+          </Box>
+        )}
+      </Card>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        opened={!!deleteModal}
+        onClose={() => setDeleteModal(null)}
+        title="Delete Success Story"
+        centered
+      >
+        <Text mb="md">
+          Are you sure you want to delete this success story? This action cannot be undone.
+        </Text>
+        <Group justify="right">
+          <Button variant="light" onClick={() => setDeleteModal(null)}>
+            Cancel
+          </Button>
+          <Button
+            color="red"
+            onClick={() => deleteModal && handleDelete(deleteModal)}
+          >
+            Delete
+          </Button>
+        </Group>
+      </Modal>
     </Container>
   );
 }

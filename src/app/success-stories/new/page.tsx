@@ -24,16 +24,61 @@
 // Supports automatic slug generation
 // Provides form validation
 
+'use client';
 import { Metadata } from 'next';
 import { Container, Title, Text, Box } from '@mantine/core';
-import { SuccessStoryForm } from '@/components/SuccessStories/SuccessStoryForm';
+import { SuccessStoryForm } from '@/components/SuccessStories/SuccessStoryFormUpdated';
+import { useRouter } from 'next/navigation';
+import { notifications } from '@mantine/notifications';
 
-export const metadata: Metadata = {
-  title: 'Add Success Story | Admin Dashboard',
-  description: 'Create a new success story',
-};
+interface SuccessStoryFormData {
+  slug: string;
+  title: string;
+  titleHi?: string;
+  content: Record<string, any>;
+  contentHi?: Record<string, any>;
+  personName: string;
+  personNameHi?: string;
+  location: string;
+  locationHi?: string;
+  imageUrl?: string;
+  featured: boolean;
+  order: number;
+}
 
 export default function NewSuccessStoryPage() {
+  const router = useRouter();
+
+  const handleSubmit = async (data: SuccessStoryFormData) => {
+    try {
+      const response = await fetch('/api/success-stories', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create success story');
+      }
+
+      notifications.show({
+        title: 'Success',
+        message: 'Success story created successfully',
+        color: 'green',
+      });
+
+      router.push('/success-stories');
+    } catch (error) {
+      throw error; // Re-throw to be handled by the form
+    }
+  };
+
+  const handleCancel = () => {
+    router.push('/success-stories');
+  };
+
   return (
     <Container size="xl" py="xl">
       <Box mb="lg">
@@ -44,7 +89,10 @@ export default function NewSuccessStoryPage() {
       </Box>
 
       <Box>
-        <SuccessStoryForm />
+        <SuccessStoryForm
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+        />
       </Box>
     </Container>
   );

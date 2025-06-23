@@ -22,8 +22,11 @@ model Enquiry {
 model Testimonial {
   id          Int      @id @default(autoincrement())
   name        String
+  nameHi      String?
   role        String
+  roleHi      String?
   content     String
+  contentHi   String?
   avatar      String?
   createdAt   DateTime @default(now())
   isPublished Boolean  @default(false)
@@ -34,12 +37,18 @@ model Blog {
   slug            String
   locale          String
   title           String
+  titleHi         String?
   content         String
+  contentHi       String?
   status          String
   authorName      String
+  authorNameHi    String?
   metaDescription String?
+  metaDescriptionHi String?
   ogTitle         String?
+  ogTitleHi       String?
   ogDescription   String?
+  ogDescriptionHi String?
   authorId        Int
   categoryId      Int?
   createdAt       DateTime  @default(now())
@@ -70,8 +79,10 @@ model User {
 model Category {
   id          Int      @id @default(autoincrement())
   name        String
+  nameHi      String?
   slug        String   @unique
   description String?
+  descriptionHi String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   blogs       Blog[]
@@ -80,8 +91,10 @@ model Category {
 model Tag {
   id          Int      @id @default(autoincrement())
   name        String
+  nameHi      String?
   slug        String   @unique
   description String?
+  descriptionHi String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now())
   blogs       Blog[]   @relation("BlogToTag")
@@ -90,7 +103,9 @@ model Tag {
 model ElectronicMedia {
   id          Int      @id @default(autoincrement())
   title       String
+  titleHi     String?
   description String?
+  descriptionHi String?
   videoUrl    String
   thumbnail   String?
   order       Int      @default(0)
@@ -101,11 +116,13 @@ model ElectronicMedia {
 model NewsArticle {
   id          Int      @id @default(autoincrement())
   title       String
+  titleHi     String?
   source      String
   date        DateTime
   imageUrl    String?
   link        String?
   description String?
+  descriptionHi String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now())
 }
@@ -113,7 +130,9 @@ model NewsArticle {
 model Initiative {
   id          Int      @id @default(autoincrement())
   title       String
+  titleHi     String?
   description String
+  descriptionHi String?
   imageUrl    String?
   order       Int      @default(0)
   createdAt   DateTime @default(now())
@@ -123,8 +142,11 @@ model Initiative {
 model Center {
   id          Int      @id @default(autoincrement())
   name        String
+  nameHi      String?
   location    String
+  locationHi  String?
   description String
+  descriptionHi String?
   imageUrl    String?
   contactInfo String?
   createdAt   DateTime @default(now())
@@ -134,11 +156,16 @@ model Center {
 model Career {
   id           Int      @id @default(autoincrement())
   title        String
+  titleHi      String?
   slug         String   @unique
   location     String
+  locationHi   String?
   type         String
+  typeHi       String?
   description  String
+  descriptionHi String?
   requirements String
+  requirementsHi String?
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -147,9 +174,12 @@ model Career {
 model Gallery {
   id          Int      @id @default(autoincrement())
   title       String
+  titleHi     String?
   description String?
+  descriptionHi String?
   imageUrl    String
   category    String
+  categoryHi  String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now())
 }
@@ -169,6 +199,7 @@ model Settings {
 model Carousel {
   id          Int      @id @default(autoincrement())
   title       String
+  titleHi     String?
   type        String   @default("image")
   imageUrl    String?
   videoUrl    String?
@@ -199,7 +230,9 @@ model Banner {
   id              String   @id @default(cuid())
   type            String
   title           String
+  titleHi         String?
   description     String?
+  descriptionHi   String?
   backgroundImage String
   createdAt       DateTime @default(now())
   updatedAt       DateTime @default(now())
@@ -210,10 +243,13 @@ model Banner {
 model Award {
   id           String   @id @default(cuid())
   title        String
+  titleHi      String?
   year         String
   description  String
+  descriptionHi String?
   imageUrl     String
   organization String
+  organizationHi String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -223,7 +259,9 @@ model Award {
 model Feature {
   id          String   @id @default(cuid())
   title       String
+  titleHi     String?
   description String
+  descriptionHi String?
   mediaType   String
   mediaUrl    String
   thumbnail   String?
@@ -239,7 +277,9 @@ model FeatureSection {
   id         String   @id @default(cuid())
   identifier String   @unique
   heading    String
+  headingHi  String?
   ctaText    String
+  ctaTextHi  String?
   ctaUrl     String
   createdAt  DateTime @default(now())
   updatedAt  DateTime @default(now())
@@ -251,9 +291,13 @@ model SuccessStory {
   id         String   @id @default(cuid())
   slug       String   @unique
   title      String
+  titleHi    String?
   content    Json
+  contentHi  Json?
   personName String
+  personNameHi String?
   location   String
+  locationHi String?
   imageUrl   String?
   featured   Boolean  @default(false)
   order      Int      @default(0)
@@ -266,6 +310,7 @@ model SuccessStory {
 model Stat {
   id        String   @id @default(cuid())
   label     String
+  labelHi   String?
   value     String
   icon      String?
   order     Int      @default(0)
@@ -278,8 +323,11 @@ model Stat {
 model TheNeed {
   id            String   @id @default(cuid())
   mainText      String
+  mainTextHi    String?
   statistics    String
+  statisticsHi  String?
   impact        String
+  impactHi      String?
   imageUrl      String
   statsImageUrl String
   createdAt     DateTime @default(now())
@@ -291,7 +339,9 @@ model TheNeed {
 model OurStory {
   id        String   @id @default(cuid())
   title     String
+  titleHi   String?
   content   String
+  contentHi String?
   media     Json
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -302,6 +352,7 @@ model OurStory {
 model OurModel {
   id          String   @id @default(cuid())
   description String
+  descriptionHi String?
   imageUrl    String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -310,23 +361,26 @@ model OurModel {
 model VisionMission {
   id          String   @id @default(cuid())
   vision      String
+  visionHi    String?
   mission     String
+  missionHi   String?
   visionIcon  String
   missionIcon String
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @default(now())
 }
 
 model Timeline {
   id         String   @id @default(cuid())
   year       String
   title      String
+  titleHi    String?
   centers    Int
   volunteers Int
   children   Int
   order      Int      @default(0)
   createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  updatedAt  DateTime @default(now())
 }
 
 // Analytics models
@@ -371,5 +425,52 @@ model Event {
   @@index([timestamp])
   @@index([visitorId])
   @@index([sessionId])
+}
+
+// Translation management models
+model Translation {
+  id        String   @id @default(cuid())
+  key       String
+  valueEn   String
+  valueHi   String?
+  category  String   @default("general")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([key, category])
+  @@map("translations")
+}
+
+model MenuItem {
+  id          String   @id @default(cuid())
+  label       String
+  labelHi     String?
+  href        String
+  order       Int      @default(0)
+  parentId    String?
+  isActive    Boolean  @default(true)
+  parent      MenuItem? @relation("MenuHierarchy", fields: [parentId], references: [id])
+  children    MenuItem[] @relation("MenuHierarchy")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("menu_items")
+}
+
+model PageContent {
+  id         String   @id @default(cuid())
+  pageType   String   // "homepage", "about", "contact", etc.
+  section    String   // "hero", "features", "testimonials", etc.
+  fieldKey   String   // "title", "description", "button_text", etc.
+  valueEn    String
+  valueHi    String?
+  mediaUrl   String?
+  order      Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([pageType, section, fieldKey])
+  @@map("page_content")
 }
 

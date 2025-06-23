@@ -25,7 +25,9 @@ import TiptapEditor from '@/components/TiptapEditor';
 interface Initiative {
   id: number;
   title: string;
+  titleHi?: string;
   description: string;
+  descriptionHi?: string;
   imageUrl?: string;
   order: number;
 }
@@ -35,7 +37,9 @@ export default function InitiativesAdmin() {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
+    titleHi: '',
     description: '',
+    descriptionHi: '',
     imageUrl: '',
     order: 0
   });
@@ -104,7 +108,9 @@ export default function InitiativesAdmin() {
 
       setFormData({
         title: '',
+        titleHi: '',
         description: '',
+        descriptionHi: '',
         imageUrl: '',
         order: 0
       });
@@ -193,19 +199,35 @@ export default function InitiativesAdmin() {
             <form onSubmit={handleSubmit}>
               <Stack>
                 <TextInput
-                  label="Title"
+                  label="Title (English)"
                   required
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="Enter initiative title in English"
                 />
-   <TiptapEditor
-  label="Description"
-  content={formData.description}
-  onChange={(htmlContent) => setFormData({ ...formData, description: htmlContent })}
-  placeholder="Enter initiative description..."
-  required={true}
-  minHeight={300}
-/>
+                <TextInput
+                  label="Title (Hindi)"
+                  value={formData.titleHi}
+                  onChange={(e) => setFormData({ ...formData, titleHi: e.target.value })}
+                  placeholder="पहल का शीर्षक हिंदी में दर्ज करें"
+                  style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}
+                />
+                <TiptapEditor
+                  label="Description (English)"
+                  content={formData.description}
+                  onChange={(htmlContent) => setFormData({ ...formData, description: htmlContent })}
+                  placeholder="Enter initiative description in English..."
+                  required={true}
+                  minHeight={200}
+                />
+                <TiptapEditor
+                  label="Description (Hindi)"
+                  content={formData.descriptionHi}
+                  onChange={(htmlContent) => setFormData({ ...formData, descriptionHi: htmlContent })}
+                  placeholder="पहल का विवरण हिंदी में दर्ज करें..."
+                  required={false}
+                  minHeight={200}
+                />
                 <Group align="flex-end">
                   <TextInput
                     label="Image URL"
@@ -246,7 +268,14 @@ export default function InitiativesAdmin() {
               {initiatives.map((item) => (
                 <Paper key={item.id} shadow="xs" p="sm">
                   <Group justify="space-between" mb="xs">
-                    <Title order={4}>{item.title}</Title>
+                    <div>
+                      <Title order={4}>{item.title}</Title>
+                      {item.titleHi && (
+                        <Text size="sm" c="dimmed" style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}>
+                          {item.titleHi}
+                        </Text>
+                      )}
+                    </div>
                     <Group gap="xs">
                       <ActionIcon
                         color="gray"
@@ -284,8 +313,13 @@ export default function InitiativesAdmin() {
                     />
                   )}
                   <Text size="sm" lineClamp={3}>
-                    {item.description}
+                    {item.description.replace(/<[^>]*>/g, '')}
                   </Text>
+                  {item.descriptionHi && (
+                    <Text size="xs" c="dimmed" lineClamp={2} mt="xs" style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}>
+                      {item.descriptionHi.replace(/<[^>]*>/g, '')}
+                    </Text>
+                  )}
                 </Paper>
               ))}
             </Stack>

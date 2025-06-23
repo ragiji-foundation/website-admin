@@ -5,9 +5,13 @@ import { z } from 'zod';
 
 const successStorySchema = z.object({
   title: z.string().min(3).max(255).optional(),
+  titleHi: z.string().min(3).max(255).optional(),
   content: z.any().optional(), // Allow any JSON, but consider a more specific schema
+  contentHi: z.any().optional(),
   personName: z.string().min(3).max(255).optional(),
+  personNameHi: z.string().min(3).max(255).optional(),
   location: z.string().min(3).max(255).optional(),
+  locationHi: z.string().min(3).max(255).optional(),
   imageUrl: z.string().url().optional(),
   featured: z.boolean().optional(),
   order: z.number().int().optional(),
@@ -22,7 +26,7 @@ export async function GET(
   context: any
 ) {
   try {
-    const { slug } = context.params;
+    const { slug } = await context.params;
 
     const story = await prisma.successStory.findUnique({
       where: { slug: slug },
@@ -45,7 +49,7 @@ export async function PUT(
   context: any
 ) {
   try {
-    const { slug } = context.params;
+    const { slug } = await context.params;
     const data = await request.json();
     const validatedData = successStorySchema.partial().parse(data); // Partial validation
 
@@ -76,7 +80,7 @@ export async function DELETE(
   context: any
 ) {
   try {
-    const { slug } = context.params;
+    const { slug } = await context.params;
 
     // Fetch the story first to check if it exists
     const existingStory = await prisma.successStory.findUnique({
@@ -98,6 +102,6 @@ export async function DELETE(
   }
 }
 
-export async function OPTIONS(request: NextRequest) {
+export async function OPTIONS(_request: NextRequest) {
   return withCors(new NextResponse(null, { status: 200 }));
 }

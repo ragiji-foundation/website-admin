@@ -78,10 +78,13 @@ export function SuccessStoryForm({ initialData, isEditing = false }: SuccessStor
     }
   }, [form.values.title, isEditing, form]);
 
-  // Update form when content changes
+  // Update form when content changes - fix infinite loop
   useEffect(() => {
-    form.setFieldValue('content', content);
-  }, [content, form]);
+    if (JSON.stringify(content) !== JSON.stringify(form.values.content)) {
+      form.setFieldValue('content', content);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content]);
 
   const handleImageUpload = async (file: File | null) => {
     if (!file) return;

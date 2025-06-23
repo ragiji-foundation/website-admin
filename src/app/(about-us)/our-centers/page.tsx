@@ -23,8 +23,11 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 interface Center {
   id: number;
   name: string;
+  nameHi?: string;
   location: string;
+  locationHi?: string;
   description: string;
+  descriptionHi?: string;
   imageUrl?: string;
   contactInfo?: string;
 }
@@ -34,8 +37,11 @@ export default function CentersAdmin() {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
+    nameHi: '',
     location: '',
+    locationHi: '',
     description: '',
+    descriptionHi: '',
     imageUrl: '',
     contactInfo: ''
   });
@@ -107,8 +113,11 @@ export default function CentersAdmin() {
 
       setFormData({
         name: '',
+        nameHi: '',
         location: '',
+        locationHi: '',
         description: '',
+        descriptionHi: '',
         imageUrl: '',
         contactInfo: ''
       });
@@ -164,16 +173,32 @@ export default function CentersAdmin() {
             <form onSubmit={handleSubmit}>
               <Stack>
                 <TextInput
-                  label="Center Name"
+                  label="Center Name (English)"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Enter center name in English"
                 />
                 <TextInput
-                  label="Location"
+                  label="Center Name (Hindi)"
+                  value={formData.nameHi}
+                  onChange={(e) => setFormData({ ...formData, nameHi: e.target.value })}
+                  placeholder="केंद्र का नाम हिंदी में दर्ज करें"
+                  style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}
+                />
+                <TextInput
+                  label="Location (English)"
                   required
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  placeholder="Enter location in English"
+                />
+                <TextInput
+                  label="Location (Hindi)"
+                  value={formData.locationHi}
+                  onChange={(e) => setFormData({ ...formData, locationHi: e.target.value })}
+                  placeholder="स्थान हिंदी में दर्ज करें"
+                  style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}
                 />
                 <Textarea
                   label="Description"

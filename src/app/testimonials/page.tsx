@@ -1,75 +1,75 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Container,
   Title,
-  Grid,
-  Card,
-  Text,
-  Avatar,
+  Button,
   Group,
   Stack,
-  Skeleton,
-  Alert,
-  Button,
-  Modal,
-  TextInput,
-  Textarea,
-  ActionIcon,
-  Tabs,
   Paper,
-  Blockquote,
-  rem,
+  Table,
+  Modal,
+  Select,
+  Switch,
+  ActionIcon,
+  Badge,
+  Text,
+  Avatar,
+  Card
 } from '@mantine/core';
-import { IconAlertCircle, IconPlus, IconTrash, IconQuote } from '@tabler/icons-react';
-import { notifications } from '@mantine/notifications';
+import { useForm } from '@mantine/form';
 import { useDisclosure } from '@mantine/hooks';
+import { showNotification } from '@mantine/notifications';
+import { IconPlus, IconEdit, IconTrash, IconEye } from '@tabler/icons-react';
+import { BilingualInput, BilingualRichText } from '@/components/BilingualInput';
 
-type Testimonial = {
-  id: number;  // Changed from string to number to match Prisma schema
+interface Testimonial {
+  id: number;
   name: string;
+  nameHi?: string;
   role: string;
+  roleHi?: string;
   content: string;
+  contentHi?: string;
   avatar?: string;
+  isPublished: boolean;
   createdAt: string;
-  updatedAt: string;
-};
-
-interface TestimonialFormData {
-  name: string;
-  role: string;
-  content: string;
-  avatar?: string;
 }
-
-const initialFormData: TestimonialFormData = {
-  name: '',
-  role: '',
-  content: '',
-  avatar: '',
-};
 
 export default function TestimonialsPage() {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState<TestimonialFormData>(initialFormData);
+  const [loading, setLoading] = useState(true);
   const [opened, { open, close }] = useDisclosure(false);
+  const [editingTestimonial, setEditingTestimonial] = useState<Testimonial | null>(null);
+
+  const form = useForm({
+    initialValues: {
+      name: '',
+      nameHi: '',
+      role: '',
+      roleHi: '',
+      content: '',
+      contentHi: '',
+      avatar: '',
+      isPublished: false
+    },
+    validate: {
+      name: (value) => (!value ? 'Name is required' : null),
+      role: (value) => (!value ? 'Role is required' : null),
+      content: (value) => (!value ? 'Content is required' : null),
+    },
+  });
 
   const fetchTestimonials = async () => {
     try {
-      setIsLoading(true);
       const response = await fetch('/api/testimonials');
-      if (!response.ok) {
-        throw new Error('Failed to fetch testimonials');
-      }
       const data = await response.json();
       setTestimonials(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+    } catch (error) {
+      console.error('Error fetching testimonials:', error);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -77,288 +77,266 @@ export default function TestimonialsPage() {
     fetchTestimonials();
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
+  const handleSubmit = async (values: typeof form.values) => {
     try {
-      // Validate form data
-      if (!formData.name.trim() || !formData.role.trim() || !formData.content.trim()) {
-        notifications.show({
-          title: 'Validation Error',
-          message: 'Please fill in all required fields',
-          color: 'red',
+      const url = editingTestimonial 
+        ? `/api/testimonials/${editingTestimonial.id}`
+        : '/api/testimonials';
+      
+      const method = editingTestimonial ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      });
+
+      if (response.ok) {
+        showNotification({
+          title: 'Success',
+          message: editingTestimonial 
+            ? 'Testimonial updated successfully' 
+            : 'Testimonial created successfully',
+          color: 'green'
         });
-        return;
+        fetchTestimonials();
+        handleCloseModal();
       }
-
-      const response = await fetch('/api/testimonials', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create testimonial');
-      }
-
-      notifications.show({
-        title: 'Success',
-        message: 'Testimonial created successfully',
-        color: 'green',
-      });
-
-      setFormData(initialFormData);
-      close();
-      await fetchTestimonials();
-    } catch (err) {
-      console.error('Error creating testimonial:', err);
-      notifications.show({
+    } catch (error) {
+      showNotification({
         title: 'Error',
-        message: err instanceof Error ? err.message : 'Failed to create testimonial',
-        color: 'red',
+        message: 'Failed to save testimonial',
+        color: 'red'
       });
     }
   };
 
+  const handleEdit = (testimonial: Testimonial) => {
+    setEditingTestimonial(testimonial);
+    form.setValues({
+      name: testimonial.name,
+      nameHi: testimonial.nameHi || '',
+      role: testimonial.role,
+      roleHi: testimonial.roleHi || '',
+      content: testimonial.content,
+      contentHi: testimonial.contentHi || '',
+      avatar: testimonial.avatar || '',
+      isPublished: testimonial.isPublished
+    });
+    open();
+  };
+
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this testimonial?')) return;
-
+    
     try {
       const response = await fetch(`/api/testimonials/${id}`, {
         method: 'DELETE',
       });
 
-      if (!response.ok) throw new Error('Failed to delete testimonial');
-
-      notifications.show({
-        title: 'Success',
-        message: 'Testimonial deleted successfully',
-        color: 'green',
-      });
-
-      fetchTestimonials();
-    } catch (err) {
-      notifications.show({
+      if (response.ok) {
+        showNotification({
+          title: 'Success',
+          message: 'Testimonial deleted successfully',
+          color: 'green'
+        });
+        fetchTestimonials();
+      }
+    } catch (error) {
+      showNotification({
         title: 'Error',
-        message: err instanceof Error ? err.message : 'Failed to delete testimonial',
-        color: 'red',
+        message: 'Failed to delete testimonial',
+        color: 'red'
       });
     }
   };
 
-  const TestimonialCard = ({ testimonial }: { testimonial: Testimonial }) => (
-    <Card shadow="sm" padding="lg" radius="md" withBorder>
-      <Stack gap="md">
-        <Group justify="space-between">
-          <Group>
-            <Avatar
-              src={testimonial.avatar}
-              alt={testimonial.name}
-              size="xl"
-              radius="xl"
-              onError={(e) => {
-                // Fallback to initials if avatar fails to load
-                (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                  testimonial.name
-                )}&background=random`;
-              }}
-            />
-            <div>
-              <Text size="lg" fw={500}>
-                {testimonial.name}
-              </Text>
-              <Text size="sm" c="dimmed">
-                {testimonial.role}
-              </Text>
-            </div>
-          </Group>
-          <ActionIcon
-            color="red"
-            variant="subtle"
-            onClick={() => handleDelete(testimonial.id)}
-          >
-            <IconTrash size={16} />
-          </ActionIcon>
-        </Group>
-        <Text size="sm" style={{ lineHeight: 1.6 }}>
-          {testimonial.content}
-        </Text>
-      </Stack>
-    </Card>
-  );
+  const handleCloseModal = () => {
+    setEditingTestimonial(null);
+    form.reset();
+    close();
+  };
 
-  const PublicView = () => (
-    <Stack gap="xl">
-      <Paper p="xl" radius="md" withBorder>
-        <Title order={2} ta="center" mb="xl">What Our Community Says</Title>
-        <Grid>
-          {testimonials.map((testimonial) => (
-            <Grid.Col key={testimonial.id} span={{ base: 12, md: 6, lg: 4 }}>
-              <Card shadow="sm" padding="xl" radius="md" withBorder>
-                <Stack gap="lg">
-                  <IconQuote
-                    style={{
-                      width: rem(30),
-                      height: rem(30),
-                      color: 'var(--mantine-color-blue-filled)'
-                    }}
-                  />
-                  <Blockquote color="blue">
-                    {testimonial.content}
-                  </Blockquote>
-                  <Group>
-                    <Avatar
-                      src={testimonial.avatar}
-                      alt={testimonial.name}
-                      size="lg"
-                      radius="xl"
-                      onError={(e) => {
-                        // Fallback to initials if avatar fails to load
-                        (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                          testimonial.name
-                        )}&background=random`;
-                      }}
-                    />
-                    <div>
-                      <Text size="sm" fw={500}>
-                        {testimonial.name}
-                      </Text>
-                      <Text size="xs" c="dimmed">
-                        {testimonial.role}
-                      </Text>
-                    </div>
-                  </Group>
-                </Stack>
-              </Card>
-            </Grid.Col>
-          ))}
-        </Grid>
-      </Paper>
-    </Stack>
-  );
+  const getTranslationStatus = (testimonial: Testimonial) => {
+    const hasHindi = testimonial.nameHi && testimonial.roleHi && testimonial.contentHi;
+    return hasHindi ? 'complete' : 'partial';
+  };
 
-  const AdminView = () => (
-    <Stack gap="md">
-      <Group justify="space-between">
-        <Title order={2}>Manage Testimonials</Title>
-        <Button
-          leftSection={<IconPlus size={16} />}
-          onClick={open}
-        >
+  return (
+    <Container size="xl" py="md">
+      <Group justify="space-between" mb="lg">
+        <Title order={2}>Testimonials Management</Title>
+        <Button leftSection={<IconPlus size={16} />} onClick={open}>
           Add Testimonial
         </Button>
       </Group>
 
-      <Grid>
-        {testimonials.map((testimonial) => (
-          <Grid.Col key={testimonial.id} span={{ base: 12, md: 6, lg: 4 }}>
-            <TestimonialCard testimonial={testimonial} />
-          </Grid.Col>
-        ))}
-      </Grid>
-    </Stack>
-  );
+      {/* Statistics */}
+      <Group mb="lg">
+        <Card withBorder>
+          <Text size="lg" fw={700}>{testimonials.length}</Text>
+          <Text size="sm" c="dimmed">Total Testimonials</Text>
+        </Card>
+        <Card withBorder>
+          <Text size="lg" fw={700} c="green">
+            {testimonials.filter(t => t.isPublished).length}
+          </Text>
+          <Text size="sm" c="dimmed">Published</Text>
+        </Card>
+        <Card withBorder>
+          <Text size="lg" fw={700} c="blue">
+            {testimonials.filter(t => getTranslationStatus(t) === 'complete').length}
+          </Text>
+          <Text size="sm" c="dimmed">Fully Translated</Text>
+        </Card>
+      </Group>
 
-  if (isLoading) {
-    return (
-      <Container size="lg" py="xl">
-        <Title order={1} mb="xl">Testimonials</Title>
-        <Grid>
-          {[1, 2, 3].map((index) => (
-            <Grid.Col key={index} span={{ base: 12, md: 6, lg: 4 }}>
-              <Card shadow="sm" padding="lg" radius="md" withBorder>
-                <Skeleton height={64} circle mb="md" />
-                <Skeleton height={20} width="40%" mb="sm" />
-                <Skeleton height={15} width="30%" mb="lg" />
-                <Skeleton height={50} mb="sm" />
-              </Card>
-            </Grid.Col>
-          ))}
-        </Grid>
-      </Container>
-    );
-  }
+      {/* Testimonials Table */}
+      <Paper withBorder>
+        <Table>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Person</Table.Th>
+              <Table.Th>Role</Table.Th>
+              <Table.Th>Content Preview</Table.Th>
+              <Table.Th>Translation Status</Table.Th>
+              <Table.Th>Status</Table.Th>
+              <Table.Th>Actions</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {testimonials.map((testimonial) => (
+              <Table.Tr key={testimonial.id}>
+                <Table.Td>
+                  <Group>
+                    <Avatar src={testimonial.avatar} radius="xl" />
+                    <div>
+                      <Text fw={500}>{testimonial.name}</Text>
+                      {testimonial.nameHi && (
+                        <Text size="sm" c="dimmed" style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}>
+                          {testimonial.nameHi}
+                        </Text>
+                      )}
+                    </div>
+                  </Group>
+                </Table.Td>
+                <Table.Td>
+                  <div>
+                    <Text>{testimonial.role}</Text>
+                    {testimonial.roleHi && (
+                      <Text size="sm" c="dimmed" style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}>
+                        {testimonial.roleHi}
+                      </Text>
+                    )}
+                  </div>
+                </Table.Td>
+                <Table.Td>
+                  <Text lineClamp={2} maw={200}>
+                    {testimonial.content}
+                  </Text>
+                  {testimonial.contentHi && (
+                    <Text size="sm" c="dimmed" lineClamp={1} style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}>
+                      {testimonial.contentHi}
+                    </Text>
+                  )}
+                </Table.Td>
+                <Table.Td>
+                  <Badge 
+                    color={getTranslationStatus(testimonial) === 'complete' ? 'green' : 'orange'}
+                    size="sm"
+                  >
+                    {getTranslationStatus(testimonial) === 'complete' ? 'Complete' : 'Partial'}
+                  </Badge>
+                </Table.Td>
+                <Table.Td>
+                  <Badge color={testimonial.isPublished ? 'green' : 'gray'} size="sm">
+                    {testimonial.isPublished ? 'Published' : 'Draft'}
+                  </Badge>
+                </Table.Td>
+                <Table.Td>
+                  <Group gap="xs">
+                    <ActionIcon variant="light" color="blue" onClick={() => handleEdit(testimonial)}>
+                      <IconEdit size={16} />
+                    </ActionIcon>
+                    <ActionIcon variant="light" color="red" onClick={() => handleDelete(testimonial.id)}>
+                      <IconTrash size={16} />
+                    </ActionIcon>
+                  </Group>
+                </Table.Td>
+              </Table.Tr>
+            ))}
+          </Table.Tbody>
+        </Table>
+      </Paper>
 
-  if (error) {
-    return (
-      <Container size="lg" py="xl">
-        <Alert
-          icon={<IconAlertCircle size={16} />}
-          title="Error"
-          color="red"
-          variant="filled"
-        >
-          {error}
-        </Alert>
-      </Container>
-    );
-  }
-
-  return (
-    <Container size="lg" py="xl">
-      <Title order={1} mb="xl">Testimonials</Title>
-
-      <Tabs defaultValue="public">
-        <Tabs.List mb="xl">
-          <Tabs.Tab value="public">Public View</Tabs.Tab>
-          <Tabs.Tab value="admin">Admin View</Tabs.Tab>
-        </Tabs.List>
-
-        <Tabs.Panel value="public">
-          <PublicView />
-        </Tabs.Panel>
-
-        <Tabs.Panel value="admin">
-          <AdminView />
-        </Tabs.Panel>
-      </Tabs>
-
+      {/* Add/Edit Modal */}
       <Modal
         opened={opened}
-        onClose={() => {
-          setFormData(initialFormData);
-          close();
-        }}
-        title="Add New Testimonial"
+        onClose={handleCloseModal}
+        title={editingTestimonial ? 'Edit Testimonial' : 'Add Testimonial'}
         size="lg"
       >
-        <form onSubmit={handleSubmit}>
-          <Stack gap="md">
-            <TextInput
-              label="Name"
+        <form onSubmit={form.onSubmit(handleSubmit)}>
+          <Stack>
+            <BilingualInput
+              label="Person Name"
               required
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              error={formData.name.trim() === '' ? 'Name is required' : null}
+              valueEn={form.values.name}
+              valueHi={form.values.nameHi}
+              onChangeEn={(value) => form.setFieldValue('name', value)}
+              onChangeHi={(value) => form.setFieldValue('nameHi', value)}
+              placeholder="Enter person's name"
+              placeholderHi="व्यक्ति का नाम दर्ज करें"
+              error={form.errors.name as string}
             />
-            <TextInput
-              label="Role"
+
+            <BilingualInput
+              label="Role/Position"
               required
-              value={formData.role}
-              onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
-              error={formData.role.trim() === '' ? 'Role is required' : null}
+              valueEn={form.values.role}
+              valueHi={form.values.roleHi}
+              onChangeEn={(value) => form.setFieldValue('role', value)}
+              onChangeHi={(value) => form.setFieldValue('roleHi', value)}
+              placeholder="e.g., CEO, Director, Volunteer"
+              placeholderHi="जैसे: सीईओ, निदेशक, स्वयंसेवक"
+              error={form.errors.role as string}
             />
-            <TextInput
-              label="Avatar URL (optional)"
-              value={formData.avatar || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, avatar: e.target.value }))}
+
+            <BilingualRichText
+              label="Testimonial Content"
+              required
+              valueEn={form.values.content}
+              valueHi={form.values.contentHi}
+              onChangeEn={(value) => form.setFieldValue('content', value)}
+              onChangeHi={(value) => form.setFieldValue('contentHi', value)}
+              error={form.errors.content as string}
+              description="The testimonial quote or review"
+            />
+
+            <BilingualInput
+              label="Avatar URL"
+              valueEn={form.values.avatar}
+              valueHi=""
+              onChangeEn={(value) => form.setFieldValue('avatar', value)}
+              onChangeHi={() => {}}
               placeholder="https://example.com/avatar.jpg"
+              description="URL to person's photo (optional)"
             />
-            <Textarea
-              label="Content"
-              required
-              minRows={4}
-              value={formData.content}
-              onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-              error={formData.content.trim() === '' ? 'Content is required' : null}
+
+            <Switch
+              label="Publish testimonial"
+              description="Make this testimonial visible on the website"
+              checked={form.values.isPublished}
+              onChange={(event) => form.setFieldValue('isPublished', event.currentTarget.checked)}
             />
+
             <Group justify="flex-end">
-              <Button variant="light" onClick={close}>Cancel</Button>
-              <Button type="submit">Create</Button>
+              <Button variant="light" onClick={handleCloseModal}>
+                Cancel
+              </Button>
+              <Button type="submit">
+                {editingTestimonial ? 'Update' : 'Create'} Testimonial
+              </Button>
             </Group>
           </Stack>
         </form>

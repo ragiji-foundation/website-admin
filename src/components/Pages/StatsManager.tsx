@@ -16,7 +16,17 @@ import {
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { IconGripVertical, IconPlus, IconTrash, IconEdit } from '@tabler/icons-react';
-import type { Stat } from '@/types/stats';
+
+interface Stat {
+  id: string;
+  label: string;
+  labelHi?: string;
+  value: string;
+  icon?: string;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export function StatsManager() {
   const [stats, setStats] = useState<Stat[]>([]);
@@ -28,6 +38,8 @@ export function StatsManager() {
     initialValues: {
       value: '',
       label: '',
+      labelHi: '',
+      icon: '',
     },
     validate: {
       value: (value) => (!value ? 'Value is required' : null),
@@ -159,8 +171,24 @@ export function StatsManager() {
                           <IconGripVertical style={{ cursor: 'grab' }} />
                         </div>
                         <Stack gap="xs" style={{ flex: 1 }}>
-                          <Text fw={700} size="xl">{stat.value}</Text>
-                          <Text c="dimmed">{stat.label}</Text>
+                          <Group>
+                            {stat.icon && (
+                              <Text size="xl">{stat.icon}</Text>
+                            )}
+                            <div>
+                              <Text fw={700} size="xl">{stat.value}</Text>
+                              <Text c="dimmed">{stat.label}</Text>
+                              {stat.labelHi && (
+                                <Text 
+                                  size="sm" 
+                                  c="dimmed" 
+                                  style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}
+                                >
+                                  {stat.labelHi}
+                                </Text>
+                              )}
+                            </div>
+                          </Group>
                         </Stack>
                         <Group>
                           <ActionIcon
@@ -170,6 +198,8 @@ export function StatsManager() {
                               form.setValues({
                                 value: stat.value,
                                 label: stat.label,
+                                labelHi: stat.labelHi || '',
+                                icon: stat.icon || '',
                               });
                               setModalOpen(true);
                             }}
@@ -227,10 +257,21 @@ export function StatsManager() {
               {...form.getInputProps('value')}
             />
             <TextInput
-              label="Label"
+              label="Label (English)"
               placeholder="e.g., Lives Impacted"
               required
               {...form.getInputProps('label')}
+            />
+            <TextInput
+              label="Label (Hindi)"
+              placeholder="प्रभावित जीवन"
+              style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}
+              {...form.getInputProps('labelHi')}
+            />
+            <TextInput
+              label="Icon"
+              placeholder="📊 or any emoji/icon"
+              {...form.getInputProps('icon')}
             />
             <Button type="submit">
               {editingStat ? 'Update' : 'Create'}
