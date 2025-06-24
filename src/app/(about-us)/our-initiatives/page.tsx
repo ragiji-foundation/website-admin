@@ -13,6 +13,7 @@ import {
   ActionIcon,
   Text,
   NumberInput,
+  Progress,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconTrash, IconEdit, IconArrowUp, IconArrowDown } from '@tabler/icons-react';
@@ -43,6 +44,8 @@ export default function InitiativesAdmin() {
     imageUrl: '',
     order: 0
   });
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     fetchInitiatives();
@@ -64,48 +67,99 @@ export default function InitiativesAdmin() {
   };
 
   const onImageUpload = async (file: File | null) => {
+    if (!file) return;
+    setUploadProgress(0);
     try {
-      const url = await handleImageUpload(file);
-      if (url) {
-        setFormData(prev => ({ ...prev, imageUrl: url }));
+      // Use XMLHttpRequest for progress tracking
+      const formData = new FormData();
+      formData.append('file', file);
+      // You may need to adjust the upload endpoint below
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/upload');
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          setUploadProgress(Math.round((event.loaded / event.total) * 100));
+        }
+      };
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          const { url } = JSON.parse(xhr.responseText);
+          setFormData(prev => ({ ...prev, imageUrl: url }));
+          notifications.show({
+            title: 'Success',
+            message: 'Image uploaded successfully',
+            color: 'green'
+          });
+        } else {
+          notifications.show({
+            title: 'Error',
+            message: 'Failed to upload image',
+            color: 'red'
+          });
+        }
+        setUploadProgress(0);
+      };
+      xhr.onerror = () => {
         notifications.show({
-          title: 'Success',
-          message: 'Image uploaded successfully',
-          color: 'green'
+          title: 'Error',
+          message: 'Failed to upload image',
+          color: 'red'
         });
-      }
+        setUploadProgress(0);
+      };
+      xhr.send(formData);
     } catch (error) {
       notifications.show({
         title: 'Error',
         message: 'Failed to upload image',
         color: 'red'
       });
+      setUploadProgress(0);
     }
+  };
+
+  const handleEdit = (initiative: Initiative) => {
+    setEditingId(initiative.id);
+    setFormData({
+      title: initiative.title,
+      titleHi: initiative.titleHi || '',
+      description: initiative.description,
+      descriptionHi: initiative.descriptionHi || '',
+      imageUrl: initiative.imageUrl || '',
+      order: initiative.order
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      const response = await fetch('/api/initiatives', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create initiative');
+      let response;
+      if (editingId) {
+        response = await fetch(`/api/initiatives/${editingId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+      } else {
+        response = await fetch('/api/initiatives', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
       }
-
+      if (!response.ok) {
+        throw new Error(editingId ? 'Failed to update initiative' : 'Failed to create initiative');
+      }
       notifications.show({
         title: 'Success',
-        message: 'Initiative created successfully',
+        message: editingId ? 'Initiative updated successfully' : 'Initiative created successfully',
         color: 'green'
       });
-
       setFormData({
         title: '',
         titleHi: '',
@@ -114,13 +168,13 @@ export default function InitiativesAdmin() {
         imageUrl: '',
         order: 0
       });
-
+      setEditingId(null);
       fetchInitiatives();
     } catch (error) {
-      console.error('Error creating initiative:', error);
+      console.error(editingId ? 'Error updating initiative:' : 'Error creating initiative:', error);
       notifications.show({
         title: 'Error',
-        message: 'Failed to create initiative',
+        message: editingId ? 'Failed to update initiative' : 'Failed to create initiative',
         color: 'red'
       });
     } finally {
@@ -246,6 +300,9 @@ export default function InitiativesAdmin() {
                     )}
                   </FileButton>
                 </Group>
+                {uploadProgress > 0 && (
+                  <Progress value={uploadProgress} size="sm" mt="xs" animate />
+                )}
                 <NumberInput
                   label="Order"
                   value={formData.order}
@@ -253,8 +310,27 @@ export default function InitiativesAdmin() {
                 />
                 <Group justify="flex-end">
                   <Button type="submit" loading={loading}>
-                    Add Initiative
+                    {editingId ? 'Update Initiative' : 'Add Initiative'}
                   </Button>
+                  {editingId && (
+                    <Button
+                      variant="outline"
+                      color="gray"
+                      onClick={() => {
+                        setEditingId(null);
+                        setFormData({
+                          title: '',
+                          titleHi: '',
+                          description: '',
+                          descriptionHi: '',
+                          imageUrl: '',
+                          order: 0
+                        });
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  )}
                 </Group>
               </Stack>
             </form>
@@ -291,7 +367,7 @@ export default function InitiativesAdmin() {
                       </ActionIcon>
                       <ActionIcon
                         color="blue"
-                        onClick={() => {/* Implement edit */ }}
+                        onClick={() => handleEdit(item)}
                       >
                         <IconEdit size={16} />
                       </ActionIcon>
