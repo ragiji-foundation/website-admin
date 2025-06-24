@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { withCors, corsError } from '@/utils/cors';
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, context: { params: { id: string } }) {
   try {
-    const { id } = params;
+    const { id } = context.params;
     const data = await request.json();
     const stat = await prisma.stat.update({
       where: { id },
@@ -23,9 +23,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
   try {
-    const { id } = params;
+    const { id } = context.params;
     await prisma.stat.delete({ where: { id } });
     return withCors(NextResponse.json({ success: true }));
   } catch (error) {
