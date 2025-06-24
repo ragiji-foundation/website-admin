@@ -22,11 +22,10 @@ const successStorySchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  context: any
+  { params }: { params: { slug: string } }
 ) {
   try {
-    const { slug } = await context.params;
+    const { slug } = params;
 
     const story = await prisma.successStory.findUnique({
       where: { slug: slug },
@@ -38,18 +37,17 @@ export async function GET(
 
     return withCors(NextResponse.json(story));
   } catch (error) {
-    console.error(`Error fetching success story with slug ${context.params.slug}:`, error);
+    console.error(`Error fetching success story with slug ${params.slug}:`, error);
     return corsError('Failed to fetch success story', 500);
   }
 }
 
 export async function PUT(
   request: NextRequest,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  context: any
+  { params }: { params: { slug: string } }
 ) {
   try {
-    const { slug } = await context.params;
+    const { slug } = params;
     const data = await request.json();
     const validatedData = successStorySchema.partial().parse(data); // Partial validation
 
@@ -101,18 +99,17 @@ export async function PUT(
 
     return withCors(NextResponse.json(transformedStory));
   } catch (error) {
-    console.error(`Failed to update success story with slug ${context.params.slug}:`, error);
+    console.error(`Failed to update success story with slug ${params.slug}:`, error);
     return corsError('Failed to update success story', 500);
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  context: any
+  { params }: { params: { slug: string } }
 ) {
   try {
-    const { slug } = await context.params;
+    const { slug } = params;
 
     // Fetch the story first to check if it exists
     const existingStory = await prisma.successStory.findUnique({
@@ -129,7 +126,7 @@ export async function DELETE(
 
     return withCors(NextResponse.json({ message: 'Success story deleted' }));
   } catch (error) {
-    console.error(`Failed to delete success story with slug ${context.params.slug}:`, error);
+    console.error(`Failed to delete success story with slug ${params.slug}:`, error);
     return corsError('Failed to delete success story', 500);
   }
 }

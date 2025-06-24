@@ -40,7 +40,16 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    return withCors(NextResponse.json(stories));
+    const transformedStories = stories.map(story => ({
+      ...story,
+      titleHi: story.titleHi ?? '',
+      contentHi: story.contentHi ?? '',
+      personNameHi: story.personNameHi ?? '',
+      locationHi: story.locationHi ?? '',
+      imageUrl: story.imageUrl ?? ''
+    }));
+
+    return withCors(NextResponse.json(transformedStories));
   } catch (error) {
     console.error('Failed to fetch success stories:', error);
     return corsError('Failed to fetch success stories', 500);
