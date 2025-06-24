@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { corsConfig } from '@/config/cors';
+import { jwtVerify } from 'jose';
 
 // Define all allowed headers
 const allowedHeaders = [
@@ -25,73 +26,124 @@ const updatedAllowedOrigins = [
   ...(corsConfig.allowedOrigins || [])
 ];
 
-// Convert array to string for logging
-const allowedOriginsString = updatedAllowedOrigins.join(', ');
-console.log('CORS allowed origins:', allowedOriginsString);
+// JWT verification
+const secretKey = process.env.JWT_SECRET || 'your-secret-key';
+const key = new TextEncoder().encode(secretKey);
 
-export function middleware(request: NextRequest) {
-  // Extract URL information
+async function verifyAuth(request: NextRequest): Promise<boolean> {
+  try {
+    const token = request.cookies.get('authToken')?.value;
+    if (!token) return false;
+    
+    await jwtVerify(token, key);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Protected routes that require authentication
+const protectedRoutes = [
+  '/api/blogs',
+  '/api/carousel',
+  '/api/features',
+  '/api/testimonials',
+  '/api/initiatives',
+  '/api/news-articles',
+  '/api/gallery',
+  '/api/settings',
+  '/api/upload',
+  '/api/the-need',
+  '/api/our-story',
+  '/api/dashboard'
+];
+
+// Public routes that don't require authentication
+const publicRoutes = [
+  '/api/login',
+  '/api/logout',
+  '/api/contact',
+  '/api/join-us',
+  '/api/search',
+  '/api/enquiries'
+];
+
+export async function middleware(request: NextRequest) {
   const url = new URL(request.url);
   const origin = request.headers.get('origin') || '';
   const isApiRoute = url.pathname.startsWith('/api/');
+  const isProtectedRoute = protectedRoutes.some(route => url.pathname.startsWith(route));
+  const isPublicRoute = publicRoutes.some(route => url.pathname.startsWith(route));
 
-  // Detailed logging for debugging
-  console.log(`[CORS] Request from origin: ${origin} to path: ${url.pathname}`);
-  console.log(`[CORS] Is API route: ${isApiRoute}`);
-  console.log(`[CORS] Method: ${request.method}`);
-  console.log(`[CORS] Origin in allowed list: ${updatedAllowedOrigins.includes(origin)}`);
+  // Handle CORS for API routes
+  if (isApiRoute) {
+    // Special handling for OPTIONS (preflight) requests
+    if (request.method === 'OPTIONS') {
+      const allowOrigin = updatedAllowedOrigins.includes(origin) ? origin : '*';
+      return new NextResponse(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': allowOrigin,
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': allowedHeaders.join(', '),
+          'Access-Control-Allow-Credentials': 'true',
+          'Access-Control-Max-Age': '86400',
+        },
+      });
+    }
 
-  // If not an API route, skip middleware processing
-  if (!isApiRoute) {
-    console.log('[CORS] Not an API route, skipping middleware');
-    return NextResponse.next();
-  }
+    // Check authentication for protected API routes
+    if (isProtectedRoute && !isPublicRoute) {
+      const isAuthenticated = await verifyAuth(request);
+      if (!isAuthenticated) {
+        return NextResponse.json(
+          { error: 'Authentication required' },
+          { 
+            status: 401,
+            headers: {
+              'Access-Control-Allow-Origin': updatedAllowedOrigins.includes(origin) ? origin : '*',
+              'Access-Control-Allow-Credentials': 'true',
+            }
+          }
+        );
+      }
+    }
 
-  // Special handling for OPTIONS (preflight) requests
-  if (request.method === 'OPTIONS') {
-    console.log('[CORS] Handling OPTIONS preflight request');
-
-    // Always allow the specific origin if in allowed list, otherwise use '*'
+    // Apply CORS headers to API responses
+    const response = NextResponse.next();
     const allowOrigin = updatedAllowedOrigins.includes(origin) ? origin : '*';
-    console.log(`[CORS] Setting Access-Control-Allow-Origin: ${allowOrigin}`);
-
-    return new NextResponse(null, {
-      status: 204, // No content
-      headers: {
-        'Access-Control-Allow-Origin': allowOrigin,
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': allowedHeaders.join(', '),
-        'Access-Control-Allow-Credentials': 'true',
-        'Access-Control-Max-Age': '86400', // 24 hours
-        // Add these headers to help with debugging
-        'X-Debug-CORS': 'preflight-handled',
-        'X-Allowed-Origins': allowedOriginsString.substring(0, 100), // Truncate if too long
-      },
-    });
+    response.headers.set('Access-Control-Allow-Origin', allowOrigin);
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', allowedHeaders.join(', '));
+    response.headers.set('Access-Control-Allow-Credentials', 'true');
+    return response;
   }
 
-  // For actual API requests
-  console.log('[CORS] Handling regular API request');
-  const response = NextResponse.next();
+  // Handle authentication for admin pages
+  const isAuthPage = url.pathname.startsWith('/auth');
+  const isAdminPage = !isAuthPage && !url.pathname.startsWith('/_next') && !url.pathname.startsWith('/api');
 
-  // Always allow the specific origin if in allowed list, otherwise use '*'
-  const allowOrigin = updatedAllowedOrigins.includes(origin) ? origin : '*';
-  console.log(`[CORS] Setting Access-Control-Allow-Origin: ${allowOrigin}`);
+  if (isAdminPage) {
+    const isAuthenticated = await verifyAuth(request);
+    if (!isAuthenticated) {
+      return NextResponse.redirect(new URL('/auth/login', request.url));
+    }
+  }
 
-  // Set CORS headers
-  response.headers.set('Access-Control-Allow-Origin', allowOrigin);
-  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  response.headers.set('Access-Control-Allow-Headers', allowedHeaders.join(', '));
-  response.headers.set('Access-Control-Allow-Credentials', 'true');
+  // If user is authenticated and trying to access login page, redirect to dashboard
+  if (isAuthPage && url.pathname === '/auth/login') {
+    const isAuthenticated = await verifyAuth(request);
+    if (isAuthenticated) {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+  }
 
-  // Add a debug header
-  response.headers.set('X-Debug-CORS', 'middleware-applied');
-
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    '/api/:path*', // Apply to all API routes
+    '/api/:path*',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

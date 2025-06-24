@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
   TextInput,
-  Textarea,
   Button,
   Group,
   SimpleGrid,
@@ -35,6 +34,7 @@ interface FeatureFormProps {
 export function FeatureForm({ initialData, isEditing = false }: FeatureFormProps) {
   const [loading, setLoading] = useState(false);
   const [content, setContent] = useState(initialData?.description || null);
+  const [contentHi, setContentHi] = useState(initialData?.descriptionHi || null);
   const [mediaType, setMediaType] = useState<'image' | 'video'>(
     initialData?.mediaItem?.type || 'image'
   );
@@ -51,6 +51,7 @@ export function FeatureForm({ initialData, isEditing = false }: FeatureFormProps
   const form = useForm({
     initialValues: {
       title: initialData?.title || '',
+      titleHi: initialData?.titleHi || '',
       slug: initialData?.slug || '',
       category: initialData?.category || '',
       order: initialData?.order || 0,
@@ -148,12 +149,13 @@ export function FeatureForm({ initialData, isEditing = false }: FeatureFormProps
         };
       }
 
-      // Prepare feature object - we're still using the same structure for API consistency
-      // The actual transformation happens on the API side
-      const featureData: Partial<Feature> = {
+      // Prepare feature object with proper typing for API
+      const featureData = {
         title: values.title,
+        titleHi: values.titleHi || '',
         slug: values.slug, // API will map this to mediaType
         description: content,
+        descriptionHi: contentHi || '',
         category: values.category || undefined, // API will map this to section
         order: values.order,
         mediaItem // API will extract mediaType, mediaUrl and thumbnail from this
@@ -161,7 +163,7 @@ export function FeatureForm({ initialData, isEditing = false }: FeatureFormProps
 
       // Add ID if editing
       if (isEditing && initialData) {
-        featureData.id = initialData.id;
+        (featureData as typeof featureData & { id: string }).id = initialData.id;
       }
 
       // Send to API
@@ -211,18 +213,25 @@ export function FeatureForm({ initialData, isEditing = false }: FeatureFormProps
         <SimpleGrid cols={{ base: 1, sm: 2 }} mb="md">
           <TextInput
             required
-            label="Title"
+            label="Title (English)"
             placeholder="Feature title"
             {...form.getInputProps('title')}
           />
           <TextInput
-            required
-            label="Slug"
-            placeholder="feature-slug"
-            description="URL-friendly identifier"
-            {...form.getInputProps('slug')}
+            label="Title (Hindi)"
+            placeholder="फीचर का शीर्षक"
+            {...form.getInputProps('titleHi')}
           />
         </SimpleGrid>
+
+        <TextInput
+          required
+          label="Slug"
+          placeholder="feature-slug"
+          description="URL-friendly identifier"
+          {...form.getInputProps('slug')}
+          mb="md"
+        />
 
         <SimpleGrid cols={{ base: 1, sm: 2 }} mb="md">
           <Select
@@ -247,11 +256,20 @@ export function FeatureForm({ initialData, isEditing = false }: FeatureFormProps
         </SimpleGrid>
 
         <Box mb="md">
-          <Text fw={500} size="sm" mb={5}>Description</Text>
+          <Text fw={500} size="sm" mb={5}>Description (English)</Text>
           <TiptapEditor
-            content={content}
+            content={content || ''}
             onChange={setContent}
-            placeholder="Enter feature description..."
+            placeholder="Enter feature description in English..."
+          />
+        </Box>
+
+        <Box mb="md">
+          <Text fw={500} size="sm" mb={5}>Description (Hindi)</Text>
+          <TiptapEditor
+            content={contentHi || ''}
+            onChange={setContentHi}
+            placeholder="हिंदी में फीचर विवरण दर्ज करें..."
           />
         </Box>
 

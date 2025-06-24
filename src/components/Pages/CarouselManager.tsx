@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import {
   Card,
   Image,
@@ -25,6 +25,7 @@ import { IconGripVertical, IconPlus, IconUpload, IconTrash, IconEdit } from '@ta
 interface CarouselItem {
   id: number;
   title: string;
+  titleHi?: string;
   imageUrl: string;
   link: string;
   active: boolean;
@@ -42,6 +43,7 @@ export function CarouselManager() {
   const form = useForm({
     initialValues: {
       title: '',
+      titleHi: '',
       link: '#',
       type: 'image' as 'image' | 'video',
       image: null as File | null,
@@ -118,6 +120,7 @@ export function CarouselManager() {
       setLoading(true);
       const formData = new FormData();
       formData.append('title', values.title);
+      formData.append('titleHi', values.titleHi || '');
       formData.append('link', values.link);
       formData.append('type', values.type);
       formData.append('active', String(values.active));
@@ -185,7 +188,7 @@ export function CarouselManager() {
     }
   };
 
-  const handleDragEnd = async (result: any) => {
+  const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
 
     const items_copy = Array.from(items);
@@ -278,6 +281,11 @@ export function CarouselManager() {
                         )}
                         <Stack style={{ flex: 1 }}>
                           <Text fw={500}>{item.title}</Text>
+                          {item.titleHi && (
+                            <Text size="sm" c="dimmed" fs="italic">
+                              {item.titleHi}
+                            </Text>
+                          )}
                           <Text size="sm" c="dimmed">{item.link}</Text>
                         </Stack>
                         <Switch
@@ -306,6 +314,7 @@ export function CarouselManager() {
                               setEditingItem(item);
                               form.setValues({
                                 title: item.title,
+                                titleHi: item.titleHi || '',
                                 link: item.link,
                                 type: item.type,
                                 active: item.active,
@@ -348,9 +357,14 @@ export function CarouselManager() {
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <Stack>
             <TextInput
-              label="Title"
+              label="Title (English)"
               required
               {...form.getInputProps('title')}
+            />
+            <TextInput
+              label="Title (Hindi)"
+              placeholder="हिंदी में शीर्षक"
+              {...form.getInputProps('titleHi')}
             />
             <TextInput
               label="Link"

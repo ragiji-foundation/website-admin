@@ -1,5 +1,5 @@
 export interface MediaItem {
-  type: 'video' | 'image';
+  type: 'image' | 'video';
   url: string;
   thumbnail?: string;
 }
@@ -7,14 +7,20 @@ export interface MediaItem {
 export interface Feature {
   id: string;
   title: string;
-  description: any; // Rich text content
-  mediaItem: MediaItem;
-  slug?: string;
-  order?: number;
-  category?: string;
-  isPublished: boolean;
+  titleHi?: string;
+  description: string;
+  descriptionHi?: string;
+  mediaType: string;
+  mediaUrl: string;
+  thumbnail?: string;
+  order: number;
+  section?: string;
   createdAt: string;
   updatedAt: string;
+  // Legacy fields for backward compatibility
+  slug?: string;
+  category?: string;
+  mediaItem?: MediaItem;
 }
 
 export interface FeatureSection {
