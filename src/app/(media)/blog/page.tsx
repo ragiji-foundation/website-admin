@@ -123,7 +123,7 @@ export default function BlogsPage() {
                     variant="subtle"
                     size="compact-sm"
                     component={Link}
-                    href={`/blogs/${blog.id}/edit`}
+                    href={`/blogs/${blog.slug}/edit`}
                   >
                     <IconEdit size={16} />
                   </Button>
