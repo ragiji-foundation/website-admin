@@ -24,7 +24,9 @@ export async function GET(
     const transformedFeature = {
       id: feature.id,
       title: feature.title,
+      titleHi: feature.titleHi ?? '',
       description: feature.description,
+      descriptionHi: feature.descriptionHi ?? '',
       slug: feature.mediaType, // Using mediaType field as slug
       category: feature.section, // Using section field as category
       order: feature.order,
@@ -88,9 +90,9 @@ export async function PUT(
     const transformedFeature = {
       id: updatedFeature.id,
       title: updatedFeature.title,
-      titleHi: updatedFeature.titleHi,
+      titleHi: updatedFeature.titleHi ?? '',
       description: updatedFeature.description,
-      descriptionHi: updatedFeature.descriptionHi,
+      descriptionHi: updatedFeature.descriptionHi ?? '',
       slug: updatedFeature.mediaType,
       category: updatedFeature.section,
       order: updatedFeature.order,
