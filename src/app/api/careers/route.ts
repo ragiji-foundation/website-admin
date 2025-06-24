@@ -68,18 +68,44 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
     const slug = generateSlug(data.title);
 
+    const createData = {
+      title: data.title,
+      titleHi: data.titleHi || '',
+      slug,
+      location: data.location,
+      locationHi: data.locationHi || '',
+      type: data.type,
+      typeHi: data.typeHi || '',
+      description: serializeRichText(data.description),
+      descriptionHi: serializeRichText(data.descriptionHi),
+      requirements: serializeRichText(data.requirements),
+      requirementsHi: serializeRichText(data.requirementsHi),
+      isActive: data.isActive ?? true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
     const career = await prisma.career.create({
-      data: {
-        title: data.title,
-        slug,
-        location: data.location,
-        type: data.type,
-        description: serializeRichText(data.description),
-        requirements: serializeRichText(data.requirements),
-        isActive: data.isActive
-      }
+      data: createData
     });
-    return withCors(NextResponse.json(career));
+    const transformedCareer = {
+      id: career.id,
+      title: career.title,
+      titleHi: career.titleHi,
+      slug: career.slug,
+      location: career.location,
+      locationHi: career.locationHi,
+      type: career.type,
+      typeHi: career.typeHi,
+      description: career.description,
+      descriptionHi: career.descriptionHi,
+      requirements: career.requirements,
+      requirementsHi: career.requirementsHi,
+      isActive: career.isActive,
+      createdAt: career.createdAt,
+      updatedAt: career.updatedAt
+    };
+    return withCors(NextResponse.json(transformedCareer));
   } catch (error) {
     console.error('Error creating career:', error);
     return withCors(

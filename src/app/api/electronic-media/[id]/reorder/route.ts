@@ -29,6 +29,18 @@ export async function PUT(
       },
       orderBy: {
         order: direction === 'up' ? 'desc' : 'asc'
+      },
+      select: {
+        id: true,
+        title: true,
+        titleHi: true,
+        description: true,
+        descriptionHi: true,
+        videoUrl: true,
+        thumbnail: true,
+        order: true,
+        createdAt: true,
+        updatedAt: true
       }
     });
 
@@ -56,4 +68,4 @@ export async function PUT(
       { status: 500 }
     );
   }
-} 
+}

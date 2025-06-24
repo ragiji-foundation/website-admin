@@ -17,9 +17,34 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const data = await request.json();
-    const award = await prisma.award.create({ data });
-    return NextResponse.json(award, { status: 201 });
+    const body = await request.json();
+    const createData = {
+      title: body.title,
+      titleHi: body.titleHi || '',
+      year: body.year,
+      description: body.description,
+      descriptionHi: body.descriptionHi || '',
+      imageUrl: body.imageUrl,
+      organization: body.organization,
+      organizationHi: body.organizationHi || '',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    const award = await prisma.award.create({ data: createData });
+    const transformedAward = {
+      id: award.id,
+      title: award.title,
+      titleHi: award.titleHi,
+      year: award.year,
+      description: award.description,
+      descriptionHi: award.descriptionHi,
+      imageUrl: award.imageUrl,
+      organization: award.organization,
+      organizationHi: award.organizationHi,
+      createdAt: award.createdAt,
+      updatedAt: award.updatedAt
+    };
+    return NextResponse.json(transformedAward, { status: 201 });
   } catch (error) {
     console.error('Failed to create award:', error);
     return NextResponse.json(

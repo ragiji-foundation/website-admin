@@ -62,7 +62,7 @@ export const navItems: NavItem[] = [
   { divider: true, dividerLabel: 'HOME' },
   {link: '/carousel', label: 'Carousel', icon: IconPyramid },
   {link: '/features', label: 'Features', icon: IconFileText},
-  { link: '/initiatives', label: 'Initiatives', icon: IconSettings },
+  // { link: '/initiatives', label: 'Initiatives', icon: IconSettings },
   { link: '/stats', label: 'Stats', icon: IconTags },
   { link: '/testimonials', label: 'Testimonials', icon: IconQuote },
 

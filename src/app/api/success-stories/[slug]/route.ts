@@ -62,12 +62,44 @@ export async function PUT(
       return corsError('Success story not found', 404);
     }
 
-    const story = await prisma.successStory.update({
+    const updateData = {
+      title: validatedData.title,
+      titleHi: validatedData.titleHi || existingStory.titleHi || '',
+      content: validatedData.content,
+      contentHi: validatedData.contentHi || existingStory.contentHi || '',
+      personName: validatedData.personName,
+      personNameHi: validatedData.personNameHi || existingStory.personNameHi || '',
+      location: validatedData.location,
+      locationHi: validatedData.locationHi || existingStory.locationHi || '',
+      imageUrl: validatedData.imageUrl || existingStory.imageUrl,
+      featured: validatedData.featured ?? existingStory.featured,
+      order: validatedData.order || existingStory.order,
+      updatedAt: new Date()
+    };
+
+    const updatedStory = await prisma.successStory.update({
       where: { id: existingStory.id }, // Use the ID for update
-      data: validatedData,
+      data: updateData,
     });
 
-    return withCors(NextResponse.json(story));
+    const transformedStory = {
+      id: updatedStory.id,
+      title: updatedStory.title,
+      titleHi: updatedStory.titleHi,
+      content: updatedStory.content,
+      contentHi: updatedStory.contentHi,
+      personName: updatedStory.personName,
+      personNameHi: updatedStory.personNameHi,
+      location: updatedStory.location,
+      locationHi: updatedStory.locationHi,
+      imageUrl: updatedStory.imageUrl,
+      featured: updatedStory.featured,
+      order: updatedStory.order,
+      createdAt: updatedStory.createdAt,
+      updatedAt: updatedStory.updatedAt
+    };
+
+    return withCors(NextResponse.json(transformedStory));
   } catch (error) {
     console.error(`Failed to update success story with slug ${context.params.slug}:`, error);
     return corsError('Failed to update success story', 500);

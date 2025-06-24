@@ -67,7 +67,9 @@ export async function PUT(
     // Transform the API format to match the database schema
     const updateData = {
       title: body.title,
+      titleHi: body.titleHi || existingFeature.titleHi || '',
       description: body.description,
+      descriptionHi: body.descriptionHi || existingFeature.descriptionHi || '',
       mediaType: body.mediaItem?.type || existingFeature.mediaType, // Use mediaItem.type as mediaType
       mediaUrl: body.mediaItem?.url || existingFeature.mediaUrl,   // Use mediaItem.url as mediaUrl
       thumbnail: body.mediaItem?.thumbnail || existingFeature.thumbnail, // Use mediaItem.thumbnail
@@ -86,7 +88,9 @@ export async function PUT(
     const transformedFeature = {
       id: updatedFeature.id,
       title: updatedFeature.title,
+      titleHi: updatedFeature.titleHi,
       description: updatedFeature.description,
+      descriptionHi: updatedFeature.descriptionHi,
       slug: updatedFeature.mediaType,
       category: updatedFeature.section,
       order: updatedFeature.order,

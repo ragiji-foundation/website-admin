@@ -8,9 +8,24 @@ export async function GET(
 ): Promise<NextResponse<Stat[] | { error: string }>> {
   try {
     const stats = await prisma.stat.findMany({
-      orderBy: { order: 'asc' }
+      orderBy: { order: 'asc' },
+      select: {
+        id: true,
+        value: true,
+        label: true,
+        labelHi: true,
+        icon: true,
+        order: true,
+        createdAt: true,
+        updatedAt: true
+      }
     });
-    return withCors(NextResponse.json(stats));
+    const transformedStats = stats.map(stat => ({
+      ...stat,
+      labelHi: stat.labelHi ?? undefined,
+      icon: stat.icon ?? undefined
+    }));
+    return withCors(NextResponse.json(transformedStats));
   } catch (error) {
     return corsError('Failed to fetch stats');
   }
@@ -32,8 +47,13 @@ export async function POST(
 
     const stat = await prisma.stat.create({
       data: {
-        ...data,
-        order: nextOrder
+        label: data.label,
+        labelHi: data.labelHi || '',
+        value: data.value,
+        icon: data.icon,
+        order: nextOrder,
+        createdAt: new Date(),
+        updatedAt: new Date()
       }
     });
 

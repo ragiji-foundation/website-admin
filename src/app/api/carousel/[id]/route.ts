@@ -31,6 +31,7 @@ export async function GET(
     // Cast to Carousel or add the missing type property
     const carouselItem = {
       ...item,
+      titleHi: item.titleHi ?? undefined,
       type: 'default' as CarouselType // Set a default type or fetch from DB if available
     };
 
@@ -63,6 +64,7 @@ export async function PATCH(
 
     // Handle text fields
     if (formData.has('title')) updateData.title = formData.get('title') as string;
+    if (formData.has('titleHi')) updateData.titleHi = formData.get('titleHi') as string;
     if (formData.has('link')) updateData.link = formData.get('link') as string;
     if (formData.has('active')) updateData.active = formData.get('active') === 'true';
     if (formData.has('order')) updateData.order = parseInt(formData.get('order') as string);
@@ -99,6 +101,7 @@ export async function PATCH(
     // Add the type property to match the Carousel type
     const carouselItem = {
       ...updatedItem,
+      titleHi: updatedItem.titleHi ?? undefined,
       type: 'default' as CarouselType // Set a default type or fetch from DB if available
     };
 

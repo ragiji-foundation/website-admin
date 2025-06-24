@@ -7,11 +7,51 @@ export async function PUT(req: NextRequest, context: any): Promise<NextResponse>
   try {
     const { id } = context.params;
     const body = await req.json() as AwardUpdateInput;
-    const award = await prisma.award.update({
+
+    // Fetch the existing award data
+    const existingAward = await prisma.award.findUnique({
       where: { id },
-      data: body,
     });
-    return NextResponse.json(award);
+
+    if (!existingAward) {
+      return NextResponse.json(
+        { error: 'Award not found' },
+        { status: 404 }
+      );
+    }
+
+    // Update the award with the provided data
+    const updatedAward = await prisma.award.update({
+      where: { id },
+      data: {
+        title: body.title,
+        titleHi: body.titleHi || existingAward.titleHi || '',
+        year: body.year,
+        description: body.description,
+        descriptionHi: body.descriptionHi || existingAward.descriptionHi || '',
+        imageUrl: body.imageUrl || existingAward.imageUrl,
+        organization: body.organization || existingAward.organization,
+        organizationHi: body.organizationHi || existingAward.organizationHi || '',
+        updatedAt: new Date()
+      },
+    });
+
+    // Transform the updated award data for the response
+    const transformedAward = {
+      id: updatedAward.id,
+      title: updatedAward.title,
+      titleHi: updatedAward.titleHi,
+      year: updatedAward.year,
+      description: updatedAward.description,
+      descriptionHi: updatedAward.descriptionHi,
+      imageUrl: updatedAward.imageUrl,
+      organization: updatedAward.organization,
+      organizationHi: updatedAward.organizationHi,
+      createdAt: updatedAward.createdAt,
+      updatedAt: updatedAward.updatedAt
+    };
+
+    return NextResponse.json(transformedAward);
   } catch (error) {
     return NextResponse.json(
       { error: 'Failed to update award' },

@@ -53,7 +53,20 @@ export async function PUT(
       where: {
         slug: context.params.slug,
       },
-      data,
+      data: {
+        title: data.title,
+        titleHi: data.titleHi || '',
+        location: data.location,
+        locationHi: data.locationHi || '',
+        type: data.type,
+        typeHi: data.typeHi || '',
+        description: data.description,
+        descriptionHi: data.descriptionHi || '',
+        requirements: data.requirements,
+        requirementsHi: data.requirementsHi || '',
+        isActive: data.isActive ?? true,
+        updatedAt: new Date()
+      },
     });
 
     return NextResponse.json(career);

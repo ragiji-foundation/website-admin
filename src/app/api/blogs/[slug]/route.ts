@@ -81,12 +81,18 @@ export async function PUT(
       },
       data: {
         title: data.title,
+        titleHi: data.titleHi || null,
         content: data.content,
+        contentHi: data.contentHi || null,
         status: data.status,
         metaDescription: data.metaDescription,
+        metaDescriptionHi: data.metaDescriptionHi || null,
         ogTitle: data.ogTitle,
+        ogTitleHi: data.ogTitleHi || null,
         ogDescription: data.ogDescription,
+        ogDescriptionHi: data.ogDescriptionHi || null,
         authorName: data.authorName || 'Admin',
+        authorNameHi: data.authorNameHi || null,
         authorId: DEFAULT_ADMIN_USER_ID, // Use fixed admin user ID
         categoryId: data.categoryId,
         tags: {

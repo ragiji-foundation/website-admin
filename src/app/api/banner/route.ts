@@ -56,7 +56,9 @@ export async function POST(request: NextRequest) {
       data: {
         type: data.type,
         title: data.title,
+        titleHi: data.titleHi || null,
         description: data.description || null,
+        descriptionHi: data.descriptionHi || null,
         backgroundImage: data.backgroundImage,
       },
     });
@@ -88,7 +90,9 @@ export async function PATCH(request: NextRequest) {
           where: { id: bannerData.id },
           data: {
             title: bannerData.title,
+            titleHi: bannerData.titleHi || null,
             description: bannerData.description,
+            descriptionHi: bannerData.descriptionHi || null,
             backgroundImage: bannerData.backgroundImage,
             type: bannerData.type,
           },

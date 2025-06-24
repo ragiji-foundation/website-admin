@@ -27,7 +27,9 @@ export interface FeatureSection {
   id: string;
   identifier: string;
   heading: string;
+  headingHi?: string;
   ctaText: string;
+  ctaTextHi?: string;
   ctaUrl: string;
   createdAt: Date;
   updatedAt: Date;

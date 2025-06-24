@@ -74,8 +74,10 @@ export async function PUT(
     // Prepare the data to update
     const updateData: any = {
       title: data.title,
+      titleHi: data.titleHi || null,
       type: data.type,
       description: data.description || null,
+      descriptionHi: data.descriptionHi || null,
     };
 
     // Update the background image only if provided

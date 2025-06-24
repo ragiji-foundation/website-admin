@@ -30,6 +30,7 @@ export async function POST(
   try {
     const formData = await request.formData();
     const title = formData.get('title') as string;
+    const titleHi = formData.get('titleHi') as string | null;
     const link = formData.get('link') as string;
     const type = formData.get('type') as 'image' | 'video';
     const active = formData.get('active') === 'true';
@@ -65,6 +66,7 @@ export async function POST(
 
     const createData: CarouselCreateInput = {
       title,
+      titleHi: titleHi || '',
       type,
       imageUrl,
       videoUrl,

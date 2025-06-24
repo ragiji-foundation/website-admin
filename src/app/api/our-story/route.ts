@@ -8,15 +8,58 @@ export async function GET() {
       prisma.ourStory.findFirst({
         where: { isActive: true },
         orderBy: { updatedAt: 'desc' },
+        select: {
+          id: true,
+          title: true,
+          titleHi: true,
+          content: true,
+          contentHi: true,
+          media: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true,
+          version: true
+        }
       }),
       prisma.ourModel.findFirst({
         orderBy: { updatedAt: 'desc' },
+        select: {
+          id: true,
+          description: true,
+          descriptionHi: true,
+          imageUrl: true,
+          createdAt: true,
+          updatedAt: true
+        }
       }),
       prisma.visionMission.findFirst({
         orderBy: { updatedAt: 'desc' },
+        select: {
+          id: true,
+          vision: true,
+          visionHi: true,
+          mission: true,
+          missionHi: true,
+          visionIcon: true,
+          missionIcon: true,
+          createdAt: true,
+          updatedAt: true
+        }
       }),
       prisma.timeline.findMany({
         orderBy: [{ order: 'asc' }, { year: 'asc' }],
+        select: {
+          id: true,
+          year: true,
+          title: true,
+          titleHi: true,
+          centers: true,
+          volunteers: true,
+          children: true,
+          order: true,
+          createdAt: true,
+          updatedAt: true
+        }
       }),
     ]);
 

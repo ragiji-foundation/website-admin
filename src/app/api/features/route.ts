@@ -11,10 +11,12 @@ export async function GET(request: NextRequest) {
     });
 
     // Transform database results to match our API schema
-    const transformedFeatures = features.map(feature => ({
+    const transformedFeatures = features.map((feature) => ({
       id: feature.id,
       title: feature.title,
+      titleHi: feature.titleHi ?? '',
       description: feature.description,
+      descriptionHi: feature.descriptionHi ?? '',
       slug: feature.mediaType, // Using mediaType field as slug
       category: feature.section, // Using section field as category
       order: feature.order,
@@ -47,7 +49,9 @@ export async function POST(request: NextRequest) {
     const createData = {
       id,
       title: body.title,
+      titleHi: body.titleHi || '',
       description: body.description,
+      descriptionHi: body.descriptionHi || '',
       mediaType: body.mediaItem?.type || 'image',
       mediaUrl: body.mediaItem?.url || '',
       thumbnail: body.mediaItem?.thumbnail || null,
@@ -66,7 +70,9 @@ export async function POST(request: NextRequest) {
     const transformedFeature = {
       id: feature.id,
       title: feature.title,
+      titleHi: feature.titleHi,
       description: feature.description,
+      descriptionHi: feature.descriptionHi,
       slug: feature.mediaType, // Using mediaType field as slug
       category: feature.section, // Using section field as category
       order: feature.order,

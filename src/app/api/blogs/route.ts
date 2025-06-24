@@ -115,14 +115,20 @@ export async function POST(request: NextRequest) {
     const blog = await prisma.blog.create({
       data: {
         title: data.title,
+        titleHi: data.titleHi || null,
         content: data.content,
+        contentHi: data.contentHi || null,
         slug: slug,
         locale: data.locale, // Save locale with blog post
         status: data.status || 'draft',
         authorName: data.authorName,
+        authorNameHi: data.authorNameHi || null,
         metaDescription: data.metaDescription || null,
+        metaDescriptionHi: data.metaDescriptionHi || null,
         ogTitle: data.ogTitle || null,
+        ogTitleHi: data.ogTitleHi || null,
         ogDescription: data.ogDescription || null,
+        ogDescriptionHi: data.ogDescriptionHi || null,
         authorId: DEFAULT_ADMIN_USER_ID,
         categoryId: data.categoryId ? parseInt(data.categoryId.toString()) : null,
         tags: {

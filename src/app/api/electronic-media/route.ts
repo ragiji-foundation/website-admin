@@ -4,7 +4,19 @@ import  prisma  from '@/lib/prisma';
 export async function GET() {
   try {
     const media = await prisma.electronicMedia.findMany({
-      orderBy: { order: 'asc' }
+      orderBy: { order: 'asc' },
+      select: {
+        id: true,
+        title: true,
+        titleHi: true,
+        description: true,
+        descriptionHi: true,
+        videoUrl: true,
+        thumbnail: true,
+        order: true,
+        createdAt: true,
+        updatedAt: true
+      }
     });
     return NextResponse.json(media);
   } catch (error) {
@@ -20,7 +32,17 @@ export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
     const media = await prisma.electronicMedia.create({
-      data
+      data: {
+        title: data.title,
+        titleHi: data.titleHi || '',
+        description: data.description,
+        descriptionHi: data.descriptionHi || '',
+        videoUrl: data.videoUrl,
+        thumbnail: data.thumbnail,
+        order: data.order || 0,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
     });
     return NextResponse.json(media);
   } catch (error) {
@@ -30,4 +52,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

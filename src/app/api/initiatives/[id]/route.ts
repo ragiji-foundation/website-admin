@@ -51,17 +51,42 @@ export async function PUT(
       );
     }
 
-    const initiative = await prisma.initiative.update({
-      where: { id },
-      data: {
-        title: body.title.trim(),
-        description: body.description.trim(), // This can contain rich HTML content
-        imageUrl: body.imageUrl?.trim() || null,
-        order: body.order || 0
-      }
+    const existingInitiative = await prisma.initiative.findUnique({
+      where: { id }
     });
 
-    return withCors(NextResponse.json(initiative));
+    if (!existingInitiative) {
+      return NextResponse.json({ error: 'Initiative not found' }, { status: 404 });
+    }
+
+    const updateData = {
+      title: body.title,
+      titleHi: body.titleHi || existingInitiative.titleHi || '',
+      description: body.description,
+      descriptionHi: body.descriptionHi || existingInitiative.descriptionHi || '',
+      imageUrl: body.imageUrl || existingInitiative.imageUrl,
+      order: body.order || existingInitiative.order,
+      updatedAt: new Date()
+    };
+
+    const updatedInitiative = await prisma.initiative.update({
+      where: { id },
+      data: updateData
+    });
+
+    const transformedInitiative = {
+      id: updatedInitiative.id,
+      title: updatedInitiative.title,
+      titleHi: updatedInitiative.titleHi,
+      description: updatedInitiative.description,
+      descriptionHi: updatedInitiative.descriptionHi,
+      imageUrl: updatedInitiative.imageUrl,
+      order: updatedInitiative.order,
+      createdAt: updatedInitiative.createdAt,
+      updatedAt: updatedInitiative.updatedAt
+    };
+
+    return withCors(NextResponse.json(transformedInitiative));
   } catch (error) {
     console.error('Failed to update initiative:', error);
     return corsError('Failed to update initiative');

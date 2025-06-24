@@ -11,7 +11,20 @@ export async function GET() {
       where: { isPublished: true }
     });
 
-    return withCors(NextResponse.json(testimonials));
+    const transformedTestimonials = testimonials.map(testimonial => ({
+      id: testimonial.id,
+      name: testimonial.name,
+      nameHi: testimonial.nameHi,
+      role: testimonial.role,
+      roleHi: testimonial.roleHi,
+      content: testimonial.content,
+      contentHi: testimonial.contentHi,
+      avatar: testimonial.avatar,
+      isPublished: testimonial.isPublished,
+      createdAt: testimonial.createdAt
+    }));
+
+    return withCors(NextResponse.json(transformedTestimonials));
   } catch (error) {
     console.error('Error fetching testimonials:', error);
     return corsError('Failed to fetch testimonials');
@@ -32,17 +45,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const createData = {
+      name: body.name,
+      nameHi: body.nameHi || '',
+      role: body.role,
+      roleHi: body.roleHi || '',
+      content: body.content,
+      contentHi: body.contentHi || '',
+      avatar: body.avatar || '',
+      isPublished: body.isPublished ?? false,
+      createdAt: new Date()
+    };
+
     const testimonial = await prisma.testimonial.create({
-      data: {
-        name: body.name.trim(),
-        role: body.role.trim(),
-        content: body.content.trim(),
-        avatar: body.avatar?.trim() || null,
-        isPublished: true
-      },
+      data: createData,
     });
 
-    return withCors(NextResponse.json(testimonial, { status: 201 }));
+    const transformedTestimonial = {
+      id: testimonial.id,
+      name: testimonial.name,
+      nameHi: testimonial.nameHi,
+      role: testimonial.role,
+      roleHi: testimonial.roleHi,
+      content: testimonial.content,
+      contentHi: testimonial.contentHi,
+      avatar: testimonial.avatar,
+      isPublished: testimonial.isPublished,
+      createdAt: testimonial.createdAt
+    };
+
+    return withCors(NextResponse.json(transformedTestimonial, { status: 201 }));
   } catch (error) {
     console.error('Error creating testimonial:', error);
     return corsError('Failed to create testimonial');

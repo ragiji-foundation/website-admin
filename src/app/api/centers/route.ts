@@ -8,7 +8,21 @@ export async function GET() {
       orderBy: { name: 'asc' }
     });
 
-    return withCors(NextResponse.json(centers));
+    const transformedCenters = centers.map(center => ({
+      id: center.id,
+      name: center.name,
+      nameHi: center.nameHi,
+      location: center.location,
+      locationHi: center.locationHi,
+      description: center.description,
+      descriptionHi: center.descriptionHi,
+      imageUrl: center.imageUrl,
+      contactInfo: center.contactInfo,
+      createdAt: center.createdAt,
+      updatedAt: center.updatedAt
+    }));
+
+    return withCors(NextResponse.json(transformedCenters));
   } catch (error) {
     console.error('Failed to fetch centers:', error);
     return corsError('Failed to fetch centers');
@@ -17,9 +31,21 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const data = await request.json();
+    const body = await request.json();
+    const createData = {
+      name: body.name,
+      nameHi: body.nameHi || '',
+      location: body.location,
+      locationHi: body.locationHi || '',
+      description: body.description,
+      descriptionHi: body.descriptionHi || '',
+      imageUrl: body.imageUrl || '',
+      contactInfo: body.contactInfo || '',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
     const center = await prisma.center.create({
-      data
+      data: createData
     });
     return NextResponse.json(center, { status: 201 });
   } catch (error) {

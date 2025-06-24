@@ -49,6 +49,8 @@ interface MediaItem {
 interface Feature {
   id: string;
   title: string;
+  titleHi?: string;
+  descriptionHi?: any;
   description: any;
   mediaItem: MediaItem;
   slug?: string;

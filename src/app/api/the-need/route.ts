@@ -4,7 +4,23 @@ import { withCors } from '@/utils/cors';
 
 export async function GET() {
   try {
-    const theNeed = await prisma.theNeed.findFirst();
+    const theNeed = await prisma.theNeed.findFirst({
+      select: {
+        id: true,
+        mainText: true,
+        mainTextHi: true,
+        statistics: true,
+        statisticsHi: true,
+        impact: true,
+        impactHi: true,
+        imageUrl: true,
+        statsImageUrl: true,
+        isPublished: true,
+        version: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
     return withCors(NextResponse.json(theNeed));
   } catch (error) {
     console.error('Error fetching The Need data:', error);
@@ -21,7 +37,20 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const theNeed = await prisma.theNeed.create({
-      data: body,
+      data: {
+        mainText: body.mainText,
+        mainTextHi: body.mainTextHi || '',
+        statistics: body.statistics,
+        statisticsHi: body.statisticsHi || '',
+        impact: body.impact,
+        impactHi: body.impactHi || '',
+        imageUrl: body.imageUrl,
+        statsImageUrl: body.statsImageUrl,
+        isPublished: body.isPublished,
+        version: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
     });
     return withCors(NextResponse.json(theNeed, { status: 201 }));
   } catch (error) {
@@ -40,7 +69,19 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const theNeed = await prisma.theNeed.update({
       where: { id: body.id },
-      data: body,
+      data: {
+        mainText: body.mainText,
+        mainTextHi: body.mainTextHi || '',
+        statistics: body.statistics,
+        statisticsHi: body.statisticsHi || '',
+        impact: body.impact,
+        impactHi: body.impactHi || '',
+        imageUrl: body.imageUrl,
+        statsImageUrl: body.statsImageUrl,
+        isPublished: body.isPublished,
+        version: { increment: 1 },
+        updatedAt: new Date(),
+      },
     });
     return withCors(NextResponse.json(theNeed));
   } catch (error) {
@@ -57,12 +98,6 @@ export async function PUT(request: NextRequest) {
 export async function OPTIONS() {
   return withCors(new NextResponse(null, { status: 200 }));
 }
-
-
-
-
-
-
 
 // import { withCors, corsError } from '@/utils/cors';
 // import { NextResponse } from 'next/server';

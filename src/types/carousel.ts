@@ -5,6 +5,7 @@ export type CarouselType = 'image' | 'video';
 export type Carousel = {
   id: number;
   title: string;
+  titleHi?: string;
   imageUrl: string | null;
   link: string | null;
   active: boolean;
@@ -17,6 +18,7 @@ export type Carousel = {
 
 export type CarouselCreateInput = {
   title: string;
+  titleHi?: string;
   imageUrl?: string;
   link?: string;
   active?: boolean;

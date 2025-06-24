@@ -25,7 +25,9 @@ export interface Banner {
   id: string;
   type: string;
   title: string;
+  titleHi?: string;
   description: string | null;
+  descriptionHi?: string | null;
   backgroundImage: string;
   createdAt: string;
   updatedAt: string;
@@ -35,14 +37,18 @@ export interface Banner {
 export interface CreateBannerDto {
   type: BannerType;
   title: string;
+  titleHi?: string;
   description?: string;
+  descriptionHi?: string;
   backgroundImage: string;
 }
 
 // Interface for updating an existing banner
 export interface UpdateBannerDto {
   title?: string;
+  titleHi?: string;
   description?: string | null;
+  descriptionHi?: string | null;
   backgroundImage?: string;
   type?: BannerType;
 }
