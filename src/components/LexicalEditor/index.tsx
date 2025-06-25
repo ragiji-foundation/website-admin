@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useCallback, useEffect } from 'react';
+import { useMemo, useCallback, useEffect, useState } from 'react';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
@@ -84,6 +84,7 @@ export default function LexicalEditor({
   required
 }: LexicalEditorProps) {
   const editor = useMemo(() => createEditor(), []);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const initialConfig = useMemo(() => ({
     namespace: 'MyEditor',
@@ -136,18 +137,31 @@ export default function LexicalEditor({
   }, [onChange]);
 
   useEffect(() => {
-    if (content) {
-      const parsedContent = getInitialContent(content);
-      editor.update(() => {
-        const state = editor.parseEditorState(parsedContent);
-        if (state.isEmpty()) {
+    if (content && !isInitialized) {
+      try {
+        const parsedContent = getInitialContent(content);
+        editor.update(() => {
+          try {
+            const state = editor.parseEditorState(parsedContent);
+            if (state.isEmpty()) {
+              editor.setEditorState(editor.parseEditorState(DEFAULT_EDITOR_STATE));
+            } else {
+              editor.setEditorState(state);
+            }
+          } catch (parseError) {
+            console.warn('Failed to parse editor state, using default:', parseError);
+            editor.setEditorState(editor.parseEditorState(DEFAULT_EDITOR_STATE));
+          }
+        });
+      } catch (error) {
+        console.warn('Failed to initialize editor content:', error);
+        editor.update(() => {
           editor.setEditorState(editor.parseEditorState(DEFAULT_EDITOR_STATE));
-        } else {
-          editor.setEditorState(state);
-        }
-      });
+        });
+      }
+      setIsInitialized(true);
     }
-  }, [editor, content]);
+  }, [content, editor, isInitialized]);
 
   return (
     <div>

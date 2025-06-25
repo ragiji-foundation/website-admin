@@ -168,14 +168,14 @@ export default function BlogDetailPage() {
           <Group mt="md" mb="lg">
             <Group gap="xs">
               <Avatar
-                src={blog.author.image}
+                src={blog.author?.image || null}
                 radius="xl"
-                alt={blog.author.name}
+                alt={blog.author?.name || blog.authorName || 'Unknown Author'}
                 size="sm"
               />
               <Text size="sm" c="dimmed">
                 <IconUser size={14} style={{ display: 'inline', marginRight: 4 }} />
-                {blog.author.name}
+                {blog.author?.name || blog.authorName || 'Unknown Author'}
               </Text>
             </Group>
 

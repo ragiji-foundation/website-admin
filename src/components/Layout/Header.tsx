@@ -51,7 +51,7 @@ export function Header({ settings }: HeaderProps) {
         <Menu shadow="md" width={200}>
           <Menu.Target>
             <Avatar
-              src="/path/to/avatar.jpg"
+              src="/avatar.png"
               alt="User Avatar"
               style={{ cursor: 'pointer' }}
             />

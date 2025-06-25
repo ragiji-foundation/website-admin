@@ -13,9 +13,13 @@ export async function GET(
   context: any
 ) {
   try {
+    const { slug } = context.params;
+    const { searchParams } = new URL(request.url);
+    const locale = searchParams.get('locale') || 'en';
+    
     const career = await prisma.career.findUnique({
       where: {
-        slug: context.params.slug,
+        slug: slug,
       }
     });
 
@@ -23,7 +27,17 @@ export async function GET(
       return NextResponse.json({ error: 'Career not found' }, { status: 404 });
     }
 
-    return NextResponse.json(career);
+    // Return localized content based on locale
+    const localizedCareer = {
+      ...career,
+      title: locale === 'hi' && career.titleHi ? career.titleHi : career.title,
+      location: locale === 'hi' && career.locationHi ? career.locationHi : career.location,
+      type: locale === 'hi' && career.typeHi ? career.typeHi : career.type,
+      description: locale === 'hi' && career.descriptionHi ? career.descriptionHi : career.description,
+      requirements: locale === 'hi' && career.requirementsHi ? career.requirementsHi : career.requirements,
+    };
+
+    return NextResponse.json(localizedCareer);
   } catch (error) {
     console.error('Error fetching career:', error);
     return NextResponse.json(
@@ -39,6 +53,7 @@ export async function PUT(
   context: any
 ) {
   try {
+    const { slug } = context.params;
     const data = await request.json();
 
     // Validate required fields
@@ -51,7 +66,7 @@ export async function PUT(
 
     const career = await prisma.career.update({
       where: {
-        slug: context.params.slug,
+        slug: slug,
       },
       data: {
         title: data.title,
@@ -85,9 +100,10 @@ export async function DELETE(
   context: any
 ) {
   try {
+    const { slug } = context.params;
     await prisma.career.delete({
       where: {
-        slug: context.params.slug,
+        slug: slug,
       },
     });
 

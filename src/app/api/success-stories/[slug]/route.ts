@@ -18,14 +18,13 @@ const successStorySchema = z.object({
   slug: z.string().min(3).max(255).optional()
 });
 
-
-
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  context: any
 ) {
   try {
-    const { slug } = params;
+    const { slug } = await context.params;
 
     const story = await prisma.successStory.findUnique({
       where: { slug: slug },
@@ -37,17 +36,18 @@ export async function GET(
 
     return withCors(NextResponse.json(story));
   } catch (error) {
-    console.error(`Error fetching success story with slug ${params.slug}:`, error);
+    console.error(`Error fetching success story with slug ${context.params.slug}:`, error);
     return corsError('Failed to fetch success story', 500);
   }
 }
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  context: any
 ) {
   try {
-    const { slug } = params;
+    const { slug } = await context.params;
     const data = await request.json();
     const validatedData = successStorySchema.partial().parse(data); // Partial validation
 
@@ -61,13 +61,13 @@ export async function PUT(
     }
 
     const updateData = {
-      title: validatedData.title,
+      title: validatedData.title || existingStory.title,
       titleHi: validatedData.titleHi || existingStory.titleHi || '',
-      content: validatedData.content,
+      content: validatedData.content || existingStory.content,
       contentHi: validatedData.contentHi || existingStory.contentHi || '',
-      personName: validatedData.personName,
+      personName: validatedData.personName || existingStory.personName,
       personNameHi: validatedData.personNameHi || existingStory.personNameHi || '',
-      location: validatedData.location,
+      location: validatedData.location || existingStory.location,
       locationHi: validatedData.locationHi || existingStory.locationHi || '',
       imageUrl: validatedData.imageUrl || existingStory.imageUrl,
       featured: validatedData.featured ?? existingStory.featured,
@@ -99,17 +99,18 @@ export async function PUT(
 
     return withCors(NextResponse.json(transformedStory));
   } catch (error) {
-    console.error(`Failed to update success story with slug ${params.slug}:`, error);
+    console.error(`Failed to update success story with slug ${context.params.slug}:`, error);
     return corsError('Failed to update success story', 500);
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  context: any
 ) {
   try {
-    const { slug } = params;
+    const { slug } = await context.params;
 
     // Fetch the story first to check if it exists
     const existingStory = await prisma.successStory.findUnique({
@@ -124,9 +125,9 @@ export async function DELETE(
       where: { id: existingStory.id }, // Use the ID for deletion
     });
 
-    return withCors(NextResponse.json({ message: 'Success story deleted' }));
+    return withCors(NextResponse.json({ message: 'Success story deleted successfully' }));
   } catch (error) {
-    console.error(`Failed to delete success story with slug ${params.slug}:`, error);
+    console.error(`Failed to delete success story with slug ${context.params.slug}:`, error);
     return corsError('Failed to delete success story', 500);
   }
 }

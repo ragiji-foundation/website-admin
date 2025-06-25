@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-
-// Fixed admin user ID for all blog operations
-const DEFAULT_ADMIN_USER_ID = 1; // Use an ID that exists in your database
-
-// Remove the duplicate CORS headers - they're handled by middleware
+import { withCors, corsError } from '@/utils/cors';
 
 export async function GET(
   request: NextRequest,
@@ -12,42 +8,52 @@ export async function GET(
   context: any
 ) {
   try {
-    const { slug } = await context.params;
-    const searchParams = request.nextUrl.searchParams;
+    const params = await context.params;
+    const { slug } = params;
+    const { searchParams } = new URL(request.url);
     const locale = searchParams.get('locale') || 'en';
 
-    const blog = await prisma.blog.findFirst({
-      where: {
-        slug,
-        locale,
+    // Use the correct compound unique key from schema: @@unique([slug, locale])
+    const blog = await prisma.blog.findUnique({
+      where: { 
+        slug_locale: {
+          slug,
+          locale
+        }
       },
       include: {
         author: {
           select: {
             id: true,
             name: true,
-            image: true,
-          },
+            image: true
+          }
         },
-        category: true,
-        tags: true,
-      },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true
+          }
+        },
+        tags: {
+          select: {
+            id: true,
+            name: true,
+            slug: true
+          }
+        }
+      }
     });
 
     if (!blog) {
-      return NextResponse.json(
-        { error: 'Blog not found' },
-        { status: 404 }
-      );
+      return corsError('Blog not found', 404);
     }
 
-    return NextResponse.json(blog);
+    return withCors(NextResponse.json(blog));
   } catch (error) {
     console.error('Error fetching blog:', error);
-    return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500 }
-    );
+    return corsError('Failed to fetch blog', 500);
   }
 }
 
@@ -57,62 +63,79 @@ export async function PUT(
   context: any
 ) {
   try {
-    const { slug } = await context.params;
+    const params = await context.params;
+    const { slug } = params;
     const data = await request.json();
-    const locale = data.locale || 'en';
+    const { searchParams } = new URL(request.url);
+    const locale = searchParams.get('locale') || 'en';
 
-    const blog = await prisma.blog.findFirst({
-      where: {
-        slug,
-        locale,
-      },
+    const existingBlog = await prisma.blog.findUnique({
+      where: { 
+        slug_locale: {
+          slug,
+          locale
+        }
+      }
     });
 
-    if (!blog) {
-      return NextResponse.json(
-        { error: 'Blog not found' },
-        { status: 404 }
-      );
+    if (!existingBlog) {
+      return corsError('Blog not found', 404);
     }
 
     const updatedBlog = await prisma.blog.update({
-      where: {
-        id: blog.id,
-      },
-      data: {
-        title: data.title,
-        titleHi: data.titleHi || null,
-        content: data.content,
-        contentHi: data.contentHi || null,
-        status: data.status,
-        metaDescription: data.metaDescription,
-        metaDescriptionHi: data.metaDescriptionHi || null,
-        ogTitle: data.ogTitle,
-        ogTitleHi: data.ogTitleHi || null,
-        ogDescription: data.ogDescription,
-        ogDescriptionHi: data.ogDescriptionHi || null,
-        authorName: data.authorName || 'Admin',
-        authorNameHi: data.authorNameHi || null,
-        authorId: DEFAULT_ADMIN_USER_ID, // Use fixed admin user ID
-        categoryId: data.categoryId,
-        tags: {
-          set: [],
-          connect: data.tags
+      where: { 
+        slug_locale: {
+          slug,
+          locale
         }
       },
-      include: {
-        category: true,
-        tags: true,
+      data: {
+        title: data.title || existingBlog.title,
+        titleHi: data.titleHi !== undefined ? data.titleHi : existingBlog.titleHi,
+        content: data.content || existingBlog.content,
+        contentHi: data.contentHi !== undefined ? data.contentHi : existingBlog.contentHi,
+        status: data.status || existingBlog.status,
+        authorName: data.authorName || existingBlog.authorName,
+        authorNameHi: data.authorNameHi !== undefined ? data.authorNameHi : existingBlog.authorNameHi,
+        metaDescription: data.metaDescription !== undefined ? data.metaDescription : existingBlog.metaDescription,
+        metaDescriptionHi: data.metaDescriptionHi !== undefined ? data.metaDescriptionHi : existingBlog.metaDescriptionHi,
+        ogTitle: data.ogTitle !== undefined ? data.ogTitle : existingBlog.ogTitle,
+        ogTitleHi: data.ogTitleHi !== undefined ? data.ogTitleHi : existingBlog.ogTitleHi,
+        ogDescription: data.ogDescription !== undefined ? data.ogDescription : existingBlog.ogDescription,
+        ogDescriptionHi: data.ogDescriptionHi !== undefined ? data.ogDescriptionHi : existingBlog.ogDescriptionHi,
+        categoryId: data.categoryId !== undefined ? data.categoryId : existingBlog.categoryId,
+        authorId: data.authorId !== undefined ? data.authorId : existingBlog.authorId,
+        updatedAt: new Date()
       },
+      include: {
+        author: true,
+        category: true,
+        tags: true
+      }
     });
 
-    return NextResponse.json(updatedBlog);
+    // Handle tags update if provided
+    if (data.tags) {
+      await prisma.blog.update({
+        where: { 
+          slug_locale: {
+            slug,
+            locale
+          }
+        },
+        data: {
+          tags: {
+            set: [], // Clear existing tags
+            connect: data.tags.map((tag: any) => ({ id: tag.id }))
+          }
+        }
+      });
+    }
+
+    return withCors(NextResponse.json(updatedBlog));
   } catch (error) {
     console.error('Error updating blog:', error);
-    return NextResponse.json(
-      { error: 'Failed to update blog' },
-      { status: 500 }
-    );
+    return corsError('Failed to update blog', 500);
   }
 }
 
@@ -122,27 +145,40 @@ export async function DELETE(
   context: any
 ) {
   try {
-    const { slug } = await context.params;
-    const searchParams = request.nextUrl.searchParams;
+    const params = await context.params;
+    const { slug } = params;
+    const { searchParams } = new URL(request.url);
     const locale = searchParams.get('locale') || 'en';
 
-    if (!slug) {
-      return NextResponse.json(
-        { error: 'Slug is required' },
-        { status: 400 }
-      );
+    const existingBlog = await prisma.blog.findUnique({
+      where: { 
+        slug_locale: {
+          slug,
+          locale
+        }
+      }
+    });
+
+    if (!existingBlog) {
+      return corsError('Blog not found', 404);
     }
 
     await prisma.blog.delete({
-      where: { slug_locale: { slug, locale } },
+      where: { 
+        slug_locale: {
+          slug,
+          locale
+        }
+      }
     });
 
-    return NextResponse.json({ message: 'Blog deleted successfully' });
+    return withCors(NextResponse.json({ message: 'Blog deleted successfully' }));
   } catch (error) {
     console.error('Error deleting blog:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete blog' },
-      { status: 500 }
-    );
+    return corsError('Failed to delete blog', 500);
   }
+}
+
+export async function OPTIONS() {
+  return withCors(new NextResponse(null, { status: 200 }));
 }

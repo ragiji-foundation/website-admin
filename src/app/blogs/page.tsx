@@ -174,7 +174,7 @@ function BlogListPageContent() {
     }
 
     // Fallback to default image
-    return '/default-blog-image.jpg';
+    return '/default-blog-image.png';
   };
 
   return (
@@ -266,13 +266,13 @@ function BlogListPageContent() {
                   <Image
                     src={getBlogThumbnail(blog)}
                     height={160}
-                    fallbackSrc="/default-blog-image.jpg"
+                    fallbackSrc="/default-blog-image.png"
                     style={{ objectFit: 'cover' }}
                     alt={blog.title}
                     onError={(e) => {
                       // Fallback on error
                       const target = e.target as HTMLImageElement;
-                      target.src = '/default-blog-image.jpg';
+                      target.src = '/default-blog-image.png';
                     }}
                   />
                   {!extractFirstImageUrl(blog.content) && (

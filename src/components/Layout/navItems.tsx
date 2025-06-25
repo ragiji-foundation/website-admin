@@ -23,7 +23,7 @@ import {
   IconUserPlus,
   IconLayoutNavbar,
   IconLayoutNavbarFilled,
-  IconLayoutBottombarFilled,
+  IconLayoutBottombarFilled
 } from '@tabler/icons-react';
 import { link } from 'fs';
 
@@ -46,6 +46,7 @@ export const navItems: NavItem[] = [
       { link: '/blogs/create', label: 'Create Blog', icon: IconPlus },
       { link: '/blogs/drafts', label: 'Drafts', icon: IconEdit },
       { link: '/blogs', label: 'All Blogs', icon: IconList },
+      { link: '/blogs/authors', label: 'Authors', icon: IconUsers },
       {
         link: '/blogs/taxonomy',
         label: 'Taxonomy',

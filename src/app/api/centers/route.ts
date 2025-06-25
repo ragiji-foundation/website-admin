@@ -2,27 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { withCors, corsError } from '@/utils/cors';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const locale = searchParams.get('locale') || 'en';
+
     const centers = await prisma.center.findMany({
-      orderBy: { name: 'asc' }
+      orderBy: { createdAt: 'desc' }
     });
 
-    const transformedCenters = centers.map(center => ({
-      id: center.id,
-      name: center.name,
-      nameHi: center.nameHi,
-      location: center.location,
-      locationHi: center.locationHi,
-      description: center.description,
-      descriptionHi: center.descriptionHi,
-      imageUrl: center.imageUrl,
-      contactInfo: center.contactInfo,
-      createdAt: center.createdAt,
-      updatedAt: center.updatedAt
+    const localizedCenters = centers.map(center => ({
+      ...center,
+      name: locale === 'hi' && center.nameHi ? center.nameHi : center.name,
+      location: locale === 'hi' && center.locationHi ? center.locationHi : center.location,
+      description: locale === 'hi' && center.descriptionHi ? center.descriptionHi : center.description,
     }));
 
-    return withCors(NextResponse.json(transformedCenters));
+    return withCors(NextResponse.json(localizedCenters));
   } catch (error) {
     console.error('Failed to fetch centers:', error);
     return corsError('Failed to fetch centers');
@@ -31,29 +27,25 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const createData = {
-      name: body.name,
-      nameHi: body.nameHi || '',
-      location: body.location,
-      locationHi: body.locationHi || '',
-      description: body.description,
-      descriptionHi: body.descriptionHi || '',
-      imageUrl: body.imageUrl || '',
-      contactInfo: body.contactInfo || '',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
+    const data = await request.json();
     const center = await prisma.center.create({
-      data: createData
+      data: {
+        name: data.name,
+        nameHi: data.nameHi || '',
+        location: data.location,
+        locationHi: data.locationHi || '',
+        description: data.description,
+        descriptionHi: data.descriptionHi || '',
+        imageUrl: data.imageUrl || '',
+        contactInfo: data.contactInfo || '',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
     });
-    return NextResponse.json(center, { status: 201 });
+    return withCors(NextResponse.json(center, { status: 201 }));
   } catch (error) {
     console.error('Failed to create center:', error);
-    return NextResponse.json(
-      { error: 'Failed to create center' },
-      { status: 500 }
-    );
+    return corsError('Failed to create center');
   }
 }
 

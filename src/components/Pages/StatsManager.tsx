@@ -12,6 +12,7 @@ import {
   ActionIcon,
   LoadingOverlay,
   Box,
+  Progress,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
@@ -33,6 +34,7 @@ export function StatsManager() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingStat, setEditingStat] = useState<Stat | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const form = useForm({
     initialValues: {
@@ -133,6 +135,56 @@ export function StatsManager() {
         message: 'Failed to update order',
         color: 'red',
       });
+    }
+  };
+
+  const handleImageUpload = async (file: File | null) => {
+    if (!file) return;
+    setUploadProgress(0);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/upload');
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          setUploadProgress(Math.round((event.loaded / event.total) * 100));
+        }
+      };
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          const { url } = JSON.parse(xhr.responseText);
+          // Update form data with uploaded image URL
+          notifications.show({
+            title: 'Success',
+            message: 'Image uploaded successfully',
+            color: 'green'
+          });
+        } else {
+          notifications.show({
+            title: 'Error',
+            message: 'Failed to upload image',
+            color: 'red'
+          });
+        }
+        setUploadProgress(0);
+      };
+      xhr.onerror = () => {
+        notifications.show({
+          title: 'Error',
+          message: 'Failed to upload image',
+          color: 'red'
+        });
+        setUploadProgress(0);
+      };
+      xhr.send(formData);
+    } catch (error) {
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to upload image',
+        color: 'red'
+      });
+      setUploadProgress(0);
     }
   };
 

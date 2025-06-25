@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { withCors, corsError } from '@/utils/cors';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const locale = searchParams.get('locale') || 'en';
+
     const testimonials = await prisma.testimonial.findMany({
       orderBy: {
         createdAt: 'desc',
@@ -13,11 +16,11 @@ export async function GET() {
 
     const transformedTestimonials = testimonials.map(testimonial => ({
       id: testimonial.id,
-      name: testimonial.name,
+      name: locale === 'hi' && testimonial.nameHi ? testimonial.nameHi : testimonial.name,
       nameHi: testimonial.nameHi,
-      role: testimonial.role,
+      role: locale === 'hi' && testimonial.roleHi ? testimonial.roleHi : testimonial.role,
       roleHi: testimonial.roleHi,
-      content: testimonial.content,
+      content: locale === 'hi' && testimonial.contentHi ? testimonial.contentHi : testimonial.content,
       contentHi: testimonial.contentHi,
       avatar: testimonial.avatar,
       isPublished: testimonial.isPublished,

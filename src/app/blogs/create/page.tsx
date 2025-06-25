@@ -34,6 +34,12 @@ import {
 import { IconArrowLeft, IconEye, IconEyeOff } from '@tabler/icons-react';
 
 
+interface Author {
+  id: number;
+  name: string;
+  email: string;
+}
+
 interface Category {
   id: number;
   name: string;
@@ -48,12 +54,19 @@ interface Tag {
 
 interface Blog {
   title: string;
+  titleHi?: string;
   content: string;
+  contentHi?: string;
   status: string;
+  authorId?: number;
   authorName: string;
+  authorNameHi?: string;
   metaDescription: string;
+  metaDescriptionHi?: string;
   ogTitle: string;
+  ogTitleHi?: string;
   ogDescription: string;
+  ogDescriptionHi?: string;
   categoryId?: number | null;
   category?: { id: number; name: string };
   locale: string;
@@ -71,16 +84,24 @@ export default function CreateBlog() {
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
+  const [authors, setAuthors] = useState<Author[]>([]);
   const [blog, setBlog] = useState<Blog>({
     title: '',
+    titleHi: '',
     content: '',
+    contentHi: '',
     status: 'draft',
     metaDescription: '',
+    metaDescriptionHi: '',
     ogTitle: '',
+    ogTitleHi: '',
     ogDescription: '',
+    ogDescriptionHi: '',
     tags: [],
     locale: 'en',
+    authorId: undefined,
     authorName: 'Admin',
+    authorNameHi: '',
     categoryId: undefined,
   });
   const [showPreview, setShowPreview] = useState(false);
@@ -117,18 +138,21 @@ export default function CreateBlog() {
     const fetchData = async () => {
       try {
         const baseUrl = getBaseUrl();
-        const [categoriesRes, tagsRes] = await Promise.all([
+        const [categoriesRes, tagsRes, authorsRes] = await Promise.all([
           fetch(`${baseUrl}/api/categories`),
-          fetch(`${baseUrl}/api/tags`)
+          fetch(`${baseUrl}/api/tags`),
+          fetch(`${baseUrl}/api/authors`)
         ]);
 
-        const [categoriesData, tagsData] = await Promise.all([
+        const [categoriesData, tagsData, authorsData] = await Promise.all([
           categoriesRes.json(),
-          tagsRes.json()
+          tagsRes.json(),
+          authorsRes.json()
         ]);
 
         setCategories(categoriesData);
         setTags(tagsData);
+        setAuthors(authorsData);
       } catch (error) {
         console.error('Error fetching data:', error);
         notifications.show({
@@ -169,15 +193,21 @@ export default function CreateBlog() {
 
       const blogData = {
         title: blog.title,
+        titleHi: blog.titleHi || null,
         content: editor?.getHTML() || blog.content,
+        contentHi: blog.contentHi || null,
         status: blog.status,
+        authorId: blog.authorId || 1, // Default to admin if no author selected
         authorName: blog.authorName || 'Admin',
+        authorNameHi: blog.authorNameHi || null,
         metaDescription: blog.metaDescription,
-        ogTitle: blog.ogTitle || blog.title, // Use title as fallback
-        ogDescription: blog.ogDescription || blog.metaDescription, // Use meta description as fallback
+        metaDescriptionHi: blog.metaDescriptionHi || null,
+        ogTitle: blog.ogTitle || blog.title,
+        ogTitleHi: blog.ogTitleHi || blog.titleHi,
+        ogDescription: blog.ogDescription || blog.metaDescription,
+        ogDescriptionHi: blog.ogDescriptionHi || blog.metaDescriptionHi,
         categoryId: blog.categoryId,
         locale: blog.locale,
-        // Let the backend handle author association
         tags: blog.tags.map(tag => ({ id: tag.id }))
       };
 
@@ -243,11 +273,18 @@ export default function CreateBlog() {
 
               <Select
                 value={blog.locale}
-                onChange={(value) => setBlog({ ...blog, locale: value || 'en' })}
+                onChange={(value) => {
+                  setBlog({ ...blog, locale: value || 'en' });
+                  // Update URL to reflect locale change
+                  const url = new URL(window.location.href);
+                  url.searchParams.set('locale', value || 'en');
+                  window.history.replaceState({}, '', url.toString());
+                }}
                 data={[
                   { value: 'en', label: 'English' },
                   { value: 'hi', label: 'Hindi' },
                 ]}
+                size="md"
               />
               <Button
                 variant="light"
@@ -274,8 +311,8 @@ export default function CreateBlog() {
               <Stack gap="md">
                 <Paper shadow="sm" p="sm" withBorder>
                   <TextInput
-                    label="Title"
-                    placeholder="Enter blog title"
+                    label="Title (English)"
+                    placeholder="Enter blog title in English"
                     value={blog.title}
                     onChange={(e) => setBlog({ ...blog, title: e.target.value })}
                     required
@@ -283,14 +320,38 @@ export default function CreateBlog() {
                   />
                 </Paper>
 
+                {blog.locale === 'hi' && (
+                  <Paper shadow="sm" p="sm" withBorder>
+                    <TextInput
+                      label="Title (Hindi)"
+                      placeholder="ब्लॉग शीर्षक हिंदी में दर्ज करें"
+                      value={blog.titleHi || ''}
+                      onChange={(e) => setBlog({ ...blog, titleHi: e.target.value })}
+                      size="lg"
+                      style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}
+                    />
+                  </Paper>
+                )}
+
                 <Paper shadow="sm" p="sm" withBorder style={{ minHeight: '500px' }}>
-                  {/* Fix: Use TiptapEditor component correctly */}
+                  <Text fw={500} size="sm" mb={8}>Content (English)</Text>
                   <TiptapEditor
                     content={blog.content}
                     onChange={(html) => setBlog({ ...blog, content: html })}
                     placeholder="Start writing your blog content here..."
                   />
                 </Paper>
+
+                {blog.locale === 'hi' && (
+                  <Paper shadow="sm" p="sm" withBorder style={{ minHeight: '300px' }}>
+                    <Text fw={500} size="sm" mb={8}>Content (Hindi)</Text>
+                    <TiptapEditor
+                      content={blog.contentHi || ''}
+                      onChange={(html) => setBlog({ ...blog, contentHi: html })}
+                      placeholder="यहाँ अपना ब्लॉग कंटेंट लिखना शुरू करें..."
+                    />
+                  </Paper>
+                )}
               </Stack>
             </Grid.Col>
 
@@ -352,6 +413,24 @@ export default function CreateBlog() {
                       ]}
                     />
                     <Select
+                      label="Author"
+                      size="xs"
+                      value={blog.authorId?.toString()}
+                      onChange={(value) => {
+                        const selectedAuthor = value ? authors.find(a => a.id.toString() === value) : null;
+                        setBlog({
+                          ...blog,
+                          authorId: selectedAuthor ? selectedAuthor.id : undefined,
+                          authorName: selectedAuthor ? selectedAuthor.name : 'Admin'
+                        });
+                      }}
+                      data={authors.map((author: Author) => ({
+                        value: author.id.toString(),
+                        label: author.name
+                      }))}
+                      placeholder="Select author"
+                    />
+                    <Select
                       label="Category"
                       size="xs"
                       value={blog.category?.id.toString()}
@@ -388,26 +467,56 @@ export default function CreateBlog() {
                     {/* Compact SEO fields */}
                     <Title order={5} mt="sm" mb="xs" size="sm">SEO</Title>
                     <TextInput
-                      label="Meta Description"
+                      label="Meta Description (EN)"
                       size="xs"
                       placeholder="SEO description"
                       value={blog.metaDescription}
                       onChange={(e) => setBlog({ ...blog, metaDescription: e.target.value })}
                     />
+                    {blog.locale === 'hi' && (
+                      <TextInput
+                        label="Meta Description (HI)"
+                        size="xs"
+                        placeholder="SEO विवरण"
+                        value={blog.metaDescriptionHi || ''}
+                        onChange={(e) => setBlog({ ...blog, metaDescriptionHi: e.target.value })}
+                        style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}
+                      />
+                    )}
                     <TextInput
-                      label="OG Title"
+                      label="OG Title (EN)"
                       size="xs"
                       placeholder="Social title"
                       value={blog.ogTitle}
                       onChange={(e) => setBlog({ ...blog, ogTitle: e.target.value })}
                     />
+                    {blog.locale === 'hi' && (
+                      <TextInput
+                        label="OG Title (HI)"
+                        size="xs"
+                        placeholder="सामाजिक शीर्षक"
+                        value={blog.ogTitleHi || ''}
+                        onChange={(e) => setBlog({ ...blog, ogTitleHi: e.target.value })}
+                        style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}
+                      />
+                    )}
                     <TextInput
-                      label="OG Description"
+                      label="OG Description (EN)"
                       size="xs"
                       placeholder="Social description"
                       value={blog.ogDescription}
                       onChange={(e) => setBlog({ ...blog, ogDescription: e.target.value })}
                     />
+                    {blog.locale === 'hi' && (
+                      <TextInput
+                        label="OG Description (HI)"
+                        size="xs"
+                        placeholder="सामाजिक विवरण"
+                        value={blog.ogDescriptionHi || ''}
+                        onChange={(e) => setBlog({ ...blog, ogDescriptionHi: e.target.value })}
+                        style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}
+                      />
+                    )}
                   </Stack>
                 </Paper>
 

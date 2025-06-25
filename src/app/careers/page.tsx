@@ -17,6 +17,7 @@ import {
   Modal,
   Switch,
   Card,
+  Progress,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconTrash, IconEdit, IconSearch } from '@tabler/icons-react';
@@ -58,7 +59,7 @@ interface EditorContent {
 
 const isEmptyContent = (content: EditorContent | null | undefined): boolean => {
   if (!content) return true;
-  return content.isEmpty || !content.text.trim();
+  return content.isEmpty || !content.text || !content.text.trim();
 };
 
 interface FormData {
@@ -110,6 +111,7 @@ export default function CareersAdmin() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [opened, { open, close }] = useDisclosure(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     fetchCareers();
@@ -247,6 +249,56 @@ export default function CareersAdmin() {
         message: 'Failed to delete career',
         color: 'red'
       });
+    }
+  };
+
+  const onImageUpload = async (file: File | null) => {
+    if (!file) return;
+    setUploadProgress(0);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/upload');
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          setUploadProgress(Math.round((event.loaded / event.total) * 100));
+        }
+      };
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          const { url } = JSON.parse(xhr.responseText);
+          setFormData(prev => ({ ...prev, imageUrl: url }));
+          notifications.show({
+            title: 'Success',
+            message: 'Image uploaded successfully',
+            color: 'green'
+          });
+        } else {
+          notifications.show({
+            title: 'Error',
+            message: 'Failed to upload image',
+            color: 'red'
+          });
+        }
+        setUploadProgress(0);
+      };
+      xhr.onerror = () => {
+        notifications.show({
+          title: 'Error',
+          message: 'Failed to upload image',
+          color: 'red'
+        });
+        setUploadProgress(0);
+      };
+      xhr.send(formData);
+    } catch (error) {
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to upload image',
+        color: 'red'
+      });
+      setUploadProgress(0);
     }
   };
 
@@ -452,6 +504,9 @@ export default function CareersAdmin() {
               <Button variant="light" onClick={close}>Cancel</Button>
               <Button type="submit">{editingId ? 'Update' : 'Create'}</Button>
             </Group>
+            {uploadProgress > 0 && (
+              <Progress value={uploadProgress} size="sm" mt="xs" animated />
+            )}
           </Stack>
         </form>
       </Modal>

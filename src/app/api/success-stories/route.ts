@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
       orderBy: { order: 'asc' },
       select: {
         id: true,
+        slug: true,
         title: true,
         titleHi: true,
         content: true,
@@ -42,6 +43,7 @@ export async function GET(request: NextRequest) {
 
     const transformedStories = stories.map(story => ({
       ...story,
+      slug: story.slug || story.id, // Use slug if available, fallback to id
       titleHi: story.titleHi ?? '',
       contentHi: story.contentHi ?? '',
       personNameHi: story.personNameHi ?? '',

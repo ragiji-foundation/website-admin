@@ -192,7 +192,7 @@ function DraftsPageContent() {
               <Card shadow="sm" padding="lg">
                 <Card.Section>
                   <Image
-                    src={draft.author.image || '/default-blog-image.jpg'}
+                    src={draft.author.image || '/default-blog-image.png'}
                     height={160}
                     alt={draft.title}
                   />

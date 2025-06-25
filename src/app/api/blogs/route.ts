@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import slugify from 'slugify';
+import { withCors, corsError } from '@/utils/cors';
 
 // Fixed admin user ID for all blog operations
 const DEFAULT_ADMIN_USER_ID = 1; // Use an ID that exists in your database
@@ -21,56 +22,85 @@ const logError = (error: unknown, context: string) => {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const locale = searchParams.get('locale') || 'en'; // Default to English
-    const status = searchParams.get('status');
-    const category = searchParams.get('category');
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const limit = parseInt(searchParams.get('limit') || '12');
+    const search = searchParams.get('search');
+    const status = searchParams.get('status');
+    const locale = searchParams.get('locale') || 'en';
 
-    const where = {
-      locale, // Filter blogs by locale
-      ...(status && { status }),
-      ...(category && { category: { slug: category } }),
-    };
+    const skip = (page - 1) * limit;
 
-    const [blogs, total] = await Promise.all([
-      prisma.blog.findMany({
-        where,
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          author: {
-            select: {
-              name: true,
-              image: true,
-            },
-          },
-          category: true,
-          tags: true,
-        },
-      }),
-      prisma.blog.count({ where }),
-    ]).catch((error) => {
-      console.error('Database error:', error);
-      throw new Error('Failed to fetch blogs');
+    // Build where clause
+    const where: any = {};
+    
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { titleHi: { contains: search, mode: 'insensitive' } },
+        { content: { contains: search, mode: 'insensitive' } }
+      ];
+    }
+
+    if (status && status !== 'all') {
+      where.status = status;
+    }
+
+    // Get total count
+    const total = await prisma.blog.count({ where });
+
+    // Get blogs
+    const blogs = await prisma.blog.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        titleHi: true,
+        slug: true,
+        content: true,
+        contentHi: true,
+        locale: true,
+        status: true,
+        authorName: true,
+        authorNameHi: true,
+        createdAt: true,
+        updatedAt: true,
+        author: {
+          select: {
+            name: true
+          }
+        }
+      }
     });
 
-    return NextResponse.json({
-      blogs,
+    // Transform data
+    const transformedBlogs = blogs.map(blog => ({
+      ...blog,
+      titleHi: blog.titleHi ?? undefined,
+      contentHi: blog.contentHi ?? undefined,
+      authorName: blog.authorName || blog.author?.name || 'Unknown',
+      excerpt: blog.content ? blog.content.replace(/<[^>]*>/g, '').substring(0, 150) + '...' : '',
+      status: blog.status || 'draft',
+      featuredImage: undefined, // Not available in schema
+      tags: [] // Will be populated if you add tags relation
+    }));
+
+    const pages = Math.ceil(total / limit);
+
+    return withCors(NextResponse.json({
+      blogs: transformedBlogs,
       pagination: {
         total,
-        pages: Math.ceil(total / limit),
+        pages,
         page,
-        limit,
-      },
-    });
+        limit
+      }
+    }));
   } catch (error) {
-    console.error('Error in GET /api/blogs:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to fetch blogs' },
-      { status: 500 }
-    );
+    console.error('Error fetching blogs:', error);
+    return corsError('Failed to fetch blogs', 500);
   }
 }
 
@@ -169,4 +199,8 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+export async function OPTIONS() {
+  return withCors(new NextResponse(null, { status: 200 }));
 }

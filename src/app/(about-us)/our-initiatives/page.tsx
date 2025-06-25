@@ -301,7 +301,7 @@ export default function InitiativesAdmin() {
                   </FileButton>
                 </Group>
                 {uploadProgress > 0 && (
-                  <Progress value={uploadProgress} size="sm" mt="xs" animate />
+                  <Progress value={uploadProgress} size="sm" mt="xs" animated />
                 )}
                 <NumberInput
                   label="Order"

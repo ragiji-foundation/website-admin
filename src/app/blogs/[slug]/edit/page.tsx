@@ -45,16 +45,22 @@ interface Tag {
 interface Blog {
   id: number;
   title: string;
+  titleHi?: string;
   content: string;
+  contentHi?: string;
   status: string;
   metaDescription: string;
+  metaDescriptionHi?: string;
   ogTitle: string;
+  ogTitleHi?: string;
   ogDescription: string;
+  ogDescriptionHi?: string;
   category: { id: number; name: string } | null;
   categoryId?: number | null;
   tags: Array<{ id: number; name: string }>;
   locale: string;
   authorName?: string;
+  authorNameHi?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -128,10 +134,6 @@ export default function EditBlog() {
     fetchData();
   }, [params?.slug, locale]);
 
-  const handleContentChange = (newContent: string) => {
-    setContent(newContent);
-  };
-
   const handleSubmit = async () => {
     if (!blog) return;
 
@@ -140,18 +142,25 @@ export default function EditBlog() {
       // Prepare tag connections in the format expected by Prisma
       const tagConnections = blog.tags.map(tag => ({ id: tag.id }));
 
-      const response = await fetch(`/api/blogs/${params.slug}`, {
+      const response = await fetch(`/api/blogs/${params.slug}?locale=${locale}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           title: blog.title,
-          content: content,
+          titleHi: blog.titleHi,
+          content: locale === 'en' ? content : blog.content,
+          contentHi: locale === 'en' ? blog.contentHi : content,
           status: blog.status,
           metaDescription: blog.metaDescription,
+          metaDescriptionHi: blog.metaDescriptionHi,
           ogTitle: blog.ogTitle || blog.title,
+          ogTitleHi: blog.ogTitleHi || blog.titleHi,
           ogDescription: blog.ogDescription || blog.metaDescription,
+          ogDescriptionHi: blog.ogDescriptionHi || blog.metaDescriptionHi,
+          authorName: blog.authorName,
+          authorNameHi: blog.authorNameHi,
           categoryId: blog.category?.id || null,
           locale: locale,
           tags: tagConnections
@@ -236,12 +245,17 @@ export default function EditBlog() {
                 {showPreview ? "Hide Preview" : "Show Preview"}
               </Button>
 
-              <Tabs defaultValue={locale}>
+              <Tabs value={locale} onChange={(value) => {
+                if (value) {
+                  const newUrl = `/blogs/${params.slug}/edit?locale=${value}`;
+                  router.push(newUrl);
+                }
+              }}>
                 <Tabs.List>
-                  <Tabs.Tab value="en" onClick={() => router.push(`/blogs/${params.slug}/edit?locale=en`)}>
+                  <Tabs.Tab value="en">
                     English
                   </Tabs.Tab>
-                  <Tabs.Tab value="hi" onClick={() => router.push(`/blogs/${params.slug}/edit?locale=hi`)}>
+                  <Tabs.Tab value="hi">
                     Hindi
                   </Tabs.Tab>
                 </Tabs.List>
@@ -271,23 +285,40 @@ export default function EditBlog() {
             <Stack gap="md">
               <Paper shadow="sm" p="sm" withBorder>
                 <TextInput
-                  label="Title"
-                  placeholder="Enter blog title"
-                  value={blog?.title || ''}
-                  onChange={(e) => setBlog({ ...blog!, title: e.target.value })}
+                  label={`Title (${locale === 'en' ? 'English' : 'Hindi'})`}
+                  placeholder={locale === 'en' ? 'Enter blog title' : 'ब्लॉग शीर्षक दर्ज करें'}
+                  value={locale === 'en' ? (blog?.title || '') : (blog?.titleHi || '')}
+                  onChange={(e) => {
+                    if (locale === 'en') {
+                      setBlog({ ...blog!, title: e.target.value });
+                    } else {
+                      setBlog({ ...blog!, titleHi: e.target.value });
+                    }
+                  }}
                   required
                   size="lg"
+                  style={locale === 'hi' ? { fontFamily: 'Noto Sans Devanagari, sans-serif' } : {}}
                 />
               </Paper>
 
               <Paper shadow="sm" p="sm" withBorder style={{ minHeight: '500px' }}>
-                <Text fw={500} size="sm" mb={8}>Content</Text>
-                {/* Using the TiptapEditor with image upload capability */}
+                <Text fw={500} size="sm" mb={8}>
+                  Content ({locale === 'en' ? 'English' : 'Hindi'})
+                </Text>
                 <TiptapEditor
-                  content={content}
-                  onChange={handleContentChange}
+                  content={locale === 'en' ? content : (blog?.contentHi || '')}
+                  onChange={(newContent) => {
+                    if (locale === 'en') {
+                      setContent(newContent);
+                    } else {
+                      setBlog({ ...blog!, contentHi: newContent });
+                    }
+                  }}
                   onImageUpload={handleImageUpload}
-                  placeholder="Start writing your blog content here..."
+                  placeholder={locale === 'en' ? 
+                    'Start writing your blog content here...' : 
+                    'यहाँ अपना ब्लॉग कंटेंट लिखना शुरू करें...'
+                  }
                 />
               </Paper>
             </Stack>
@@ -302,21 +333,31 @@ export default function EditBlog() {
                   <Divider mb="md" />
 
                   <div className="blog-preview">
-                    <Title order={2} mb="xs">{blog.title || 'Untitled Blog'}</Title>
+                    <Title order={2} mb="xs">
+                      {locale === 'en' ? 
+                        (blog?.title || 'Untitled Blog') : 
+                        (blog?.titleHi || blog?.title || 'Untitled Blog')
+                      }
+                    </Title>
 
                     {/* Author and Date */}
                     <Group mb="md">
-                      <Text size="sm" c="dimmed">By {blog.authorName || 'Admin'}</Text>
+                      <Text size="sm" c="dimmed">
+                        By {locale === 'en' ? 
+                          (blog?.authorName || 'Admin') : 
+                          (blog?.authorNameHi || blog?.authorName || 'Admin')
+                        }
+                      </Text>
                       <Text size="sm" c="dimmed">•</Text>
                       <Text size="sm" c="dimmed">{formattedDate}</Text>
                     </Group>
 
                     {/* Category and Tags */}
                     <Group mb="lg">
-                      {blog.category && (
+                      {blog?.category && (
                         <Badge color="blue">{blog.category.name}</Badge>
                       )}
-                      {blog.tags && blog.tags.map(tag => (
+                      {blog?.tags && blog.tags.map(tag => (
                         <Badge key={tag.id} variant="outline">{tag.name}</Badge>
                       ))}
                     </Group>
@@ -325,7 +366,9 @@ export default function EditBlog() {
 
                     {/* Blog Content */}
                     <div className="blog-content">
-                      <RichTextContent content={content} />
+                      <RichTextContent 
+                        content={locale === 'en' ? content : (blog?.contentHi || '')} 
+                      />
                     </div>
                   </div>
                 </ScrollArea>
@@ -393,27 +436,59 @@ export default function EditBlog() {
                   />
 
                   {/* Compact SEO fields */}
-                  <Title order={5} mt="sm" mb="xs" size="sm">SEO</Title>
+                  <Title order={5} mt="sm" mb="xs" size="sm">
+                    SEO ({locale === 'en' ? 'English' : 'Hindi'})
+                  </Title>
                   <TextInput
                     label="Meta Description"
                     size="xs"
-                    placeholder="SEO description"
-                    value={blog?.metaDescription || ''}
-                    onChange={(e) => setBlog({ ...blog!, metaDescription: e.target.value })}
+                    placeholder={locale === 'en' ? 'SEO description' : 'SEO विवरण'}
+                    value={locale === 'en' ? 
+                      (blog?.metaDescription || '') : 
+                      (blog?.metaDescriptionHi || '')
+                    }
+                    onChange={(e) => {
+                      if (locale === 'en') {
+                        setBlog({ ...blog!, metaDescription: e.target.value });
+                      } else {
+                        setBlog({ ...blog!, metaDescriptionHi: e.target.value });
+                      }
+                    }}
+                    style={locale === 'hi' ? { fontFamily: 'Noto Sans Devanagari, sans-serif' } : {}}
                   />
                   <TextInput
                     label="OG Title"
                     size="xs"
-                    placeholder="Social title"
-                    value={blog?.ogTitle || ''}
-                    onChange={(e) => setBlog({ ...blog!, ogTitle: e.target.value })}
+                    placeholder={locale === 'en' ? 'Social title' : 'सामाजिक शीर्षक'}
+                    value={locale === 'en' ? 
+                      (blog?.ogTitle || '') : 
+                      (blog?.ogTitleHi || '')
+                    }
+                    onChange={(e) => {
+                      if (locale === 'en') {
+                        setBlog({ ...blog!, ogTitle: e.target.value });
+                      } else {
+                        setBlog({ ...blog!, ogTitleHi: e.target.value });
+                      }
+                    }}
+                    style={locale === 'hi' ? { fontFamily: 'Noto Sans Devanagari, sans-serif' } : {}}
                   />
                   <TextInput
                     label="OG Description"
                     size="xs"
-                    placeholder="Social description"
-                    value={blog?.ogDescription || ''}
-                    onChange={(e) => setBlog({ ...blog!, ogDescription: e.target.value })}
+                    placeholder={locale === 'en' ? 'Social description' : 'सामाजिक विवरण'}
+                    value={locale === 'en' ? 
+                      (blog?.ogDescription || '') : 
+                      (blog?.ogDescriptionHi || '')
+                    }
+                    onChange={(e) => {
+                      if (locale === 'en') {
+                        setBlog({ ...blog!, ogDescription: e.target.value });
+                      } else {
+                        setBlog({ ...blog!, ogDescriptionHi: e.target.value });
+                      }
+                    }}
+                    style={locale === 'hi' ? { fontFamily: 'Noto Sans Devanagari, sans-serif' } : {}}
                   />
                 </Stack>
               </Paper>

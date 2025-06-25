@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const slug = searchParams.get('slug');
   const id = searchParams.get('id');
+  const locale = searchParams.get('locale') || 'en';
 
   try {
     // Single career fetch by slug or id
@@ -45,14 +46,34 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      return withCors(NextResponse.json(career));
+      // Return localized content
+      const localizedCareer = {
+        ...career,
+        title: locale === 'hi' && career.titleHi ? career.titleHi : career.title,
+        location: locale === 'hi' && career.locationHi ? career.locationHi : career.location,
+        type: locale === 'hi' && career.typeHi ? career.typeHi : career.type,
+        description: locale === 'hi' && career.descriptionHi ? career.descriptionHi : career.description,
+        requirements: locale === 'hi' && career.requirementsHi ? career.requirementsHi : career.requirements,
+      };
+
+      return withCors(NextResponse.json(localizedCareer));
     }
 
-    // List all careers
+    // List all careers with localization
     const careers = await prisma.career.findMany({
       orderBy: { createdAt: 'desc' }
     });
-    return withCors(NextResponse.json(careers));
+
+    const localizedCareers = careers.map(career => ({
+      ...career,
+      title: locale === 'hi' && career.titleHi ? career.titleHi : career.title,
+      location: locale === 'hi' && career.locationHi ? career.locationHi : career.location,
+      type: locale === 'hi' && career.typeHi ? career.typeHi : career.type,
+      description: locale === 'hi' && career.descriptionHi ? career.descriptionHi : career.description,
+      requirements: locale === 'hi' && career.requirementsHi ? career.requirementsHi : career.requirements,
+    }));
+
+    return withCors(NextResponse.json(localizedCareers));
   } catch (error) {
     return withCors(
       NextResponse.json(

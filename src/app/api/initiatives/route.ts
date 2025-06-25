@@ -3,17 +3,20 @@ import prisma from '@/lib/prisma';
 import { withCors, corsError } from '@/utils/cors';
 import type { Initiative } from '@prisma/client';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const locale = searchParams.get('locale') || 'en';
+
     const initiatives = await prisma.initiative.findMany({
       orderBy: { order: 'asc' }
     });
 
     const transformedInitiatives = initiatives.map((initiative: Initiative) => ({
       id: initiative.id,
-      title: initiative.title,
+      title: locale === 'hi' && initiative.titleHi ? initiative.titleHi : initiative.title,
       titleHi: initiative.titleHi,
-      description: initiative.description,
+      description: locale === 'hi' && initiative.descriptionHi ? initiative.descriptionHi : initiative.description,
       descriptionHi: initiative.descriptionHi,
       imageUrl: initiative.imageUrl,
       order: initiative.order,
