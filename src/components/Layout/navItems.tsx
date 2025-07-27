@@ -23,9 +23,9 @@ import {
   IconUserPlus,
   IconLayoutNavbar,
   IconLayoutNavbarFilled,
-  IconLayoutBottombarFilled
+  IconLayoutBottombarFilled,
+  IconApi
 } from '@tabler/icons-react';
-import { link } from 'fs';
 
 export interface NavItem {
   link?: string;
@@ -91,6 +91,7 @@ export const navItems: NavItem[] = [
   { divider: true },
   { link: '/enquiries', label: 'Enquiries', icon: IconMailbox },
   { link: '/applications', label: 'Join Applications', icon: IconUserPlus },
+  { link: '/api-testing', label: 'API Testing', icon: IconApi },
  
   { divider: true },
   { link: '/settings', label: 'Settings', icon: IconSettings },
