@@ -50,7 +50,26 @@ export async function GET(
       return corsError('Blog not found', 404);
     }
 
-    return withCors(NextResponse.json(blog));
+    // Transform data based on locale
+    const isHindi = locale === 'hi';
+    const localizedBlog = {
+      ...blog,
+      title: isHindi && blog.titleHi ? blog.titleHi : blog.title,
+      content: isHindi && blog.contentHi ? blog.contentHi : blog.content,
+      authorName: isHindi && blog.authorNameHi ? blog.authorNameHi : blog.authorName,
+      metaDescription: isHindi && blog.metaDescriptionHi ? blog.metaDescriptionHi : blog.metaDescription,
+      ogTitle: isHindi && blog.ogTitleHi ? blog.ogTitleHi : blog.ogTitle,
+      ogDescription: isHindi && blog.ogDescriptionHi ? blog.ogDescriptionHi : blog.ogDescription,
+      // Keep all original fields for admin use
+      titleHi: blog.titleHi,
+      contentHi: blog.contentHi,
+      authorNameHi: blog.authorNameHi,
+      metaDescriptionHi: blog.metaDescriptionHi,
+      ogTitleHi: blog.ogTitleHi,
+      ogDescriptionHi: blog.ogDescriptionHi
+    };
+
+    return withCors(NextResponse.json(localizedBlog));
   } catch (error) {
     console.error('Error fetching blog:', error);
     return corsError('Failed to fetch blog', 500);

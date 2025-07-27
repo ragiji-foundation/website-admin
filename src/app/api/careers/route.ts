@@ -21,66 +21,28 @@ function serializeRichText(content: any): string {
 }
 
 export async function GET(request: NextRequest) {
-  if (request.method === 'OPTIONS') {
-    return corsError('CORS error');
-  }
-
-  const { searchParams } = new URL(request.url);
-  const slug = searchParams.get('slug');
-  const id = searchParams.get('id');
-  const locale = searchParams.get('locale') || 'en';
-
   try {
-    // Single career fetch by slug or id
-    if (slug || id) {
-      const career = await prisma.career.findUnique({
-        where: slug ? { slug } : { id: parseInt(id!) }
-      });
-
-      if (!career) {
-        return withCors(
-          NextResponse.json(
-            { error: 'Career not found' },
-            { status: 404 }
-          )
-        );
-      }
-
-      // Return localized content
-      const localizedCareer = {
-        ...career,
-        title: locale === 'hi' && career.titleHi ? career.titleHi : career.title,
-        location: locale === 'hi' && career.locationHi ? career.locationHi : career.location,
-        type: locale === 'hi' && career.typeHi ? career.typeHi : career.type,
-        description: locale === 'hi' && career.descriptionHi ? career.descriptionHi : career.description,
-        requirements: locale === 'hi' && career.requirementsHi ? career.requirementsHi : career.requirements,
-      };
-
-      return withCors(NextResponse.json(localizedCareer));
-    }
-
-    // List all careers with localization
+    const { searchParams } = new URL(request.url);
+    const locale = searchParams.get('locale') || 'en';
+    const isHindi = locale === 'hi';
+    
+    // Get all careers
     const careers = await prisma.career.findMany({
       orderBy: { createdAt: 'desc' }
     });
 
+    // Transform data to include localized content
     const localizedCareers = careers.map(career => ({
       ...career,
-      title: locale === 'hi' && career.titleHi ? career.titleHi : career.title,
-      location: locale === 'hi' && career.locationHi ? career.locationHi : career.location,
-      type: locale === 'hi' && career.typeHi ? career.typeHi : career.type,
-      description: locale === 'hi' && career.descriptionHi ? career.descriptionHi : career.description,
-      requirements: locale === 'hi' && career.requirementsHi ? career.requirementsHi : career.requirements,
+      title: isHindi && career.titleHi ? career.titleHi : career.title,
+      description: isHindi && career.descriptionHi ? career.descriptionHi : career.description,
+      requirements: isHindi && career.requirementsHi ? career.requirementsHi : career.requirements,
     }));
 
     return withCors(NextResponse.json(localizedCareers));
   } catch (error) {
-    return withCors(
-      NextResponse.json(
-        { error: 'Failed to fetch careers' },
-        { status: 500 }
-      )
-    );
+    console.error('Error fetching careers:', error);
+    return corsError('Failed to fetch careers', 500);
   }
 }
 

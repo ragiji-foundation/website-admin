@@ -5,6 +5,8 @@ export interface GalleryItem {
   description?: string;
   descriptionHi?: string;
   imageUrl?: string; // Make imageUrl optional with the ? syntax
+  url?: string;
+  type?: string;
   category?: string; // Make category optional
   categoryHi?: string;
   tags?: string[];

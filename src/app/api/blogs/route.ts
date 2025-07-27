@@ -75,17 +75,27 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Transform data
-    const transformedBlogs = blogs.map(blog => ({
-      ...blog,
-      titleHi: blog.titleHi ?? undefined,
-      contentHi: blog.contentHi ?? undefined,
-      authorName: blog.authorName || blog.author?.name || 'Unknown',
-      excerpt: blog.content ? blog.content.replace(/<[^>]*>/g, '').substring(0, 150) + '...' : '',
-      status: blog.status || 'draft',
-      featuredImage: undefined, // Not available in schema
-      tags: [] // Will be populated if you add tags relation
-    }));
+    // Transform data based on locale
+    const transformedBlogs = blogs.map(blog => {
+      const isHindi = locale === 'hi';
+      return {
+        ...blog,
+        title: isHindi && blog.titleHi ? blog.titleHi : blog.title,
+        content: isHindi && blog.contentHi ? blog.contentHi : blog.content,
+        authorName: isHindi && blog.authorNameHi ? blog.authorNameHi : (blog.authorName || blog.author?.name || 'Unknown'),
+        metaDescription: isHindi && blog.metaDescriptionHi ? blog.metaDescriptionHi : blog.metaDescription,
+        ogTitle: isHindi && blog.ogTitleHi ? blog.ogTitleHi : blog.ogTitle,
+        ogDescription: isHindi && blog.ogDescriptionHi ? blog.ogDescriptionHi : blog.ogDescription,
+        // Keep original fields for reference
+        titleHi: blog.titleHi ?? undefined,
+        contentHi: blog.contentHi ?? undefined,
+        excerpt: (isHindi && blog.contentHi ? blog.contentHi : blog.content) ? 
+          (isHindi && blog.contentHi ? blog.contentHi : blog.content).replace(/<[^>]*>/g, '').substring(0, 150) + '...' : '',
+        status: blog.status || 'draft',
+        featuredImage: undefined,
+        tags: []
+      };
+    });
 
     const pages = Math.ceil(total / limit);
 

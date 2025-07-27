@@ -40,15 +40,19 @@ import {
 import { ContentLibrarySelector } from '@/components/Gallery/ContentLibrarySelector';
 import { uploadToCloudinary, getTransformedUrl } from '@/utils/cloudinary';
 import { useHover } from '@mantine/hooks';
+import { Lighthouse } from '@/components/Gallery/Lighthouse';
+import { GalleryImageForm } from '@/components/Gallery/GalleryImageForm';
 
 interface GalleryItem {
   id: string;
   title: string;
+  titleHi?: string;
   url?: string;
   imageUrl?: string; // Some API responses might have imageUrl instead of url
   type?: 'image' | 'content';
   createdAt: string;
   description?: string;
+  descriptionHi?: string;
   category?: string;
 }
 
@@ -60,6 +64,13 @@ export default function GalleryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  // Hindi support
+  const [language, setLanguage] = useState<'en' | 'hi'>('en');
+  // Bulk upload
+  const [bulkFiles, setBulkFiles] = useState<File[]>([]);
+  // Edit feature
+  const [editOpened, setEditOpened] = useState(false);
+  const [editItem, setEditItem] = useState<GalleryItem | null>(null);
 
   useEffect(() => {
     fetchGalleryItems();
@@ -71,17 +82,19 @@ export default function GalleryPage() {
       const response = await fetch('/api/gallery');
       if (!response.ok) throw new Error('Failed to fetch gallery items');
 
-      const data = await response.json();
+      const data: Partial<GalleryItem>[] = await response.json();
 
       // Transform the data to ensure consistent field names
-      const normalizedItems = data.map((item: any) => ({
-        id: item.id,
+      const normalizedItems: GalleryItem[] = data.map((item) => ({
+        id: item.id as string,
         title: item.title || 'Untitled',
-        url: item.url || item.imageUrl, // Handle both url and imageUrl
-        imageUrl: item.imageUrl || item.url, // Support both formats
+        titleHi: item.titleHi,
+        url: item.url || item.imageUrl,
+        imageUrl: item.imageUrl || item.url,
         type: item.type || 'image',
         createdAt: item.createdAt || new Date().toISOString(),
         description: item.description || '',
+        descriptionHi: item.descriptionHi,
         category: item.category || 'general'
       }));
 
@@ -145,6 +158,50 @@ export default function GalleryPage() {
     }
   };
 
+  // Bulk upload handler
+  const handleBulkUpload = async (files: File[] | null) => {
+    if (!files || files.length === 0) return;
+    setLoading(true);
+    try {
+      for (const file of files) {
+        // Use Cloudinary for upload
+        const result = await uploadToCloudinary(file, {
+          folder: 'gallery',
+          tags: ['gallery', 'upload'],
+          resourceType: 'image'
+        });
+        // Create a new gallery item
+        await fetch('/api/gallery', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: file.name.split('.')[0],
+            imageUrl: result.url,
+            type: 'image',
+            description: 'Uploaded on ' + new Date().toLocaleDateString(),
+            category: 'upload'
+          }),
+        });
+      }
+      await fetchGalleryItems();
+      notifications.show({
+        title: 'Success',
+        message: 'All files uploaded successfully',
+        color: 'green'
+      });
+      close();
+      setBulkFiles([]);
+    } catch (error) {
+      notifications.show({
+        title: 'Error',
+        message: error instanceof Error ? error.message : 'Failed to upload files',
+        color: 'red'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handlePreview = (item: GalleryItem) => {
     setSelectedItem(item);
     openPreview();
@@ -193,6 +250,7 @@ export default function GalleryPage() {
     )
     : items;
 
+  // Hindi/English toggle and pass language to UI
   return (
     <Container size="xl" py="xl">
       <Paper shadow="xs" p="md" mb="lg" withBorder>
@@ -207,6 +265,23 @@ export default function GalleryPage() {
             Media Gallery
           </MantineText>
           <Group>
+            {/* Language toggle */}
+            <Button.Group>
+              <Button
+                variant={language === 'en' ? 'filled' : 'outline'}
+                onClick={() => setLanguage('en')}
+                size="xs"
+              >
+                EN
+              </Button>
+              <Button
+                variant={language === 'hi' ? 'filled' : 'outline'}
+                onClick={() => setLanguage('hi')}
+                size="xs"
+              >
+                HI
+              </Button>
+            </Button.Group>
             <div className="search-container" style={{ position: 'relative' }}>
               <IconSearch
                 size={16}
@@ -358,6 +433,15 @@ export default function GalleryPage() {
                       <IconCopy size={16} />
                     </ActionIcon>
                   </Tooltip>
+                  <Tooltip label="Edit">
+                    <ActionIcon
+                      variant="light"
+                      color="blue"
+                      onClick={() => handleEdit(item)}
+                    >
+                      <IconEdit size={16} />
+                    </ActionIcon>
+                  </Tooltip>
                   <Tooltip label="Delete">
                     <ActionIcon
                       variant="light"
@@ -381,6 +465,9 @@ export default function GalleryPage() {
           <Tabs.List>
             <Tabs.Tab value="upload" leftSection={<IconPhoto size={16} />}>
               Upload Photo
+            </Tabs.Tab>
+            <Tabs.Tab value="bulk" leftSection={<IconFiles size={16} />}>
+              Bulk Upload
             </Tabs.Tab>
             <Tabs.Tab value="content" leftSection={<IconFiles size={16} />}>
               Content Library
@@ -419,6 +506,53 @@ export default function GalleryPage() {
             </Stack>
           </Tabs.Panel>
 
+          <Tabs.Panel value="bulk" pt="md">
+            <Stack>
+              <Box
+                style={{
+                  border: '2px dashed #e0e0e0',
+                  borderRadius: '8px',
+                  padding: '30px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: '#f9fafb'
+                }}
+              >
+                <IconFiles size={40} style={{ opacity: 0.5, marginBottom: 15 }} />
+                <Text size="sm" ta="center" mb="md">
+                  Select multiple images to upload in bulk
+                </Text>
+                <FileButton
+                  onChange={(files) => setBulkFiles(files as File[])}
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  multiple
+                >
+                  {(props) => (
+                    <Button {...props} loading={loading} variant="light" size="sm">
+                      Choose images
+                    </Button>
+                  )}
+                </FileButton>
+                {bulkFiles.length > 0 && (
+                  <Text size="xs" mt="sm">{bulkFiles.length} files selected</Text>
+                )}
+                <Button
+                  mt="md"
+                  loading={loading}
+                  disabled={bulkFiles.length === 0}
+                  onClick={() => handleBulkUpload(bulkFiles)}
+                >
+                  Upload All
+                </Button>
+              </Box>
+              <Text size="xs" c="dimmed" mt="xs">
+                Accepted formats: PNG, JPG, WebP, GIF (max 5MB)
+              </Text>
+            </Stack>
+          </Tabs.Panel>
+
           <Tabs.Panel value="content" pt="md">
             <ContentLibrarySelector onSelect={handleFileUpload} />
           </Tabs.Panel>
@@ -426,6 +560,29 @@ export default function GalleryPage() {
       </Modal>
 
       {/* Preview Modal */}
+      <Lighthouse
+        opened={previewOpened}
+        onClose={closePreview}
+        item={selectedItem}
+        onDelete={(id) => {
+          handleDelete(id as string);
+          closePreview();
+        }}
+        language={language}
+      />
+
+      {/* Edit Modal */}
+      <Modal opened={editOpened} onClose={() => setEditOpened(false)} title="Edit Image" size="lg">
+        {editItem && (
+          <GalleryImageForm
+            initialValues={editItem}
+            onSubmit={handleEditSubmit}
+            loading={loading}
+          />
+        )}
+      </Modal>
+
+      {/*
       <Modal
         opened={previewOpened}
         onClose={closePreview}
@@ -447,7 +604,7 @@ export default function GalleryPage() {
             >
               <Image
                 src={selectedItem.imageUrl || selectedItem.url || ''}
-                alt={selectedItem.title}
+                alt={language === 'hi' ? selectedItem.titleHi || selectedItem.title : selectedItem.title}
                 fit="contain"
                 style={{ maxHeight: '60vh' }}
                 fallbackSrc="/placeholder.svg"
@@ -455,9 +612,9 @@ export default function GalleryPage() {
             </Box>
 
             <Stack gap="xs" mt="xs">
-              <Text fw={500} size="lg">{selectedItem.title}</Text>
+              <Text fw={500} size="lg">{language === 'hi' ? selectedItem.titleHi || selectedItem.title : selectedItem.title}</Text>
               {selectedItem.description && (
-                <Text size="sm" c="dimmed">{selectedItem.description}</Text>
+                <Text size="sm" c="dimmed">{language === 'hi' ? selectedItem.descriptionHi || selectedItem.description : selectedItem.description}</Text>
               )}
               <Text size="xs" c="dimmed">
                 Added on {new Date(selectedItem.createdAt).toLocaleDateString()}
@@ -487,6 +644,7 @@ export default function GalleryPage() {
           </Stack>
         )}
       </Modal>
+      */}
 
       {/* Add custom styling */}
       <style jsx global>{`

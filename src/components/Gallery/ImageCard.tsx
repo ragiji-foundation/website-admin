@@ -4,11 +4,12 @@ import { GalleryItem } from '@/types/gallery';
 
 interface ImageCardProps {
   item: GalleryItem;
-  onDelete: (id: number) => void;
+  onDelete: (id: number | string) => void;
   onClick: () => void;
+  language?: 'en' | 'hi';
 }
 
-export function ImageCard({ item, onDelete, onClick }: ImageCardProps) {
+export function ImageCard({ item, onDelete, onClick, language = 'en' }: ImageCardProps) {
   return (
     <Card
       shadow="sm"
@@ -28,14 +29,14 @@ export function ImageCard({ item, onDelete, onClick }: ImageCardProps) {
       <Card.Section>
         <Image
           src={item.imageUrl}
-          alt={item.title}
+          alt={language === 'hi' ? item.titleHi || item.title : item.title}
           height={200}
           fit="cover"
         />
       </Card.Section>
 
       <Stack gap="xs" mt="md">
-        <Text fw={500} lineClamp={1}>{item.title}</Text>
+        <Text fw={500} lineClamp={1}>{language === 'hi' ? item.titleHi || item.title : item.title}</Text>
         <Badge size="sm" variant="light" color="blue">
           {item.category}
         </Badge>

@@ -15,9 +15,12 @@ export function UploadDrawer({ opened, onClose, onSubmit }: UploadDrawerProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
+    titleHi: '',
     description: '',
+    descriptionHi: '',
     imageUrl: '',
     category: '',
+    categoryHi: '',
     publicId: '',
   });
 
@@ -60,16 +63,19 @@ export function UploadDrawer({ opened, onClose, onSubmit }: UploadDrawerProps) {
 
     const validFormData = {
       title: formData.title,
+      titleHi: formData.titleHi,
       description: formData.description,
+      descriptionHi: formData.descriptionHi,
       imageUrl: formData.imageUrl,
       category: formData.category,
+      categoryHi: formData.categoryHi,
     };
 
     setLoading(true);
     await onSubmit(validFormData);
     setLoading(false);
     onClose();
-    setFormData({ title: '', description: '', imageUrl: '', category: '', publicId: '' });
+    setFormData({ title: '', titleHi: '', description: '', descriptionHi: '', imageUrl: '', category: '', categoryHi: '', publicId: '' });
   };
 
   return (
@@ -84,22 +90,37 @@ export function UploadDrawer({ opened, onClose, onSubmit }: UploadDrawerProps) {
       <form onSubmit={handleSubmit}>
         <Stack gap="md">
           <TextInput
-            label="Title"
+            label="Title (English)"
             required
             value={formData.title}
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
           />
           <TextInput
-            label="Description"
+            label="Title (Hindi)"
+            value={formData.titleHi}
+            onChange={(e) => setFormData({ ...formData, titleHi: e.target.value })}
+          />
+          <TextInput
+            label="Description (English)"
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           />
+          <TextInput
+            label="Description (Hindi)"
+            value={formData.descriptionHi}
+            onChange={(e) => setFormData({ ...formData, descriptionHi: e.target.value })}
+          />
           <Select
-            label="Category"
+            label="Category (English)"
             required
             value={formData.category}
             onChange={(value) => setFormData({ ...formData, category: value || '' })}
             data={CATEGORIES}
+          />
+          <TextInput
+            label="Category (Hindi)"
+            value={formData.categoryHi}
+            onChange={(e) => setFormData({ ...formData, categoryHi: e.target.value })}
           />
           <Box>
             <FileButton

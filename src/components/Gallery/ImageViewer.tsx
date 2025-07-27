@@ -6,9 +6,10 @@ interface ImageViewerProps {
   opened: boolean;
   onClose: () => void;
   image: GalleryItem | null;
+  language?: 'en' | 'hi';
 }
 
-export function ImageViewer({ opened, onClose, image }: ImageViewerProps) {
+export function ImageViewer({ opened, onClose, image, language = 'en' }: ImageViewerProps) {
   if (!image) return null;
 
   return (
@@ -17,18 +18,18 @@ export function ImageViewer({ opened, onClose, image }: ImageViewerProps) {
       onClose={onClose}
       size="lg"
       padding="xl"
-      title={image.title}
+      title={language === 'hi' ? image.titleHi || image.title : image.title}
     >
       <Stack>
         <Image
           src={image.imageUrl}
-          alt={image.title}
+          alt={language === 'hi' ? image.titleHi || image.title : image.title}
           fit="contain"
           height={400}
         />
-        {image.description && (
+        {(image.description || image.descriptionHi) && (
           <Text size="sm" c="dimmed">
-            {image.description}
+            {language === 'hi' ? image.descriptionHi || image.description : image.description}
           </Text>
         )}
         <Group>

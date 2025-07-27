@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Container, Grid } from '@mantine/core';
+import { Container, Grid, Button, Group } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 
 import { GalleryHeader } from '@/components/Gallery/GalleryHeader';
@@ -29,6 +29,8 @@ export default function GalleryAdmin() {
   const [drawerOpened, drawerHandlers] = useDisclosure(false);
   const [viewerOpened, viewerHandlers] = useDisclosure(false);
   const [selectedImage, setSelectedImage] = useState<GalleryItem | null>(null);
+  // Hindi support
+  const [language, setLanguage] = useState<'en' | 'hi'>('en');
 
   // Integrate with the Cloudinary-powered UploadDrawer
   const handleFormSubmit = async (formData: any) => {
@@ -38,6 +40,24 @@ export default function GalleryAdmin() {
 
   return (
     <Container size="xl" maw={1000} px={0} mx="auto">
+      <Group justify="flex-end" mb="md">
+        <Button.Group>
+          <Button
+            variant={language === 'en' ? 'filled' : 'outline'}
+            onClick={() => setLanguage('en')}
+            size="xs"
+          >
+            EN
+          </Button>
+          <Button
+            variant={language === 'hi' ? 'filled' : 'outline'}
+            onClick={() => setLanguage('hi')}
+            size="xs"
+          >
+            HI
+          </Button>
+        </Button.Group>
+      </Group>
       <GalleryHeader onAddNew={drawerHandlers.open} />
       <FilterBar
         searchQuery={searchQuery}
@@ -56,6 +76,7 @@ export default function GalleryAdmin() {
                 setSelectedImage(item);
                 viewerHandlers.open();
               }}
+              language={language}
             />
           </Grid.Col>
         ))}
@@ -71,6 +92,7 @@ export default function GalleryAdmin() {
         opened={viewerOpened}
         onClose={viewerHandlers.close}
         image={selectedImage}
+        language={language}
       />
     </Container>
   );

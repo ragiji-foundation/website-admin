@@ -1,118 +1,104 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-
-interface RouteContext {
-  params: {
-    slug: string;
-  };
-}
+import { withCors, corsError } from '@/utils/cors';
 
 export async function GET(
   request: NextRequest,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  context: any
+  context: { params: { slug: string } }
 ) {
   try {
     const { slug } = context.params;
     const { searchParams } = new URL(request.url);
     const locale = searchParams.get('locale') || 'en';
-    
+    const isHindi = locale === 'hi';
+
     const career = await prisma.career.findUnique({
-      where: {
-        slug: slug,
-      }
+      where: { slug }
     });
 
     if (!career) {
-      return NextResponse.json({ error: 'Career not found' }, { status: 404 });
+      return corsError('Career not found', 404);
     }
 
-    // Return localized content based on locale
+    // Return Hindi content if requested and available
     const localizedCareer = {
       ...career,
-      title: locale === 'hi' && career.titleHi ? career.titleHi : career.title,
-      location: locale === 'hi' && career.locationHi ? career.locationHi : career.location,
-      type: locale === 'hi' && career.typeHi ? career.typeHi : career.type,
-      description: locale === 'hi' && career.descriptionHi ? career.descriptionHi : career.description,
-      requirements: locale === 'hi' && career.requirementsHi ? career.requirementsHi : career.requirements,
+      title: isHindi && career.titleHi ? career.titleHi : career.title,
+      description: isHindi && career.descriptionHi ? career.descriptionHi : career.description,
+      requirements: isHindi && career.requirementsHi ? career.requirementsHi : career.requirements,
     };
 
-    return NextResponse.json(localizedCareer);
+    return withCors(NextResponse.json(localizedCareer));
   } catch (error) {
     console.error('Error fetching career:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch career' },
-      { status: 500 }
-    );
+    return corsError('Failed to fetch career', 500);
   }
 }
 
 export async function PUT(
   request: NextRequest,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  context: any
+  context: { params: { slug: string } }
 ) {
   try {
     const { slug } = context.params;
     const data = await request.json();
 
-    // Validate required fields
-    if (!data.title || !data.description || !data.requirements) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
-
-    const career = await prisma.career.update({
-      where: {
-        slug: slug,
-      },
-      data: {
-        title: data.title,
-        titleHi: data.titleHi || '',
-        location: data.location,
-        locationHi: data.locationHi || '',
-        type: data.type,
-        typeHi: data.typeHi || '',
-        description: data.description,
-        descriptionHi: data.descriptionHi || '',
-        requirements: data.requirements,
-        requirementsHi: data.requirementsHi || '',
-        isActive: data.isActive ?? true,
-        updatedAt: new Date()
-      },
+    const existingCareer = await prisma.career.findUnique({
+      where: { slug }
     });
 
-    return NextResponse.json(career);
+    if (!existingCareer) {
+      return corsError('Career not found', 404);
+    }
+
+    const updatedCareer = await prisma.career.update({
+      where: { slug },
+      data: {
+        title: data.title || existingCareer.title,
+        titleHi: data.titleHi !== undefined ? data.titleHi : existingCareer.titleHi,
+        description: data.description || existingCareer.description,
+        descriptionHi: data.descriptionHi !== undefined ? data.descriptionHi : existingCareer.descriptionHi,
+        requirements: data.requirements || existingCareer.requirements,
+        requirementsHi: data.requirementsHi !== undefined ? data.requirementsHi : existingCareer.requirementsHi,
+        location: data.location || existingCareer.location,
+        type: data.type || existingCareer.type,
+        updatedAt: new Date()
+      }
+    });
+
+    return withCors(NextResponse.json(updatedCareer));
   } catch (error) {
     console.error('Error updating career:', error);
-    return NextResponse.json(
-      { error: 'Failed to update career' },
-      { status: 500 }
-    );
+    return corsError('Failed to update career', 500);
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  context: any
+  context: { params: { slug: string } }
 ) {
   try {
     const { slug } = context.params;
-    await prisma.career.delete({
-      where: {
-        slug: slug,
-      },
+
+    const existingCareer = await prisma.career.findUnique({
+      where: { slug }
     });
 
-    return NextResponse.json({ success: true });
+    if (!existingCareer) {
+      return corsError('Career not found', 404);
+    }
+
+    await prisma.career.delete({
+      where: { slug }
+    });
+
+    return withCors(NextResponse.json({ message: 'Career deleted successfully' }));
   } catch (error) {
     console.error('Error deleting career:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete career' },
-      { status: 500 }
-    );
+    return corsError('Failed to delete career', 500);
   }
+}
+
+export async function OPTIONS() {
+  return withCors(new NextResponse(null, { status: 200 }));
 }

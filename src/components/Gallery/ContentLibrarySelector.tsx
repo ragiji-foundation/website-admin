@@ -7,10 +7,15 @@ import { IconCheck, IconEye } from '@tabler/icons-react';
 interface ContentItem {
   id: string;
   title: string;
+  titleHi?: string;
+  description?: string;
+  descriptionHi?: string;
   thumbnail?: string;
-  imageUrl?: string; // Support both formats
-  url?: string;      // Support both formats
+  imageUrl?: string;
+  url?: string;
   type?: string;
+  category?: string;
+  categoryHi?: string;
 }
 
 interface ContentLibrarySelectorProps {
@@ -39,9 +44,15 @@ export function ContentLibrarySelector({ onSelect }: ContentLibrarySelectorProps
       const normalizedContents = data.map((item: any) => ({
         id: item.id || String(Math.random()),
         title: item.title || 'Untitled',
+        titleHi: item.titleHi || '',
+        description: item.description || '',
+        descriptionHi: item.descriptionHi || '',
         thumbnail: item.thumbnail || item.imageUrl || item.url || '/placeholder.svg',
         url: item.url || item.imageUrl || '',
-        type: item.type || 'image'
+        imageUrl: item.imageUrl || item.url || '',
+        type: item.type || 'image',
+        category: item.category || '',
+        categoryHi: item.categoryHi || ''
       }));
 
       setContents(normalizedContents);
@@ -60,23 +71,40 @@ export function ContentLibrarySelector({ onSelect }: ContentLibrarySelectorProps
   const handleSelect = async (content: ContentItem) => {
     try {
       setSelectedId(content.id);
-
       const imageUrl = content.url || content.imageUrl;
-
       if (!imageUrl) {
-        throw new Error('No valid URL found for this content');
+        notifications.show({
+          title: 'Error',
+          message: 'No valid URL found for this content',
+          color: 'red'
+        });
+        setSelectedId(null);
+        return;
       }
-
-      // Fetch the file from the URL
-      const response = await fetch(imageUrl);
+      // Try to fetch the file from the URL
+      let response: Response;
+      try {
+        response = await fetch(imageUrl, { mode: 'cors' });
+      } catch (fetchError) {
+        notifications.show({
+          title: 'Error',
+          message: 'Could not fetch image. The image may not be public or CORS is not allowed.',
+          color: 'red'
+        });
+        setSelectedId(null);
+        return;
+      }
       if (!response.ok) {
-        throw new Error('Failed to fetch image data');
+        notifications.show({
+          title: 'Error',
+          message: `Failed to fetch image data (status: ${response.status})`,
+          color: 'red'
+        });
+        setSelectedId(null);
+        return;
       }
-
       const blob = await response.blob();
       const file = new File([blob], content.title, { type: blob.type || 'image/jpeg' });
-
-      // Pass the file to the parent component's handler
       await onSelect(file);
     } catch (error) {
       console.error('Error selecting content:', error);
@@ -183,9 +211,34 @@ export function ContentLibrarySelector({ onSelect }: ContentLibrarySelectorProps
                   <Text size="sm" fw={500} lineClamp={1}>
                     {content.title}
                   </Text>
+                  {content.titleHi && (
+                    <Text size="xs" c="dimmed">
+                      {content.titleHi}
+                    </Text>
+                  )}
                   <Text size="xs" c="dimmed">
                     {content.type}
                   </Text>
+                  {content.category && (
+                    <Text size="xs" c="dimmed">
+                      Category: {content.category}
+                    </Text>
+                  )}
+                  {content.categoryHi && (
+                    <Text size="xs" c="dimmed">
+                      Category (Hindi): {content.categoryHi}
+                    </Text>
+                  )}
+                  {content.description && (
+                    <Text size="xs" c="dimmed" mt={2}>
+                      {content.description}
+                    </Text>
+                  )}
+                  {content.descriptionHi && (
+                    <Text size="xs" c="dimmed" mt={2}>
+                      {content.descriptionHi}
+                    </Text>
+                  )}
                 </div>
                 <Button
                   variant="light"
