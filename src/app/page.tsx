@@ -1,9 +1,18 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { Container, Grid, Card, Text, Progress, Button, Title, Group, Badge, Skeleton } from '@mantine/core';
-import { IconArticle, IconFileText, IconBuilding, IconBulb, IconUser, IconChartBar } from '@tabler/icons-react';
-import { notifications } from '@mantine/notifications';
+import { useMemo } from 'react';
+import { Container, Grid, Card, Text, Progress, Button, Title, Group, Skeleton } from '@mantine/core';
+import dynamic from 'next/dynamic';
+
+// ✅ MIGRATED: Import centralized hooks
+import { useApiData } from '@/hooks/useApiData';
+
+// Lazy load icons to reduce initial bundle
+const IconArticle = dynamic(() => import('@tabler/icons-react').then(mod => ({ default: mod.IconArticle })), { ssr: false });
+const IconBuilding = dynamic(() => import('@tabler/icons-react').then(mod => ({ default: mod.IconBuilding })), { ssr: false });
+const IconBulb = dynamic(() => import('@tabler/icons-react').then(mod => ({ default: mod.IconBulb })), { ssr: false });
+const IconUser = dynamic(() => import('@tabler/icons-react').then(mod => ({ default: mod.IconUser })), { ssr: false });
+const IconChartBar = dynamic(() => import('@tabler/icons-react').then(mod => ({ default: mod.IconChartBar })), { ssr: false });
 
 interface DashboardData {
   totalBlogs: number;
@@ -32,13 +41,13 @@ function DashboardSkeleton() {
 }
 
 function StatsGrid({ data }: { data: DashboardData }) {
-  const cardStyle = {
+  const cardStyle = useMemo(() => ({
     transition: 'transform 0.2s ease, box-shadow 0.2s ease',
     '&:hover': {
       transform: 'translateY(-5px)',
       boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
     },
-  };
+  }), []);
 
   return (
     <>
@@ -169,39 +178,27 @@ function AnalyticsOverview({ data }: { data: DashboardData }) {
 }
 
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const response = await fetch('/api/dashboard');
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        if (!data) throw new Error('No data received');
-        setData(data);
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        notifications.show({
-          title: 'Error',
-          message: 'Failed to fetch dashboard data. Please try again later.',
-          color: 'red'
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboardData();
-  }, []);
+  // ✅ MIGRATED: Using centralized hooks instead of manual state management
+  const { data, loading, error } = useApiData<DashboardData>(
+    '/api/dashboard',
+    {
+      totalBlogs: 0,
+      totalCenters: 0,
+      totalInitiatives: 0,
+      totalCareers: 0,
+      activeUsers: 0,
+      monthlyVisitors: 0,
+      pageViews: 0,
+      progress: 0
+    },
+    { showNotifications: true }
+  );
 
   if (loading) {
     return <DashboardSkeleton />;
   }
 
-  if (!data) {
+  if (error || !data) {
     return <Text>Failed to load dashboard data</Text>;
   }
 
@@ -211,7 +208,7 @@ export default function DashboardPage() {
         order={1}
         ta="center"
         mb={{ base: 'xl', sm: '2xl' }}
-        styles={(theme) => ({
+        styles={() => ({
           root: {
             background: `linear-gradient(45deg, #4263eb, #00b5d8)`,
             WebkitBackgroundClip: 'text',

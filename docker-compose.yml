@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: ragiji-minio
+    ports:
+      - "9000:9000"   # MinIO API
+      - "9001:9001"   # MinIO Console
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    networks:
+      - ragiji-network
+
+  # Optional: PostgreSQL database
+  postgres:
+    image: postgres:15-alpine
+    container_name: ragiji-postgres
+    environment:
+      POSTGRES_DB: ragiji
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - ragiji-network
+
+volumes:
+  minio_data:
+  postgres_data:
+
+networks:
+  ragiji-network:
+    driver: bridge

@@ -3,9 +3,9 @@ import prisma from '@/lib/prisma';
 import { Award, AwardUpdateInput } from '@/types/award';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function PUT(req: NextRequest, context: any): Promise<NextResponse> {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
   try {
-    const { id } = context.params;
+    const { id } = await params;
     const body = await req.json() as AwardUpdateInput;
 
     // Fetch the existing award data
@@ -63,10 +63,10 @@ export async function PUT(req: NextRequest, context: any): Promise<NextResponse>
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function DELETE(
   _: NextRequest,
-  context: any
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse<{ success: boolean } | { error: string }>> {
   try {
-    const { id } = context.params;
+    const { id } = await params;
 
     await prisma.award.delete({
       where: { id },

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   TextInput,
   Textarea,
@@ -18,12 +18,17 @@ import {
   Switch,
   Card,
   Progress,
+  Box,
+  Alert,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconTrash, IconEdit, IconSearch } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import { generateSlug } from '@/utils/slug';
 import LexicalEditor from '@/components/LexicalEditor';
+// ✅ ADDED: Import centralized hooks
+import { useApiData } from '@/hooks/useApiData';
+import { useCrudOperations } from '@/hooks/useCrudOperations';
 
 interface Career {
   id: number;
@@ -105,34 +110,35 @@ const parseRichText = (content: string): string => {
 };
 
 export default function CareersAdmin() {
-  const [careers, setCareers] = useState<Career[]>([]);
-  const [loading, setLoading] = useState(false);
+  // ✅ MIGRATED: Using centralized hooks instead of manual state management
+  const { data: careers, loading, error, refetch: fetchCareers } = useApiData<Career[]>(
+    '/api/careers', 
+    [],
+    { showNotifications: true }
+  );
+
+  // ✅ MIGRATED: Using centralized CRUD operations
+  const { create, update, remove } = useCrudOperations<Career>('/api/careers', {
+    showNotifications: true,
+    onSuccess: () => {
+      fetchCareers(); // Refresh data after operations
+      resetForm();
+      close();
+    }
+  });
+
   const [formData, setFormData] = useState(initialFormData);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [opened, { open, close }] = useDisclosure(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  useEffect(() => {
-    fetchCareers();
-  }, []);
+  // ✅ MIGRATED: Removed manual fetchCareers function - now using centralized hook
 
-  const fetchCareers = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/careers');
-      if (!response.ok) throw new Error('Failed to fetch careers');
-      const data = await response.json();
-      setCareers(data);
-    } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: error instanceof Error ? error.message : 'Failed to fetch careers',
-        color: 'red'
-      });
-    } finally {
-      setLoading(false);
-    }
+  const resetForm = () => {
+    setFormData(initialFormData);
+    setEditingId(null);
+    setUploadProgress(0);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -149,50 +155,24 @@ export default function CareersAdmin() {
 
     try {
       const slug = generateSlug(formData.title);
-      const method = editingId ? 'PUT' : 'POST';
-      const body = editingId
-        ? {
-          ...formData,
-          id: editingId,
-          slug,
-          description: formData.description?.json,
-          descriptionHi: formData.descriptionHi?.json,
-          requirements: formData.requirements?.json,
-          requirementsHi: formData.requirementsHi?.json,
-        }
-        : {
-          ...formData,
-          slug,
-          description: formData.description?.json,
-          descriptionHi: formData.descriptionHi?.json,
-          requirements: formData.requirements?.json,
-          requirementsHi: formData.requirementsHi?.json,
-        };
+      const payload = {
+        ...formData,
+        slug,
+        description: formData.description?.json,
+        descriptionHi: formData.descriptionHi?.json,
+        requirements: formData.requirements?.json,
+        requirementsHi: formData.requirementsHi?.json,
+      };
 
-      const response = await fetch('/api/careers', {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) throw new Error('Failed to save career');
-
-      notifications.show({
-        title: 'Success',
-        message: `Career ${editingId ? 'updated' : 'created'} successfully`,
-        color: 'green'
-      });
-
-      setFormData(initialFormData);
-      setEditingId(null);
-      close();
-      fetchCareers();
-    } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: error instanceof Error ? error.message : 'Failed to save career',
-        color: 'red'
-      });
+      if (editingId) {
+        await update(editingId, payload);
+      } else {
+        await create(payload);
+      }
+      // Success handling is done by the centralized hook
+    } catch (err) {
+      // Error handling is done by the centralized hook
+      console.error('Submit failed:', err);
     }
   };
 
@@ -230,25 +210,11 @@ export default function CareersAdmin() {
     if (!confirm('Are you sure you want to delete this career?')) return;
 
     try {
-      const response = await fetch(`/api/careers?id=${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) throw new Error('Failed to delete career');
-
-      notifications.show({
-        title: 'Success',
-        message: 'Career deleted successfully',
-        color: 'green'
-      });
-
-      fetchCareers();
-    } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to delete career',
-        color: 'red'
-      });
+      await remove(id);
+      // Success handling is done by the centralized hook
+    } catch (err) {
+      // Error handling is done by the centralized hook
+      console.error('Delete failed:', err);
     }
   };
 

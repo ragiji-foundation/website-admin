@@ -5,46 +5,42 @@ import {
   Title,
   Card,
   Text,
-  Button,
   Group,
-  Image,
-  TextInput,
-  Textarea,
-  Select,
-  Grid,
+  Button,
   Stack,
-  ActionIcon,
+  Grid,
+  Image,
   Badge,
   Tabs,
-  LoadingOverlay,
-  Paper,
-  Tooltip,
-  Alert,
-  Overlay,
-  em,
-  rem,
+  TextInput,
+  Select,
   Box,
-  Divider
+  Tooltip,
+  Paper,
+  Textarea,
+  ActionIcon,
+  LoadingOverlay,
+  Overlay,
 } from '@mantine/core';
-import { Dropzone, DropzoneProps, FileWithPath } from '@mantine/dropzone';
+import { Dropzone, FileWithPath } from '@mantine/dropzone';
 import { notifications } from '@mantine/notifications';
 import {
   IconUpload,
   IconEdit,
   IconTrash,
   IconPhoto,
-  IconDownload,
   IconX,
   IconCheck,
   IconEye,
-  IconAlertCircle
 } from '@tabler/icons-react';
 import { useForm } from '@mantine/form';
 import { Banner, BannerType } from '@/types/banner';
 import { modals } from '@mantine/modals';
 import classes from './BannerManagement.module.css';
-import { uploadToCloudinary } from '@/lib/cloudinary';
+import { uploadToMinio } from '@/utils/minioUpload';
 import { FallbackBanners } from './components/FallbackBanners';
+import { useApiData } from '@/hooks/useApiData';
+import { useCrudOperations } from '@/hooks/useCrudOperations';
 
 interface FormValues {
   type: BannerType;
@@ -75,12 +71,9 @@ const bannerTypes = [
 ];
 
 export default function BannerManagement() {
-  const [banners, setBanners] = useState<Banner[]>([]);
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string | null>('bannerList');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -100,30 +93,36 @@ export default function BannerManagement() {
     },
   });
 
-  const fetchBanners = async () => {
-    try {
-      setLoading(true);
-      setErrorMessage(null);
-      const response = await fetch('/api/banner');
-      if (!response.ok) throw new Error('Failed to fetch banners');
-      const data = await response.json();
-      setBanners(data.sort((a: Banner, b: Banner) => a.type.localeCompare(b.type)));
-    } catch (error) {
-      console.error('Error fetching banners:', error);
-      setErrorMessage('Failed to load banners. Please try again later.');
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to load banners',
-        color: 'red',
-      });
-    } finally {
-      setLoading(false);
+  // ✅ MIGRATED: Using centralized hooks instead of manual state management
+  const { 
+    data: banners, 
+    loading, 
+    refetch: fetchBanners 
+  } = useApiData<Banner[]>('/api/banner', [], {
+    showNotifications: true,
+    onSuccess: (data) => {
+      return data.sort((a: Banner, b: Banner) => a.type.localeCompare(b.type));
     }
-  };
+  });
+
+  // ✅ MIGRATED: Using centralized CRUD operations
+  const { 
+    create: _create, 
+    remove: _remove,
+    update: _update,
+    loading: _crudLoading 
+  } = useCrudOperations<Banner>('/api/banner', {
+    showNotifications: true,
+    onSuccess: () => {
+      fetchBanners(); // Refresh data after operations
+      form.reset();
+      setPreviewUrl(null);
+    }
+  });
 
   useEffect(() => {
     fetchBanners();
-  }, []);
+  }, [fetchBanners]);
 
   const handleImageDrop = (files: FileWithPath[]) => {
     if (files.length === 0) return;
@@ -139,12 +138,12 @@ export default function BannerManagement() {
 
   const handleImageUpload = async (file: File): Promise<string> => {
     try {
-      const result = await uploadToCloudinary(file, {
+      const result = await uploadToMinio(file, {
         folder: 'banners',
         resourceType: 'image',
       });
 
-      return result.secure_url;
+      return result.url;
     } catch (error) {
       console.error('Error uploading to Cloudinary:', error);
       throw new Error('Failed to upload image. Please try again.');
@@ -154,7 +153,6 @@ export default function BannerManagement() {
   const handleSubmit = async (values: typeof form.values) => {
     try {
       setSubmitting(true);
-      setErrorMessage(null);
 
       // Validate that we have an image for new banners
       if (!editingId && !values.backgroundImage) {
@@ -222,7 +220,6 @@ export default function BannerManagement() {
       fetchBanners();
     } catch (error) {
       console.error('Error submitting banner:', error);
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to save banner');
       notifications.show({
         title: 'Error',
         message: error instanceof Error ? error.message : 'Failed to save banner',
@@ -246,7 +243,6 @@ export default function BannerManagement() {
       confirmProps: { color: 'red' },
       onConfirm: async () => {
         try {
-          setLoading(true);
           const response = await fetch(`/api/banner/${id}`, {
             method: 'DELETE',
           });
@@ -261,15 +257,13 @@ export default function BannerManagement() {
           });
 
           fetchBanners();
-        } catch (error) {
+        } catch {
           notifications.show({
             title: 'Error',
             message: 'Failed to delete banner',
             color: 'red',
             icon: <IconX size={16} />,
           });
-        } finally {
-          setLoading(false);
         }
       },
     });
@@ -427,12 +421,6 @@ export default function BannerManagement() {
               </Box>
             )}
           </Stack>
-
-          {errorMessage && (
-            <Alert icon={<IconAlertCircle size={16} />} title="Error" color="red" withCloseButton onClose={() => setErrorMessage(null)}>
-              {errorMessage}
-            </Alert>
-          )}
 
           <Group justify="flex-end" mt="md">
             <Button variant="default" onClick={handleClearForm} disabled={submitting}>

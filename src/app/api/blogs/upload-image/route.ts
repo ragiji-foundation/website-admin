@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadToCloudinary } from '@/utils/cloudinary';
+import { uploadToMinio } from '@/utils/minioUpload';
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
     // Upload the image to Cloudinary
    // Upload the image to Cloudinary
-const result = await uploadToCloudinary(file, { folder: 'blogs' });
+const result = await uploadToMinio(file, { folder: 'blogs' });
 
     // Return the URL of the uploaded image
     return NextResponse.json({

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { put, del } from '@vercel/blob';
+import { uploadFile, deleteFile } from '@/utils/centralized/upload';
 import type { Carousel, CarouselUpdateInput, CarouselType } from '@/types/carousel';
 
 export async function GET(
@@ -72,10 +72,13 @@ export async function PATCH(
     // Handle image upload if provided
     const image = formData.get('image') as File | null;
     if (image) {
-      const blob = await put(image.name, image, {
-        access: 'public',
+      const result = await uploadFile(image, {
+        folder: 'carousel',
+        tags: ['carousel'],
+        resourceType: 'image',
+        showNotifications: false,
       });
-      updateData.imageUrl = blob.url;
+      updateData.imageUrl = result.url;
 
       // Delete old image if it exists
       const oldItem = await prisma.carousel.findUnique({
@@ -85,8 +88,7 @@ export async function PATCH(
 
       if (oldItem?.imageUrl) {
         try {
-          const oldUrl = new URL(oldItem.imageUrl);
-          await del(oldUrl.pathname);
+          await deleteFile(oldItem.imageUrl);
         } catch (deleteError) {
           console.error('Error deleting old image:', deleteError);
         }
@@ -144,8 +146,7 @@ export async function DELETE(
     // Delete the image from blob storage
     if (item.imageUrl) {
       try {
-        const imageUrl = new URL(item.imageUrl);
-        await del(imageUrl.pathname);
+        await deleteFile(item.imageUrl);
       } catch (deleteError) {
         console.error('Error deleting image:', deleteError);
       }

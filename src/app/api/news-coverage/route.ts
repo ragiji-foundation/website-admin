@@ -1,57 +1,68 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
+import { 
+  apiSuccess, 
+  handleOptions, 
+  withApiHandler,
+  validateRequired,
+  CrudResponses,
+  handleDatabaseError,
+  logApiCall
+} from '@/utils/centralized';
 
-export async function GET() {
+export const GET = withApiHandler(async (request: NextRequest) => {
+  logApiCall(request, 'Fetching news articles');
+  
   try {
-    const news = await prisma.newsArticle.findMany({
-      orderBy: { date: 'desc' },
-      select: {
-        id: true,
-        title: true,
-        titleHi: true,
-        source: true,
-        date: true,
-        imageUrl: true,
-        link: true,
-        description: true,
-        descriptionHi: true,
-        createdAt: true,
-        updatedAt: true
-      }
-    });
-    return NextResponse.json(news);
-  } catch (error) {
-    console.error('Error fetching news:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch news' },
-      { status: 500 }
-    );
-  }
-}
+    const { searchParams } = new URL(request.url);
+    const locale = searchParams.get('locale') || 'en';
 
-export async function POST(request: NextRequest) {
-  try {
-    const data = await request.json();
-    const news = await prisma.newsArticle.create({
-      data: {
-        title: data.title,
-        titleHi: data.titleHi || '',
-        source: data.source,
-        date: new Date(data.date),
-        imageUrl: data.imageUrl,
-        link: data.link,
-        description: data.description,
-        descriptionHi: data.descriptionHi || '',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }
+    const articles = await prisma.newsArticle.findMany({
+      orderBy: { date: 'desc' }
     });
-    return NextResponse.json(news);
+
+    const localizedArticles = articles.map(article => ({
+      ...article,
+      title: locale === 'hi' && article.titleHi ? article.titleHi : article.title,
+      description: locale === 'hi' && article.descriptionHi ? article.descriptionHi : article.description,
+    }));
+
+    return apiSuccess(localizedArticles, 'News articles fetched successfully');
   } catch (error) {
-    console.error('Error creating news:', error);
-    return NextResponse.json(
-      { error: 'Failed to create news' },
-      { status: 500 }
-    );
+    return handleDatabaseError(error, 'fetch news articles');
   }
-}
+});
+
+export const POST = withApiHandler(async (request: NextRequest) => {
+  logApiCall(request, 'Creating news article');
+  
+  try {
+    const body = await request.json();
+    
+    // Centralized validation
+    validateRequired(body, ['title', 'source', 'date']);
+    
+    const validFields = {
+      title: body.title,
+      titleHi: body.titleHi || '',
+      source: body.source,
+      date: new Date(body.date),
+      imageUrl: body.imageUrl || '',
+      link: body.link || '',
+      description: body.description || '',
+      descriptionHi: body.descriptionHi || '',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    const article = await prisma.newsArticle.create({
+      data: validFields
+    });
+
+    return CrudResponses.created(article);
+  } catch (error) {
+    return handleDatabaseError(error, 'create news article');
+  }
+});
+
+export const OPTIONS = handleOptions;

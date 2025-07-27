@@ -11,7 +11,7 @@
 
 // Simple wrapper for the form component
 // Provides a clean UI for adding new stories
-// Edit Page (/success-stories/[slug]/edit/page.tsx):
+// Edit Page (/success-stories/[id]/edit/page.tsx):
 
 // Loads existing story data
 // Handles error states and loading states

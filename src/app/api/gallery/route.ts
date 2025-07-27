@@ -1,64 +1,58 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
-import { withCors, corsError } from '@/utils/cors';
+import { 
+  apiSuccess, 
+  handleOptions, 
+  withApiHandler,
+  validateRequired,
+  CrudResponses,
+  handleDatabaseError,
+  logApiCall
+} from '@/utils/centralized';
 
-export async function GET() {
+export const GET = withApiHandler(async (request: NextRequest) => {
+  logApiCall(request, 'Fetching gallery items');
+  
   try {
     const gallery = await prisma.gallery.findMany({
       orderBy: { createdAt: 'desc' }
     });
-    return withCors(NextResponse.json(gallery));
+    
+    return apiSuccess(gallery, 'Gallery items fetched successfully');
   } catch (error) {
-    return corsError('Failed to fetch gallery');
+    handleDatabaseError(error, 'fetch gallery items');
   }
-}
+});
 
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
+  logApiCall(request, 'Creating gallery item');
+  
   try {
     const body = await request.json();
-
-    // Validate required fields
-    const { title, imageUrl } = body;
-    if (!title || !imageUrl) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
-
-    // Check for unsupported fields and remove them
+    
+    // Centralized validation
+    validateRequired(body, ['title', 'imageUrl']);
+    
     const validFields = {
-      title,
-      imageUrl,
+      title: body.title,
+      imageUrl: body.imageUrl,
       category: body.category || 'general',
       description: body.description || '',
-      // Note: metadata field is removed since it's not in the schema
     };
 
-    // Create new gallery item with only valid fields
     const galleryItem = await prisma.gallery.create({
       data: validFields
     });
 
-    // You can store the publicId in the response if needed
     const responseData = {
       ...galleryItem,
       publicId: body.publicId || null
     };
 
-    return NextResponse.json({
-      success: true,
-      data: responseData
-    }, { status: 201 });
+    return CrudResponses.created(responseData);
   } catch (error) {
-    console.error('Error creating gallery item:', error);
-    return NextResponse.json(
-      { error: 'Failed to create gallery item' },
-      { status: 500 }
-    );
+    handleDatabaseError(error, 'create gallery item');
   }
-}
+});
 
-export async function OPTIONS() {
-  return withCors(new NextResponse(null, { status: 200 }));
-}
+export const OPTIONS = handleOptions;

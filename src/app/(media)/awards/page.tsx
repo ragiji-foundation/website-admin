@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Container,
   Title,
@@ -23,6 +23,10 @@ import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { IconPlus, IconEdit, IconTrash, IconUpload } from '@tabler/icons-react';
 
+// ✅ MIGRATED: Import centralized hooks
+import { useApiData } from '@/hooks/useApiData';
+import { useCrudOperations } from '@/hooks/useCrudOperations';
+
 interface Award {
   id: string;
   title: string;
@@ -37,11 +41,13 @@ interface Award {
 }
 
 export default function AwardsManagementPage() {
-  const [awards, setAwards] = useState<Award[]>([]);
-  const [loading, setLoading] = useState(true);
   const [modalOpened, setModalOpened] = useState(false);
   const [editingAward, setEditingAward] = useState<Award | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  // ✅ MIGRATED: Use centralized data fetching and operations
+  const { data: awards = [], loading, refetch } = useApiData<Award[]>('/api/awards', []);
+  const { create, update, remove } = useCrudOperations<Award>('/api/awards');
 
   const form = useForm({
     initialValues: {
@@ -62,27 +68,6 @@ export default function AwardsManagementPage() {
       imageUrl: (value) => !value && 'Image is required',
     },
   });
-
-  const fetchAwards = async () => {
-    try {
-      const response = await fetch('/api/awards');
-      if (!response.ok) throw new Error('Failed to fetch awards');
-      const data = await response.json();
-      setAwards(data);
-    } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to fetch awards',
-        color: 'red',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchAwards();
-  }, []);
 
   const handleImageUpload = async (file: File) => {
     setUploadingImage(true);
@@ -109,33 +94,29 @@ export default function AwardsManagementPage() {
     }
   };
 
+  // ✅ MIGRATED: Centralized form submission
   const handleSubmit = async (values: typeof form.values) => {
     try {
-      const url = editingAward
-        ? `/api/awards/${editingAward.id}`
-        : '/api/awards';
+      let result;
+      if (editingAward) {
+        result = await update(editingAward.id, values);
+      } else {
+        result = await create(values);
+      }
 
-      const method = editingAward ? 'PUT' : 'POST';
+      if (result) {
+        refetch();
+        setModalOpened(false);
+        form.reset();
+        setEditingAward(null);
 
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
-      });
-
-      if (!response.ok) throw new Error('Failed to save award');
-
-      await fetchAwards();
-      setModalOpened(false);
-      form.reset();
-      setEditingAward(null);
-
-      notifications.show({
-        title: 'Success',
-        message: `Award ${editingAward ? 'updated' : 'created'} successfully`,
-        color: 'green',
-      });
-    } catch (error) {
+        notifications.show({
+          title: 'Success',
+          message: `Award ${editingAward ? 'updated' : 'created'} successfully`,
+          color: 'green',
+        });
+      }
+    } catch {
       notifications.show({
         title: 'Error',
         message: 'Failed to save award',
@@ -144,23 +125,22 @@ export default function AwardsManagementPage() {
     }
   };
 
+  // ✅ MIGRATED: Centralized delete operation
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this award?')) return;
 
     try {
-      const response = await fetch(`/api/awards/${id}`, {
-        method: 'DELETE',
-      });
+      const result = await remove(id);
 
-      if (!response.ok) throw new Error('Failed to delete award');
-
-      await fetchAwards();
-      notifications.show({
-        title: 'Success',
-        message: 'Award deleted successfully',
-        color: 'green',
-      });
-    } catch (error) {
+      if (result) {
+        refetch();
+        notifications.show({
+          title: 'Success',
+          message: 'Award deleted successfully',
+          color: 'green',
+        });
+      }
+    } catch {
       notifications.show({
         title: 'Error',
         message: 'Failed to delete award',

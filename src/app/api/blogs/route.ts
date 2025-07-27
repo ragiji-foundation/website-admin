@@ -65,6 +65,12 @@ export async function GET(request: NextRequest) {
         status: true,
         authorName: true,
         authorNameHi: true,
+        metaDescription: true,
+        metaDescriptionHi: true,
+        ogTitle: true,
+        ogTitleHi: true,
+        ogDescription: true,
+        ogDescriptionHi: true,
         createdAt: true,
         updatedAt: true,
         author: {

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Grid, Card, Image, Text, Button, Group, Stack, LoadingOverlay, Box, ActionIcon } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { uploadToCloudinary, getTransformedUrl } from '@/utils/cloudinary';
+// ✅ FIXED: Import from centralized upload system
+import { uploadFile } from '@/utils/centralized';
 import { IconCheck, IconEye } from '@tabler/icons-react';
 
 interface ContentItem {
@@ -186,7 +187,7 @@ export function ContentLibrarySelector({ onSelect }: ContentLibrarySelectorProps
               <Group align="flex-start">
                 <div style={{ position: 'relative', width: 80, height: 80 }}>
                   <Image
-                    src={getTransformedUrl(content.thumbnail || '/placeholder.svg', 160, 160)}
+                    src={content.thumbnail || '/placeholder.svg'}
                     width={80}
                     height={80}
                     radius="md"

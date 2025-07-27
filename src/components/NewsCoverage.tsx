@@ -144,17 +144,19 @@ export default function NewsCoverage() {
   };
 
   const onImageUpload = async (file: File | null) => {
+    if (!file) return;
+    
     try {
-      const url = await handleImageUpload(file);
-      if (url) {
-        setFormData(prev => ({ ...prev, imageUrl: url }));
+      const result = await handleImageUpload(file);
+      if (result?.url) {
+        setFormData(prev => ({ ...prev, imageUrl: result.url }));
         notifications.show({
           title: 'Success',
           message: 'Image uploaded successfully',
           color: 'green'
         });
       }
-    } catch (error) {
+    } catch {
       notifications.show({
         title: 'Error',
         message: 'Failed to upload image',

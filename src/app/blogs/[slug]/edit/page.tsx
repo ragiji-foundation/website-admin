@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { notifications } from '@mantine/notifications';
 import {
@@ -26,9 +26,13 @@ import {
 import { IconArrowLeft, IconClock, IconCalendar, IconEye, IconEyeOff } from '@tabler/icons-react';
 // Fix: Import TiptapEditor from the correct path
 import TiptapEditor from '@/components/TiptapEditor';
-import { uploadToCloudinary } from '@/utils/cloudinary';
+import { uploadToMinio } from '@/utils/minioUpload';
 import { RichTextContent } from '@/components/RichTextContent';
 import { format } from 'date-fns';
+
+// ✅ MIGRATED: Import centralized hooks
+import { useApiData } from '@/hooks/useApiData';
+import { useCrudOperations } from '@/hooks/useCrudOperations';
 
 interface Category {
   id: number;
@@ -70,18 +74,54 @@ export default function EditBlog() {
   const params = useParams() as { slug: string };
   const searchParams = useSearchParams();
   const locale = searchParams?.get('locale') || 'en';
+  
+  // ✅ MIGRATED: Using centralized hooks for data fetching
+  const { data: blogData, loading: blogLoading } = useApiData<Blog | null>(
+    `/api/blogs/${params?.slug}?locale=${locale}`,
+    null,
+    { 
+      showNotifications: true,
+      onError: () => router.push('/blogs')
+    }
+  );
+
+  const { data: categories, loading: categoriesLoading } = useApiData<Category[]>(
+    '/api/categories',
+    [],
+    { showNotifications: true }
+  );
+
+  const { data: tags, loading: tagsLoading } = useApiData<Tag[]>(
+    '/api/tags',
+    [],
+    { showNotifications: true }
+  );
+
+  // ✅ MIGRATED: Using centralized CRUD operations
+  const { update, loading: saving } = useCrudOperations<Blog>('/api/blogs', {
+    showNotifications: true,
+    onSuccess: () => router.push(`/blogs/${params?.slug}?locale=${locale}`)
+  });
+
+  // Local state for form editing
   const [blog, setBlog] = useState<Blog | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
   const [content, setContent] = useState<string>('');
   const [showPreview, setShowPreview] = useState(false);
+
+  // Update local blog state when data loads
+  useEffect(() => {
+    if (blogData) {
+      setBlog(blogData);
+      setContent(blogData.content || '');
+    }
+  }, [blogData]);
+
+  const loading = blogLoading || categoriesLoading || tagsLoading;
 
   // Handle image upload for TipTap
   const handleImageUpload = async (file: File): Promise<string> => {
     try {
-      const uploadResult = await uploadToCloudinary(file, { folder: 'blogs' });
+      const uploadResult = await uploadToMinio(file, { folder: 'blogs' });
       return uploadResult.url;
     } catch (error) {
       console.error('Image upload failed:', error);
@@ -94,100 +134,34 @@ export default function EditBlog() {
     }
   };
 
-  useEffect(() => {
-    if (!params?.slug) return;
-
-    const fetchData = async () => {
-      try {
-        const [blogRes, categoriesRes, tagsRes] = await Promise.all([
-          fetch(`/api/blogs/${params.slug}?locale=${locale}`),
-          fetch('/api/categories'),
-          fetch('/api/tags')
-        ]);
-
-        const [blogData, categoriesData, tagsData] = await Promise.all([
-          blogRes.json(),
-          categoriesRes.json(),
-          tagsRes.json()
-        ]);
-
-        if (blogData.error) {
-          throw new Error(blogData.error);
-        }
-
-        setBlog(blogData);
-        setContent(blogData.content || '');
-        setCategories(categoriesData);
-        setTags(tagsData);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        notifications.show({
-          title: 'Error',
-          message: error instanceof Error ? error.message : 'Failed to fetch data',
-          color: 'red'
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [params?.slug, locale]);
-
+  // ✅ MIGRATED: Simplified submit function using centralized operations
   const handleSubmit = async () => {
-    if (!blog) return;
+    if (!blog || !params?.slug) return;
 
-    setSaving(true);
     try {
-      // Prepare tag connections in the format expected by Prisma
-      const tagConnections = blog.tags.map(tag => ({ id: tag.id }));
+      const updateData = {
+        title: blog.title,
+        titleHi: blog.titleHi,
+        content: locale === 'en' ? content : blog.content,
+        contentHi: locale === 'en' ? blog.contentHi : content,
+        status: blog.status,
+        metaDescription: blog.metaDescription,
+        metaDescriptionHi: blog.metaDescriptionHi,
+        ogTitle: blog.ogTitle || blog.title,
+        ogTitleHi: blog.ogTitleHi || blog.titleHi,
+        ogDescription: blog.ogDescription || blog.metaDescription,
+        ogDescriptionHi: blog.ogDescriptionHi || blog.metaDescriptionHi,
+        authorName: blog.authorName,
+        authorNameHi: blog.authorNameHi,
+        categoryId: blog.category?.id || null,
+        locale: locale,
+        tags: blog.tags // Keep the full tag objects
+      };
 
-      const response = await fetch(`/api/blogs/${params.slug}?locale=${locale}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: blog.title,
-          titleHi: blog.titleHi,
-          content: locale === 'en' ? content : blog.content,
-          contentHi: locale === 'en' ? blog.contentHi : content,
-          status: blog.status,
-          metaDescription: blog.metaDescription,
-          metaDescriptionHi: blog.metaDescriptionHi,
-          ogTitle: blog.ogTitle || blog.title,
-          ogTitleHi: blog.ogTitleHi || blog.titleHi,
-          ogDescription: blog.ogDescription || blog.metaDescription,
-          ogDescriptionHi: blog.ogDescriptionHi || blog.metaDescriptionHi,
-          authorName: blog.authorName,
-          authorNameHi: blog.authorNameHi,
-          categoryId: blog.category?.id || null,
-          locale: locale,
-          tags: tagConnections
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to update blog');
-      }
-
-      notifications.show({
-        title: 'Success',
-        message: 'Blog updated successfully',
-        color: 'green'
-      });
-
-      router.push(`/blogs/${params.slug}?locale=${locale}`);
+      await update(`${params.slug}?locale=${locale}`, updateData);
     } catch (error) {
       console.error('Error updating blog:', error);
-      notifications.show({
-        title: 'Error',
-        message: error instanceof Error ? error.message : 'Failed to update blog',
-        color: 'red'
-      });
-    } finally {
-      setSaving(false);
+      // Error handling is done by the centralized hook
     }
   };
 

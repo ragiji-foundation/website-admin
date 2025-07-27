@@ -38,10 +38,13 @@ import {
   IconX
 } from '@tabler/icons-react';
 import { ContentLibrarySelector } from '@/components/Gallery/ContentLibrarySelector';
-import { uploadToCloudinary, getTransformedUrl } from '@/utils/cloudinary';
+import { uploadToMinio, getTransformedUrl } from '@/utils/minioUpload';
 import { useHover } from '@mantine/hooks';
 import { Lighthouse } from '@/components/Gallery/Lighthouse';
 import { GalleryImageForm } from '@/components/Gallery/GalleryImageForm';
+// ✅ ADDED: Import centralized hooks
+import { useApiData } from '@/hooks/useApiData';
+import { useCrudOperations } from '@/hooks/useCrudOperations';
 
 interface GalleryItem {
   id: string;
@@ -57,33 +60,15 @@ interface GalleryItem {
 }
 
 export default function GalleryPage() {
-  const [items, setItems] = useState<GalleryItem[]>([]);
-  const [opened, { open, close }] = useDisclosure(false);
-  const [previewOpened, { open: openPreview, close: closePreview }] = useDisclosure(false);
-  const [loading, setLoading] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  // Hindi support
-  const [language, setLanguage] = useState<'en' | 'hi'>('en');
-  // Bulk upload
-  const [bulkFiles, setBulkFiles] = useState<File[]>([]);
-  // Edit feature
-  const [editOpened, setEditOpened] = useState(false);
-  const [editItem, setEditItem] = useState<GalleryItem | null>(null);
-
-  useEffect(() => {
-    fetchGalleryItems();
-  }, []);
-
-  const fetchGalleryItems = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch('/api/gallery');
-      if (!response.ok) throw new Error('Failed to fetch gallery items');
-
-      const data: Partial<GalleryItem>[] = await response.json();
-
+  // ✅ MIGRATED: Using centralized hooks instead of manual state management
+  const { 
+    data: items, 
+    loading: isLoading, 
+    error, 
+    refetch: fetchGalleryItems 
+  } = useApiData<GalleryItem[]>('/api/gallery', [], {
+    showNotifications: true,
+    onSuccess: (data) => {
       // Transform the data to ensure consistent field names
       const normalizedItems: GalleryItem[] = data.map((item) => ({
         id: item.id as string,
@@ -97,55 +82,57 @@ export default function GalleryPage() {
         descriptionHi: item.descriptionHi,
         category: item.category || 'general'
       }));
-
-      setItems(normalizedItems);
-    } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to fetch gallery items',
-        color: 'red'
-      });
-      console.error('Gallery fetch error:', error);
-    } finally {
-      setIsLoading(false);
+      return normalizedItems;
     }
-  };
+  });
 
+  // ✅ MIGRATED: Using centralized CRUD operations
+  const { 
+    create, 
+    remove, 
+    loading: crudLoading 
+  } = useCrudOperations<GalleryItem>('/api/gallery', {
+    showNotifications: true,
+    onSuccess: () => {
+      fetchGalleryItems(); // Refresh data after operations
+    }
+  });
+
+  const [opened, { open, close }] = useDisclosure(false);
+  const [previewOpened, { open: openPreview, close: closePreview }] = useDisclosure(false);
+  const [loading, setLoading] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  // Hindi support
+  const [language, setLanguage] = useState<'en' | 'hi'>('en');
+  // Bulk upload
+  const [bulkFiles, setBulkFiles] = useState<File[]>([]);
+  // Edit feature
+  const [editOpened, setEditOpened] = useState(false);
+  const [editItem, setEditItem] = useState<GalleryItem | null>(null);
+
+  // ✅ MIGRATED: Using centralized create operation
   const handleFileUpload = async (file: File | null) => {
     if (!file) return;
     try {
       setLoading(true);
 
       // Use Cloudinary for upload
-      const result = await uploadToCloudinary(file, {
+      const result = await uploadToMinio(file, {
         folder: 'gallery',
         tags: ['gallery', 'upload'],
         resourceType: 'image'
       });
 
-      // Create a new gallery item
-      const response = await fetch('/api/gallery', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: file.name.split('.')[0],
-          imageUrl: result.url,
-          type: 'image',
-          description: 'Uploaded on ' + new Date().toLocaleDateString(),
-          category: 'upload'
-        }),
+      // Use centralized create function
+      await create({
+        title: file.name.split('.')[0],
+        imageUrl: result.url,
+        type: 'image',
+        description: 'Uploaded on ' + new Date().toLocaleDateString(),
+        category: 'upload'
       });
 
-      if (!response.ok) throw new Error('Failed to save to gallery');
-
-      await fetchGalleryItems();
-      notifications.show({
-        title: 'Success',
-        message: 'File uploaded successfully',
-        color: 'green'
-      });
       close();
     } catch (error) {
       notifications.show({
@@ -158,32 +145,27 @@ export default function GalleryPage() {
     }
   };
 
-  // Bulk upload handler
+  // ✅ MIGRATED: Bulk upload using centralized create
   const handleBulkUpload = async (files: File[] | null) => {
     if (!files || files.length === 0) return;
     setLoading(true);
     try {
       for (const file of files) {
         // Use Cloudinary for upload
-        const result = await uploadToCloudinary(file, {
+        const result = await uploadToMinio(file, {
           folder: 'gallery',
           tags: ['gallery', 'upload'],
           resourceType: 'image'
         });
-        // Create a new gallery item
-        await fetch('/api/gallery', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: file.name.split('.')[0],
-            imageUrl: result.url,
-            type: 'image',
-            description: 'Uploaded on ' + new Date().toLocaleDateString(),
-            category: 'upload'
-          }),
+        // Use centralized create function
+        await create({
+          title: file.name.split('.')[0],
+          imageUrl: result.url,
+          type: 'image',
+          description: 'Uploaded on ' + new Date().toLocaleDateString(),
+          category: 'upload'
         });
       }
-      await fetchGalleryItems();
       notifications.show({
         title: 'Success',
         message: 'All files uploaded successfully',
@@ -207,31 +189,13 @@ export default function GalleryPage() {
     openPreview();
   };
 
+  // ✅ MIGRATED: Using centralized delete operation
   const handleDelete = async (id: string) => {
     const confirmed = window.confirm("Are you sure you want to delete this image?");
     if (!confirmed) return;
 
-    try {
-      const response = await fetch(`/api/gallery/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) throw new Error('Failed to delete');
-
-      setItems(items.filter(item => item.id !== id));
-
-      notifications.show({
-        title: 'Success',
-        message: 'Image deleted successfully',
-        color: 'green'
-      });
-    } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to delete image',
-        color: 'red'
-      });
-    }
+    // Use centralized remove function
+    await remove(id);
   };
 
   const copyToClipboard = (url: string) => {
@@ -241,6 +205,27 @@ export default function GalleryPage() {
       message: 'Image URL copied to clipboard',
       color: 'blue'
     });
+  };
+
+  // ✅ ADDED: Edit handlers for gallery items
+  const handleEdit = (item: GalleryItem) => {
+    setEditItem(item);
+    setEditOpened(true);
+  };
+
+  // ✅ MIGRATED: Using centralized update operation
+  const { update } = useCrudOperations<GalleryItem>('/api/gallery', {
+    showNotifications: true,
+    onSuccess: () => {
+      fetchGalleryItems();
+      setEditOpened(false);
+      setEditItem(null);
+    }
+  });
+
+  const handleEditSubmit = async (formData: Partial<GalleryItem>) => {
+    if (!editItem) return;
+    await update(editItem.id, formData);
   };
 
   const filteredItems = searchTerm

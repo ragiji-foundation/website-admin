@@ -10,7 +10,6 @@ import {
   Paper,
   Table,
   Modal,
-  Select,
   Switch,
   ActionIcon,
   Badge,
@@ -20,9 +19,11 @@ import {
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useDisclosure } from '@mantine/hooks';
-import { showNotification } from '@mantine/notifications';
-import { IconPlus, IconEdit, IconTrash, IconEye } from '@tabler/icons-react';
+import { IconPlus, IconEdit, IconTrash } from '@tabler/icons-react';
 import { BilingualInput, BilingualRichText } from '@/components/BilingualInput';
+// ✅ ADDED: Import centralized hooks
+import { useApiData } from '@/hooks/useApiData';
+import { useCrudOperations } from '@/hooks/useCrudOperations';
 
 interface Testimonial {
   id: number;
@@ -38,8 +39,22 @@ interface Testimonial {
 }
 
 export default function TestimonialsPage() {
-  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
-  const [loading, setLoading] = useState(true);
+  // ✅ MIGRATED: Using centralized hooks instead of manual state management
+  const { data: testimonials, loading: _loading, refetch: fetchTestimonials } = useApiData<Testimonial[]>(
+    '/api/testimonials', 
+    [],
+    { showNotifications: true }
+  );
+
+  // ✅ MIGRATED: Using centralized CRUD operations
+  const { create, remove, update } = useCrudOperations<Testimonial>('/api/testimonials', {
+    showNotifications: true,
+    onSuccess: () => {
+      fetchTestimonials(); // Refresh data after operations
+      handleCloseModal();
+    }
+  });
+
   const [opened, { open, close }] = useDisclosure(false);
   const [editingTestimonial, setEditingTestimonial] = useState<Testimonial | null>(null);
 
@@ -61,53 +76,19 @@ export default function TestimonialsPage() {
     },
   });
 
-  const fetchTestimonials = async () => {
-    try {
-      const response = await fetch('/api/testimonials');
-      const data = await response.json();
-      setTestimonials(data);
-    } catch (error) {
-      console.error('Error fetching testimonials:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
     fetchTestimonials();
-  }, []);
+  }, [fetchTestimonials]);
 
   const handleSubmit = async (values: typeof form.values) => {
     try {
-      const url = editingTestimonial 
-        ? `/api/testimonials/${editingTestimonial.id}`
-        : '/api/testimonials';
-      
-      const method = editingTestimonial ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
-      });
-
-      if (response.ok) {
-        showNotification({
-          title: 'Success',
-          message: editingTestimonial 
-            ? 'Testimonial updated successfully' 
-            : 'Testimonial created successfully',
-          color: 'green'
-        });
-        fetchTestimonials();
-        handleCloseModal();
+      if (editingTestimonial) {
+        await update(editingTestimonial.id, values);
+      } else {
+        await create(values);
       }
     } catch (error) {
-      showNotification({
-        title: 'Error',
-        message: 'Failed to save testimonial',
-        color: 'red'
-      });
+      console.error('Error submitting testimonial:', error);
     }
   };
 
@@ -130,24 +111,9 @@ export default function TestimonialsPage() {
     if (!confirm('Are you sure you want to delete this testimonial?')) return;
     
     try {
-      const response = await fetch(`/api/testimonials/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        showNotification({
-          title: 'Success',
-          message: 'Testimonial deleted successfully',
-          color: 'green'
-        });
-        fetchTestimonials();
-      }
-    } catch (error) {
-      showNotification({
-        title: 'Error',
-        message: 'Failed to delete testimonial',
-        color: 'red'
-      });
+      await remove(id);
+    } catch {
+      console.error('Error deleting testimonial');
     }
   };
 

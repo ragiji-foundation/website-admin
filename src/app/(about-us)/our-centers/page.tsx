@@ -22,6 +22,9 @@ import { notifications } from '@mantine/notifications';
 import { IconTrash, IconEdit, IconPlus } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import TiptapEditor from '@/components/TiptapEditor';
+// ✅ ADDED: Import centralized hooks
+import { useApiData } from '@/hooks/useApiData';
+import { useCrudOperations } from '@/hooks/useCrudOperations';
 
 interface Center {
   id: number;
@@ -38,8 +41,33 @@ interface Center {
 }
 
 export default function CentersAdmin() {
-  const [centers, setCenters] = useState<Center[]>([]);
-  const [loading, setLoading] = useState(false);
+  // ✅ MIGRATED: Using centralized hooks instead of manual state management
+  const { data: centers, loading, refetch: fetchCenters } = useApiData<Center[]>(
+    '/api/centers', 
+    [],
+    { showNotifications: true }
+  );
+
+  // ✅ MIGRATED: Using centralized CRUD operations
+  const { create, remove, update } = useCrudOperations<Center>('/api/centers', {
+    showNotifications: true,
+    onSuccess: () => {
+      fetchCenters(); // Refresh data after operations
+      close();
+      setFormData({
+        name: '',
+        nameHi: '',
+        location: '',
+        locationHi: '',
+        description: '',
+        descriptionHi: '',
+        imageUrl: '',
+        contactInfo: ''
+      });
+      setEditingId(null);
+    }
+  });
+
   const [editingId, setEditingId] = useState<number | null>(null);
   const [opened, { open, close }] = useDisclosure(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -56,59 +84,19 @@ export default function CentersAdmin() {
 
   useEffect(() => {
     fetchCenters();
-  }, []);
+  }, [fetchCenters]);
 
-  const fetchCenters = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/centers');
-      if (!response.ok) throw new Error('Failed to fetch centers');
-      const data = await response.json();
-      setCenters(data);
-    } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to fetch centers',
-        color: 'red'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
 
     try {
-      const method = editingId ? 'PUT' : 'POST';
-      const url = editingId ? `/api/centers/${editingId}` : '/api/centers';
-
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) throw new Error(`Failed to ${editingId ? 'update' : 'create'} center`);
-
-      notifications.show({
-        title: 'Success',
-        message: `Center ${editingId ? 'updated' : 'created'} successfully`,
-        color: 'green'
-      });
-
-      resetForm();
-      close();
-      fetchCenters();
+      if (editingId) {
+        await update(editingId, formData);
+      } else {
+        await create(formData);
+      }
     } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: error instanceof Error ? error.message : `Failed to ${editingId ? 'update' : 'create'} center`,
-        color: 'red'
-      });
-    } finally {
-      setLoading(false);
+      console.error('Error submitting center:', error);
     }
   };
 
@@ -131,25 +119,9 @@ export default function CentersAdmin() {
     if (!confirm('Are you sure you want to delete this center?')) return;
 
     try {
-      const response = await fetch(`/api/centers/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) throw new Error('Failed to delete center');
-
-      notifications.show({
-        title: 'Success',
-        message: 'Center deleted successfully',
-        color: 'green'
-      });
-
-      fetchCenters();
+      await remove(id);
     } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to delete center',
-        color: 'red'
-      });
+      console.error('Error deleting center:', error);
     }
   };
 
@@ -207,7 +179,7 @@ export default function CentersAdmin() {
         setUploadProgress(0);
       };
       xhr.send(formDataUpload);
-    } catch (error) {
+    } catch {
       notifications.show({
         title: 'Error',
         message: 'Failed to upload image',

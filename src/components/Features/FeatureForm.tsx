@@ -24,7 +24,7 @@ import Link from 'next/link';
 import { slugify } from '@/utils/strings';
 import { Feature, MediaItem } from '@/types/feature';
 import TiptapEditor from '@/components/TiptapEditor'; // Corrected import path
-import { uploadToCloudinary } from '@/utils/cloudinary';
+import { uploadFile } from '@/services/uploadService';
 
 interface FeatureFormProps {
   initialData?: Feature;
@@ -116,7 +116,7 @@ export function FeatureForm({ initialData, isEditing = false }: FeatureFormProps
         // Upload new image if provided
         let imageUrl = previewImage;
         if (imageFile) {
-          const uploadResult = await uploadToCloudinary(imageFile, { folder: 'features' });
+          const uploadResult = await uploadFile(imageFile, { folder: 'features' });
           imageUrl = uploadResult.url;
         }
 
@@ -138,7 +138,7 @@ export function FeatureForm({ initialData, isEditing = false }: FeatureFormProps
         // Upload thumbnail if provided
         let thumbnailUrl = previewThumbnail;
         if (thumbnailFile) {
-          const uploadResult = await uploadToCloudinary(thumbnailFile, { folder: 'features/thumbnails' });
+          const uploadResult = await uploadFile(thumbnailFile, { folder: 'features/thumbnails' });
           thumbnailUrl = uploadResult.url;
         }
 

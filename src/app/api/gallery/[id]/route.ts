@@ -1,75 +1,86 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getPublicIdFromUrl } from '@/utils/cloudinary';
+import { 
+  apiSuccess, 
+  handleOptionsWithParams, 
+  withApiHandler,
+  validateRequired,
+  CrudResponses,
+  handleDatabaseError,
+  logApiCall
+} from '@/utils/centralized';
 
-// Validate environment variables
-const requiredEnvVars = [
-  'AWS_REGION',
-  'AWS_ACCESS_KEY_ID',
-  'AWS_SECRET_ACCESS_KEY',
-  'AWS_S3_BUCKET'
-] as const;
-
-for (const envVar of requiredEnvVars) {
-  if (!process.env[envVar]) {
-    throw new Error(`Missing required environment variable: ${envVar}`);
-  }
-}
-
-export async function DELETE(
-  request: NextRequest,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  context: any
-) {
+export const GET = withApiHandler(async (request: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  const { id } = await params;
+  logApiCall(request, `Fetching gallery item ${id}`);
+  
   try {
-    // Await params before accessing
-    const { id } = await context.params;
-
-    // Validate ID format
-    if (!id || isNaN(Number(id))) {
-      return NextResponse.json(
-        { error: 'Invalid gallery item ID' },
-        { status: 400 }
-      );
-    }
-
-    // Convert id to number for database query
-    const galleryId = Number(id);
-
-    // Get the gallery item
+    const { searchParams } = new URL(request.url);
+    const locale = searchParams.get('locale') || 'en';
+    
     const item = await prisma.gallery.findUnique({
-      where: { id: galleryId }
+      where: { id: parseInt(id) }
     });
 
     if (!item) {
-      return NextResponse.json(
-        { error: 'Gallery item not found' },
-        { status: 404 }
-      );
+      return CrudResponses.notFound();
     }
 
-    // If using Cloudinary, extract the publicId for logging
-    const publicId = getPublicIdFromUrl(item.imageUrl);
-    if (publicId) {
-      console.log(`Item to delete from Cloudinary: ${publicId}`);
-      // Note: We're just logging, not deleting from Cloudinary
-      // Cloudinary has automatic cleanup policies or you can add SDK calls here
-    }
+    const localizedItem = {
+      ...item,
+      title: locale === 'hi' && item.titleHi ? item.titleHi : item.title,
+      description: locale === 'hi' && item.descriptionHi ? item.descriptionHi : (item.description || ''),
+    };
 
-    // Delete from database
-    await prisma.gallery.delete({
-      where: { id: galleryId }
-    });
-
-    return NextResponse.json({
-      success: true,
-      message: 'Gallery item deleted successfully'
-    });
+    return apiSuccess(localizedItem, 'Gallery item fetched successfully');
   } catch (error) {
-    console.error('Error deleting gallery item:', error);
-    return NextResponse.json(
-      { error: 'An unexpected error occurred while deleting the gallery item' },
-      { status: 500 }
-    );
+    return handleDatabaseError(error, 'fetch gallery item');
   }
-}
+});
+
+export const PUT = withApiHandler(async (request: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  const { id } = await params;
+  logApiCall(request, `Updating gallery item ${id}`);
+  
+  try {
+    const body = await request.json();
+    
+    // Validate required fields for update
+    validateRequired(body, ['title']);
+    
+    const validFields = {
+      title: body.title,
+      titleHi: body.titleHi || '',
+      category: body.category || 'general',
+      description: body.description || '',
+      descriptionHi: body.descriptionHi || '',
+      updatedAt: new Date()
+    };
+
+    const updatedItem = await prisma.gallery.update({
+      where: { id: parseInt(id) },
+      data: validFields
+    });
+
+    return apiSuccess(updatedItem, 'Gallery item updated successfully');
+  } catch (error) {
+    return handleDatabaseError(error, 'update gallery item');
+  }
+});
+
+export const DELETE = withApiHandler(async (request: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  const { id } = await params;
+  logApiCall(request, `Deleting gallery item ${id}`);
+  
+  try {
+    await prisma.gallery.delete({
+      where: { id: parseInt(id) }
+    });
+
+    return CrudResponses.deleted();
+  } catch (error) {
+    return handleDatabaseError(error, 'delete gallery item');
+  }
+});
+
+export const OPTIONS = handleOptionsWithParams;

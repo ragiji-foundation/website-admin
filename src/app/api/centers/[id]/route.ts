@@ -1,85 +1,90 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
-import { withCors, corsError } from '@/utils/cors';
+import { 
+  apiSuccess, 
+  handleOptionsWithParams, 
+  withApiHandler,
+  validateRequired,
+  CrudResponses,
+  handleDatabaseError,
+  logApiCall
+} from '@/utils/centralized';
 
-export async function PUT(
-  request: NextRequest,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  context: any
-) {
+export const GET = withApiHandler(async (request: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  const { id } = await params;
+  logApiCall(request, `Fetching center ${id}`);
+  
   try {
-    const params = await context.params;
-    const id = parseInt(params.id, 10);
-    if (isNaN(id)) {
-      return NextResponse.json(
-        { error: 'Invalid ID format' },
-        { status: 400 }
-      );
-    }
-
-    const body = await request.json();
-
-    const existingCenter = await prisma.center.findUnique({
-      where: { id },
+    const { searchParams } = new URL(request.url);
+    const locale = searchParams.get('locale') || 'en';
+    
+    const center = await prisma.center.findUnique({
+      where: { id: parseInt(id) }
     });
 
-    if (!existingCenter) {
-      return NextResponse.json(
-        { error: 'Center not found' },
-        { status: 404 }
-      );
+    if (!center) {
+      return CrudResponses.notFound();
     }
 
-    const updateData = {
+    const localizedCenter = {
+      ...center,
+      name: locale === 'hi' && center.nameHi ? center.nameHi : center.name,
+      location: locale === 'hi' && center.locationHi ? center.locationHi : center.location,
+      description: locale === 'hi' && center.descriptionHi ? center.descriptionHi : center.description,
+    };
+
+    return apiSuccess(localizedCenter, 'Center fetched successfully');
+  } catch (error) {
+    return handleDatabaseError(error, 'fetch center');
+  }
+});
+
+export const PUT = withApiHandler(async (request: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  const { id } = await params;
+  logApiCall(request, `Updating center ${id}`);
+  
+  try {
+    const body = await request.json();
+    
+    // Validate required fields for update
+    validateRequired(body, ['name', 'location', 'description']);
+    
+    const validFields = {
       name: body.name,
-      nameHi: body.nameHi || existingCenter.nameHi || '',
+      nameHi: body.nameHi || '',
       location: body.location,
-      locationHi: body.locationHi || existingCenter.locationHi || '',
+      locationHi: body.locationHi || '',
       description: body.description,
-      descriptionHi: body.descriptionHi || existingCenter.descriptionHi || '',
-      imageUrl: body.imageUrl || existingCenter.imageUrl || '',
-      contactInfo: body.contactInfo || existingCenter.contactInfo || '',
+      descriptionHi: body.descriptionHi || '',
+      imageUrl: body.imageUrl || '',
+      contactInfo: body.contactInfo || '',
       updatedAt: new Date()
     };
 
     const updatedCenter = await prisma.center.update({
-      where: { id },
-      data: updateData,
+      where: { id: parseInt(id) },
+      data: validFields
     });
 
-    return withCors(NextResponse.json(updatedCenter));
+    return apiSuccess(updatedCenter, 'Center updated successfully');
   } catch (error) {
-    console.error('Failed to update center:', error);
-    return corsError('Failed to update center');
+    return handleDatabaseError(error, 'update center');
   }
-}
+});
 
-export async function DELETE(
-  request: NextRequest,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  context: any
-) {
+export const DELETE = withApiHandler(async (request: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  const { id } = await params;
+  logApiCall(request, `Deleting center ${id}`);
+  
   try {
-    const params = await context.params;
-    const id = parseInt(params.id, 10);
-    if (isNaN(id)) {
-      return NextResponse.json(
-        { error: 'Invalid ID format' },
-        { status: 400 }
-      );
-    }
-
     await prisma.center.delete({
-      where: { id }
+      where: { id: parseInt(id) }
     });
 
-    return withCors(NextResponse.json({ success: true }));
+    return CrudResponses.deleted();
   } catch (error) {
-    console.error('Failed to delete center:', error);
-    return corsError('Failed to delete center');
+    return handleDatabaseError(error, 'delete center');
   }
-}
+});
 
-export async function OPTIONS() {
-  return withCors(new NextResponse(null, { status: 200 }));
-}
+export const OPTIONS = handleOptionsWithParams;

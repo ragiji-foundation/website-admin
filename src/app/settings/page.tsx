@@ -19,6 +19,10 @@ import {
 import { notifications } from '@mantine/notifications';
 import { IconLock, IconMail, IconPalette, IconBrandTwitter } from '@tabler/icons-react';
 
+// ✅ MIGRATED: Import centralized hooks
+import { useApiData } from '@/hooks/useApiData';
+import { useCrudOperations } from '@/hooks/useCrudOperations';
+
 
 interface Settings {
   siteName: string;
@@ -36,31 +40,25 @@ interface Settings {
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(false);
-  const [settings, setSettings] = useState<Settings | null>(null);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
   });
 
+  // ✅ MIGRATED: Use centralized data fetching and operations
+  const { data: settingsData, loading: _dataLoading, refetch } = useApiData<Settings>('/api/settings', {} as Settings);
+  const { update } = useCrudOperations('/api/settings');
+  
+  // Local state for form editing
+  const [settings, setSettings] = useState<Settings | null>(null);
+  
+  // Update local state when data changes
   useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  const fetchSettings = async () => {
-    try {
-      const response = await fetch('/api/settings');
-      if (!response.ok) throw new Error('Failed to fetch settings');
-      const data = await response.json();
-      setSettings(data);
-    } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to fetch settings',
-        color: 'red',
-      });
+    if (settingsData) {
+      setSettings(settingsData);
     }
-  };
+  }, [settingsData]);
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();

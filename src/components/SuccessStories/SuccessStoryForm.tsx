@@ -6,7 +6,7 @@ import { useForm } from '@mantine/form';
 import TiptapEditor from '@/components/TiptapEditor';
 import { RichTextContent } from '@/components/RichTextContent';
 import { slugify } from '@/utils/strings';
-import { uploadToCloudinary } from '@/utils/cloudinary';
+import { uploadToMinio } from '@/utils/minioUpload';
 import Image from 'next/image';
 import {
   Button,
@@ -91,7 +91,7 @@ export function SuccessStoryForm({ initialData, isEditing = false }: SuccessStor
 
     try {
       setImageUploading(true);
-      const result = await uploadToCloudinary(file, {
+      const result = await uploadToMinio(file, {
         folder: 'success-stories',
         tags: ['success-story', 'cover-image'],
         resourceType: 'image'
@@ -116,7 +116,7 @@ export function SuccessStoryForm({ initialData, isEditing = false }: SuccessStor
     if (!file) return '';
 
     try {
-      const result = await uploadToCloudinary(file, {
+      const result = await uploadToMinio(file, {
         folder: 'success-stories/content',
         tags: ['success-story', 'content-image'],
         resourceType: 'image'

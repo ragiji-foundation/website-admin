@@ -1,8 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
-import { withCors, corsError } from '@/utils/cors';
+import { 
+  apiSuccess, 
+  handleOptions, 
+  withApiHandler,
+  validateRequired,
+  CrudResponses,
+  handleDatabaseError,
+  logApiCall
+} from '@/utils/centralized';
 
-export async function GET(request: NextRequest) {
+export const GET = withApiHandler(async (request: NextRequest) => {
+  logApiCall(request, 'Fetching centers');
+  
   try {
     const { searchParams } = new URL(request.url);
     const locale = searchParams.get('locale') || 'en';
@@ -18,37 +28,42 @@ export async function GET(request: NextRequest) {
       description: locale === 'hi' && center.descriptionHi ? center.descriptionHi : center.description,
     }));
 
-    return withCors(NextResponse.json(localizedCenters));
+    return apiSuccess(localizedCenters, 'Centers fetched successfully');
   } catch (error) {
-    console.error('Failed to fetch centers:', error);
-    return corsError('Failed to fetch centers');
+    return handleDatabaseError(error, 'fetch centers');
   }
-}
+});
 
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler(async (request: NextRequest) => {
+  logApiCall(request, 'Creating center');
+  
   try {
-    const data = await request.json();
-    const center = await prisma.center.create({
-      data: {
-        name: data.name,
-        nameHi: data.nameHi || '',
-        location: data.location,
-        locationHi: data.locationHi || '',
-        description: data.description,
-        descriptionHi: data.descriptionHi || '',
-        imageUrl: data.imageUrl || '',
-        contactInfo: data.contactInfo || '',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }
-    });
-    return withCors(NextResponse.json(center, { status: 201 }));
-  } catch (error) {
-    console.error('Failed to create center:', error);
-    return corsError('Failed to create center');
-  }
-}
+    const body = await request.json();
+    
+    // Centralized validation
+    validateRequired(body, ['name', 'location', 'description']);
+    
+    const validFields = {
+      name: body.name,
+      nameHi: body.nameHi || '',
+      location: body.location,
+      locationHi: body.locationHi || '',
+      description: body.description,
+      descriptionHi: body.descriptionHi || '',
+      imageUrl: body.imageUrl || '',
+      contactInfo: body.contactInfo || '',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
 
-export async function OPTIONS() {
-  return withCors(new NextResponse(null, { status: 200 }));
-}
+    const center = await prisma.center.create({
+      data: validFields
+    });
+
+    return CrudResponses.created(center);
+  } catch (error) {
+    return handleDatabaseError(error, 'create center');
+  }
+});
+
+export const OPTIONS = handleOptions;

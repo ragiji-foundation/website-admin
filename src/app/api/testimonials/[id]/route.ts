@@ -1,99 +1,90 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
+import { 
+  apiSuccess, 
+  handleOptionsWithParams, 
+  withApiHandler,
+  validateRequired,
+  CrudResponses,
+  handleDatabaseError,
+  logApiCall
+} from '@/utils/centralized';
 
-export async function DELETE(
-  request: NextRequest,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  context: any
-) {
+export const GET = withApiHandler(async (request: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  const { id } = await params;
+  logApiCall(request, `Fetching testimonial ${id}`);
+  
   try {
-    const id = parseInt(context.params.id, 10);
-    if (isNaN(id)) {
-      return NextResponse.json(
-        { error: 'Invalid ID format' },
-        { status: 400 }
-      );
-    }
-
-    await prisma.testimonial.delete({
-      where: { id },
+    const { searchParams } = new URL(request.url);
+    const locale = searchParams.get('locale') || 'en';
+    
+    const testimonial = await prisma.testimonial.findUnique({
+      where: { id: parseInt(id) }
     });
 
-    return NextResponse.json(
-      { message: 'Testimonial deleted successfully' }
-    );
-  } catch (err) {
-    console.error('Error deleting testimonial:', err);
-    return NextResponse.json(
-      { error: 'Failed to delete testimonial' },
-      { status: 500 }
-    );
+    if (!testimonial) {
+      return CrudResponses.notFound();
+    }
+
+    const localizedTestimonial = {
+      ...testimonial,
+      name: locale === 'hi' && testimonial.nameHi ? testimonial.nameHi : testimonial.name,
+      role: locale === 'hi' && testimonial.roleHi ? testimonial.roleHi : testimonial.role,
+      content: locale === 'hi' && testimonial.contentHi ? testimonial.contentHi : testimonial.content,
+    };
+
+    return apiSuccess(localizedTestimonial, 'Testimonial fetched successfully');
+  } catch (error) {
+    return handleDatabaseError(error, 'fetch testimonial');
   }
-}
+});
 
-export async function PUT(
-  request: NextRequest,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  context: any
-) {
+export const PUT = withApiHandler(async (request: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  const { id } = await params;
+  logApiCall(request, `Updating testimonial ${id}`);
+  
   try {
-    const id = parseInt(context.params.id, 10);
-    if (isNaN(id)) {
-      return NextResponse.json(
-        { error: 'Invalid ID format' },
-        { status: 400 }
-      );
-    }
-
     const body = await request.json();
-
-    const existingTestimonial = await prisma.testimonial.findUnique({
-      where: { id },
-    });
-
-    if (!existingTestimonial) {
-      return NextResponse.json(
-        { error: 'Testimonial not found' },
-        { status: 404 }
-      );
-    }
-
-    const updateData = {
+    
+    // Validate required fields for update
+    validateRequired(body, ['name', 'content']);
+    
+    const validFields = {
       name: body.name,
-      nameHi: body.nameHi || existingTestimonial.nameHi || '',
-      role: body.role,
-      roleHi: body.roleHi || existingTestimonial.roleHi || '',
+      nameHi: body.nameHi || '',
+      role: body.role || '',
+      roleHi: body.roleHi || '',
       content: body.content,
-      contentHi: body.contentHi || existingTestimonial.contentHi || '',
-      avatar: body.avatar || existingTestimonial.avatar,
-      isPublished: body.isPublished ?? existingTestimonial.isPublished,
-      createdAt: existingTestimonial.createdAt
+      contentHi: body.contentHi || '',
+      avatar: body.avatar || '',
+      isPublished: body.isPublished ?? true,
+      updatedAt: new Date()
     };
 
     const updatedTestimonial = await prisma.testimonial.update({
-      where: { id },
-      data: updateData,
+      where: { id: parseInt(id) },
+      data: validFields
     });
 
-    const transformedTestimonial = {
-      id: updatedTestimonial.id,
-      name: updatedTestimonial.name,
-      nameHi: updatedTestimonial.nameHi,
-      role: updatedTestimonial.role,
-      roleHi: updatedTestimonial.roleHi,
-      content: updatedTestimonial.content,
-      contentHi: updatedTestimonial.contentHi,
-      avatar: updatedTestimonial.avatar,
-      isPublished: updatedTestimonial.isPublished,
-      createdAt: updatedTestimonial.createdAt
-    };
-
-    return NextResponse.json(transformedTestimonial);
-  } catch (err) {
-    console.error('Error updating testimonial:', err);
-    return NextResponse.json(
-      { error: 'Failed to update testimonial' },
-      { status: 500 }
-    );
+    return apiSuccess(updatedTestimonial, 'Testimonial updated successfully');
+  } catch (error) {
+    return handleDatabaseError(error, 'update testimonial');
   }
-}
+});
+
+export const DELETE = withApiHandler(async (request: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  const { id } = await params;
+  logApiCall(request, `Deleting testimonial ${id}`);
+  
+  try {
+    await prisma.testimonial.delete({
+      where: { id: parseInt(id) }
+    });
+
+    return CrudResponses.deleted();
+  } catch (error) {
+    return handleDatabaseError(error, 'delete testimonial');
+  }
+});
+
+export const OPTIONS = handleOptionsWithParams;

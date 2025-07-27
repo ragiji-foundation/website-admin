@@ -43,16 +43,16 @@ export default function ProfilePage() {
     if (!file) return;
 
     try {
-      const url = await handleImageUpload(file);
-      if (url) {
-        setProfile(prev => ({ ...prev, image: url }));
+      const result = await handleImageUpload(file);
+      if (result && result.url) {
+        setProfile(prev => ({ ...prev, image: result.url }));
         notifications.show({
           title: 'Success',
           message: 'Profile image updated successfully',
           color: 'green'
         });
       }
-    } catch (error) {
+    } catch {
       notifications.show({
         title: 'Error',
         message: 'Failed to update profile image',
@@ -78,7 +78,7 @@ export default function ProfilePage() {
         color: 'green'
       });
       setIsEditing(false);
-    } catch (error) {
+    } catch {
       notifications.show({
         title: 'Error',
         message: 'Failed to update profile',

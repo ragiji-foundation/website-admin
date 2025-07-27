@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Container,
   Title,
@@ -24,6 +24,10 @@ import { IconEdit, IconTrash, IconPlus, IconEye, IconUpload } from '@tabler/icon
 import { useDisclosure } from '@mantine/hooks';
 import { format } from 'date-fns';
 
+// ✅ MIGRATED: Import centralized hooks
+import { useApiData } from '@/hooks/useApiData';
+import { useCrudOperations } from '@/hooks/useCrudOperations';
+
 interface Author {
   id: number;
   name: string;
@@ -36,9 +40,6 @@ interface Author {
 }
 
 export default function AuthorsManagement() {
-  const [authors, setAuthors] = useState<Author[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [editingAuthor, setEditingAuthor] = useState<Author | null>(null);
   const [opened, { open, close }] = useDisclosure(false);
   const [formData, setFormData] = useState({
@@ -49,59 +50,40 @@ export default function AuthorsManagement() {
     password: ''
   });
 
-  useEffect(() => {
-    fetchAuthors();
-  }, []);
+  // ✅ MIGRATED: Use centralized data fetching and operations
+  const { data: authors = [], loading, error, refetch } = useApiData<Author[]>('/api/authors', []);
+  const { create, update, remove } = useCrudOperations<Author>('/api/authors');
 
-  const fetchAuthors = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await fetch('/api/authors');
-      if (!response.ok) throw new Error('Failed to fetch authors');
-      const data = await response.json();
-      setAuthors(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch authors');
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to fetch authors',
-        color: 'red'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // ✅ MIGRATED: Centralized form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const method = editingAuthor ? 'PUT' : 'POST';
-      const url = editingAuthor ? `/api/authors/${editingAuthor.id}` : '/api/authors';
+      const submissionData = {
+        name: formData.name,
+        username: formData.username || formData.email.split('@')[0],
+        email: formData.email,
+        image: formData.image || null,
+        ...(editingAuthor ? {} : { password: formData.password })
+      };
 
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          username: formData.username || formData.email.split('@')[0],
-          email: formData.email,
-          image: formData.image || null,
-          ...(method === 'POST' && { password: formData.password })
-        }),
-      });
+      let result;
+      if (editingAuthor) {
+        result = await update(editingAuthor.id, submissionData);
+      } else {
+        result = await create(submissionData);
+      }
 
-      if (!response.ok) throw new Error(`Failed to ${editingAuthor ? 'update' : 'create'} author`);
+      if (result) {
+        notifications.show({
+          title: 'Success',
+          message: `Author ${editingAuthor ? 'updated' : 'created'} successfully`,
+          color: 'green',
+        });
 
-      notifications.show({
-        title: 'Success',
-        message: `Author ${editingAuthor ? 'updated' : 'created'} successfully`,
-        color: 'green',
-      });
-
-      resetForm();
-      close();
-      fetchAuthors();
+        resetForm();
+        close();
+        refetch();
+      }
     } catch (error) {
       notifications.show({
         title: 'Error',
@@ -123,26 +105,22 @@ export default function AuthorsManagement() {
     open();
   };
 
+  // ✅ MIGRATED: Centralized delete operation
   const handleDelete = async (id: number, name: string) => {
     if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
 
     try {
-      const response = await fetch(`/api/authors/${id}`, {
-        method: 'DELETE',
-      });
+      const result = await remove(id);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete author');
+      if (result) {
+        notifications.show({
+          title: 'Success',
+          message: 'Author deleted successfully',
+          color: 'green',
+        });
+
+        refetch();
       }
-
-      notifications.show({
-        title: 'Success',
-        message: 'Author deleted successfully',
-        color: 'green',
-      });
-
-      fetchAuthors();
     } catch (error) {
       notifications.show({
         title: 'Error',
@@ -209,8 +187,8 @@ export default function AuthorsManagement() {
       </Group>
 
       {error && (
-        <Alert color="red" mb="md" onClose={() => setError(null)}>
-          {error}
+        <Alert color="red" mb="md">
+          {error.message}
         </Alert>
       )}
 

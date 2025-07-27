@@ -49,7 +49,7 @@ const protectedRoutes = [
   '/api/features',
   '/api/testimonials',
   '/api/initiatives',
-  '/api/news-articles',
+  '/api/news-coverage',
   '/api/gallery',
   '/api/settings',
   '/api/upload',

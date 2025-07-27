@@ -9,6 +9,7 @@ import { FilterBar } from '@/components/Gallery/FilterBar';
 import { ImageCard } from '@/components/Gallery/ImageCard';
 import { UploadDrawer } from '@/components/Gallery/UploadDrawer';
 import { ImageViewer } from '@/components/Gallery/ImageViewer';
+import { EditImageModal } from '@/components/Gallery/EditImageModal';
 import { GalleryItem } from '@/types/gallery';
 import { useGallery } from '@/hooks/useGallery';
 
@@ -28,14 +29,34 @@ export default function GalleryAdmin() {
 
   const [drawerOpened, drawerHandlers] = useDisclosure(false);
   const [viewerOpened, viewerHandlers] = useDisclosure(false);
+  const [editModalOpened, editModalHandlers] = useDisclosure(false);
   const [selectedImage, setSelectedImage] = useState<GalleryItem | null>(null);
+  const [editingImage, setEditingImage] = useState<GalleryItem | null>(null);
   // Hindi support
   const [language, setLanguage] = useState<'en' | 'hi'>('en');
 
-  // Integrate with the Cloudinary-powered UploadDrawer
-  const handleFormSubmit = async (formData: any) => {
+  // Integrate with the MinIO-powered UploadDrawer
+  const handleFormSubmit = async (formData: {
+    title: string;
+    titleHi?: string;
+    description?: string;
+    descriptionHi?: string;
+    category: string;
+    file: File;
+  }) => {
     await handleSubmit(formData);
     drawerHandlers.close();
+  };
+
+  const handleEdit = (item: GalleryItem) => {
+    setEditingImage(item);
+    editModalHandlers.open();
+  };
+
+  const handleUpdateImage = (_updatedImage: GalleryItem) => {
+    // Refresh the gallery to get updated data
+    refreshImages();
+    editModalHandlers.close();
   };
 
   return (
@@ -72,6 +93,7 @@ export default function GalleryAdmin() {
             <ImageCard
               item={item}
               onDelete={handleDelete}
+              onEdit={handleEdit}
               onClick={() => {
                 setSelectedImage(item);
                 viewerHandlers.open();
@@ -92,6 +114,14 @@ export default function GalleryAdmin() {
         opened={viewerOpened}
         onClose={viewerHandlers.close}
         image={selectedImage}
+        language={language}
+      />
+
+      <EditImageModal
+        opened={editModalOpened}
+        onClose={editModalHandlers.close}
+        image={editingImage}
+        onUpdate={handleUpdateImage}
         language={language}
       />
     </Container>

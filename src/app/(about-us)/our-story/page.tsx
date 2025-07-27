@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Container,
   Title,
@@ -25,6 +25,12 @@ import { IconEye, IconDeviceFloppy, IconPlus, IconTrash } from '@tabler/icons-re
 import TipTapEditor from '@/components/TipTapEditor/TipTapEditor';
 import { MediaUpload } from '@/components/MediaUpload';
 import OurStoryPreview from '@/components/previews/OurStoryPreview';
+// ✅ FIXED: Import centralized upload instead of old cloudinary
+import { uploadFile } from '@/utils/centralized';
+
+// ✅ MIGRATED: Import centralized hooks
+import { useApiData } from '@/hooks/useApiData';
+import { useCrudOperations } from '@/hooks/useCrudOperations';
 
 // Define interfaces for each content type
 interface MediaItem {
@@ -74,7 +80,21 @@ interface TimelineItem {
 
 // Main component
 export default function OurStoryPage() {
-  // State for each content type
+  // ✅ MIGRATED: Using centralized hooks instead of manual state management
+  const { data: apiData, loading: _dataLoading, refetch: fetchAllData } = useApiData<{
+    story?: OurStoryData;
+    model?: OurModelData;
+    visionMission?: VisionMissionData;
+    timeline?: TimelineItem[];
+  }>('/api/our-story', {}, { showNotifications: true });
+
+  // ✅ MIGRATED: Using centralized CRUD operations
+  const { create, update, remove } = useCrudOperations('/api/our-story', {
+    showNotifications: true,
+    onSuccess: () => fetchAllData()
+  });
+
+  // Local state for form editing
   const [storyData, setStoryData] = useState<OurStoryData>({
     title: '',
     titleHi: '',
@@ -116,83 +136,56 @@ export default function OurStoryPage() {
   const [loadingModel, setLoadingModel] = useState(false);
   const [loadingVisionMission, setLoadingVisionMission] = useState(false);
   const [loadingTimeline, setLoadingTimeline] = useState(false);
-  const [loadingData, setLoadingData] = useState(true);
 
-  // Fetch all data on component mount
+  // Update local state when API data changes
   useEffect(() => {
-    fetchAllData();
-  }, []);
-
-  const fetchAllData = async () => {
-    try {
-      setLoadingData(true);
-      const response = await fetch('/api/our-story');
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch data');
+    if (apiData?.story) {
+      let mediaArray: MediaItem[] = [];
+      try {
+        mediaArray = typeof apiData.story.media === 'string'
+          ? JSON.parse(apiData.story.media)
+          : apiData.story.media || [];
+      } catch (e) {
+        console.error('Error parsing media JSON:', e);
       }
 
-      const data = await response.json();
-
-      // Set data for each content type
-      if (data.story) {
-        // Parse media from JSON if needed
-        let mediaArray: MediaItem[] = [];
-        try {
-          mediaArray = typeof data.story.media === 'string'
-            ? JSON.parse(data.story.media)
-            : data.story.media;
-        } catch (e) {
-          console.error('Error parsing media JSON:', e);
-        }
-
-        setStoryData({
-          id: data.story.id,
-          title: data.story.title,
-          titleHi: data.story.titleHi,
-          content: data.story.content,
-          contentHi: data.story.contentHi,
-          media: mediaArray,
-          isActive: data.story.isActive,
-          version: data.story.version,
-        });
-      }
-
-      if (data.model) {
-        setModelData({
-          id: data.model.id,
-          description: data.model.description,
-          descriptionHi: data.model.descriptionHi,
-          imageUrl: data.model.imageUrl,
-        });
-      }
-
-      if (data.visionMission) {
-        setVisionMissionData({
-          id: data.visionMission.id,
-          vision: data.visionMission.vision,
-          visionHi: data.visionMission.visionHi,
-          mission: data.visionMission.mission,
-          missionHi: data.visionMission.missionHi,
-          visionIcon: data.visionMission.visionIcon,
-          missionIcon: data.visionMission.missionIcon,
-        });
-      }
-
-      if (data.timeline) {
-        setTimelineData(data.timeline.sort((a: any, b: any) => a.order - b.order));
-      }
-
-    } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: error instanceof Error ? error.message : 'Failed to fetch data',
-        color: 'red',
+      setStoryData({
+        id: apiData.story.id,
+        title: apiData.story.title,
+        titleHi: apiData.story.titleHi,
+        content: apiData.story.content,
+        contentHi: apiData.story.contentHi,
+        media: mediaArray,
+        isActive: apiData.story.isActive,
+        version: apiData.story.version,
       });
-    } finally {
-      setLoadingData(false);
     }
-  };
+
+    if (apiData?.model) {
+      setModelData({
+        id: apiData.model.id,
+        description: apiData.model.description,
+        descriptionHi: apiData.model.descriptionHi,
+        imageUrl: apiData.model.imageUrl,
+      });
+    }
+
+    if (apiData?.visionMission) {
+      setVisionMissionData({
+        id: apiData.visionMission.id,
+        vision: apiData.visionMission.vision,
+        visionHi: apiData.visionMission.visionHi,
+        mission: apiData.visionMission.mission,
+        missionHi: apiData.visionMission.missionHi,
+        visionIcon: apiData.visionMission.visionIcon,
+        missionIcon: apiData.visionMission.missionIcon,
+      });
+    }
+
+    if (apiData?.timeline) {
+      setTimelineData(apiData.timeline.sort((a: TimelineItem, b: TimelineItem) => a.order - b.order));
+    }
+  }, [apiData]);
 
   // Handle story content changes
   const handleStoryContentChange = (html: string) => {
@@ -241,139 +234,62 @@ export default function OurStoryPage() {
     }));
   };
 
-  // Save story data
+  // ✅ MIGRATED: Save functions using centralized operations
   const saveStoryData = async () => {
     try {
       setLoadingStory(true);
-
-      const payload = {
-        ...storyData,
-        modelType: 'OurStory',
-      };
-
-      const response = await fetch('/api/our-story', {
-        method: storyData.id ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save story data');
+      const payload = { ...storyData, modelType: 'OurStory' };
+      
+      if (storyData.id) {
+        await update(storyData.id, payload);
+      } else {
+        const result = await create(payload) as any;
+        setStoryData(prev => ({ ...prev, id: result.id, version: result.version }));
       }
-
-      const updatedStory = await response.json();
-      setStoryData(prev => ({
-        ...prev,
-        id: updatedStory.id,
-        version: updatedStory.version,
-      }));
-
-      notifications.show({
-        title: 'Success',
-        message: 'Story data saved successfully',
-        color: 'green',
-      });
     } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: error instanceof Error ? error.message : 'Failed to save story data',
-        color: 'red',
-      });
+      console.error('Error saving story data:', error);
     } finally {
       setLoadingStory(false);
     }
   };
 
-  // Save model data
   const saveModelData = async () => {
     try {
       setLoadingModel(true);
-
-      const payload = {
-        ...modelData,
-        modelType: 'OurModel',
-      };
-
-      const response = await fetch('/api/our-story', {
-        method: modelData.id ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save model data');
+      const payload = { ...modelData, modelType: 'OurModel' };
+      
+      if (modelData.id) {
+        await update(modelData.id, payload);
+      } else {
+        const result = await create(payload) as any;
+        setModelData(prev => ({ ...prev, id: result.id }));
       }
-
-      const updatedModel = await response.json();
-      setModelData(prev => ({
-        ...prev,
-        id: updatedModel.id,
-      }));
-
-      notifications.show({
-        title: 'Success',
-        message: 'Model data saved successfully',
-        color: 'green',
-      });
     } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: error instanceof Error ? error.message : 'Failed to save model data',
-        color: 'red',
-      });
+      console.error('Error saving model data:', error);
     } finally {
       setLoadingModel(false);
     }
   };
 
-  // Save vision and mission data
   const saveVisionMissionData = async () => {
     try {
       setLoadingVisionMission(true);
-
-      const payload = {
-        ...visionMissionData,
-        modelType: 'VisionMission',
-      };
-      const response = await fetch('/api/our-story', {
-        method: visionMissionData.id ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save vision and mission data');
+      const payload = { ...visionMissionData, modelType: 'VisionMission' };
+      
+      if (visionMissionData.id) {
+        await update(visionMissionData.id, payload);
+      } else {
+        const result = await create(payload) as any;
+        setVisionMissionData(prev => ({ ...prev, id: result.id }));
       }
-
-      const updatedData = await response.json();
-      setVisionMissionData(prev => ({
-        ...prev,
-        id: updatedData.id,
-      }));
-
-      notifications.show({
-        title: 'Success',
-        message: 'Vision and mission data saved successfully',
-        color: 'green',
-      });
     } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: error instanceof Error ? error.message : 'Failed to save vision and mission data',
-        color: 'red',
-      });
+      console.error('Error saving vision/mission data:', error);
     } finally {
       setLoadingVisionMission(false);
     }
   };
 
-  // Add new timeline item
+  // ✅ MIGRATED: Timeline operations using centralized CRUD
   const addTimelineItem = async () => {
     if (!newTimelineItem.year || !newTimelineItem.title) {
       notifications.show({
@@ -386,28 +302,10 @@ export default function OurStoryPage() {
 
     try {
       setLoadingTimeline(true);
-
-      const payload = {
-        ...newTimelineItem,
-        modelType: 'Timeline',
-      };
-
-      const response = await fetch('/api/our-story', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to add timeline item');
-      }
-
-      const addedItem = await response.json();
-      setTimelineData(prev => [...prev, addedItem].sort((a, b) => a.order - b.order));
-
-      // Reset the new item form
+      const payload = { ...newTimelineItem, modelType: 'Timeline' };
+      await create(payload);
+      
+      // Reset form
       setNewTimelineItem({
         year: '',
         title: '',
@@ -415,85 +313,81 @@ export default function OurStoryPage() {
         centers: 0,
         volunteers: 0,
         children: 0,
-        order: timelineData.length,
-      });
-
-      notifications.show({
-        title: 'Success',
-        message: 'Timeline item added successfully',
-        color: 'green',
+        order: 0,
       });
     } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: error instanceof Error ? error.message : 'Failed to add timeline item',
-        color: 'red',
-      });
+      console.error('Error adding timeline item:', error);
     } finally {
       setLoadingTimeline(false);
     }
   };
 
-  // Delete timeline item
-  const deleteTimelineItem = async (id: string) => {
+  const updateTimelineItem = async (id: string, data: Partial<TimelineItem>) => {
     try {
       setLoadingTimeline(true);
-
-      const response = await fetch(`/api/our-story?modelType=Timeline&id=${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete timeline item');
-      }
-
-      setTimelineData(prev => prev.filter(item => item.id !== id));
-
-      notifications.show({
-        title: 'Success',
-        message: 'Timeline item deleted successfully',
-        color: 'green',
-      });
+      await update(id, { ...data, modelType: 'Timeline' });
     } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: error instanceof Error ? error.message : 'Failed to delete timeline item',
-        color: 'red',
-      });
+      console.error('Error updating timeline item:', error);
     } finally {
       setLoadingTimeline(false);
     }
   };
 
-  // Update timeline item order
-  const updateTimelineOrder = async (id: string, newOrder: number) => {
+  const removeTimelineItem = async (id: string) => {
     try {
-      const response = await fetch(`/api/our-story`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          modelType: 'Timeline',
-          id: id,
-          action: 'reorderTimeline',
-          order: newOrder,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update timeline order');
-      }
-
-      // Refresh timeline data to get the updated order
-      fetchAllData();
+      setLoadingTimeline(true);
+      await remove(id);
     } catch (error) {
+      console.error('Error removing timeline item:', error);
+    } finally {
+      setLoadingTimeline(false);
+    }
+  };
+
+  // Handle media upload for story
+  const handleMediaUpload = async (file: File, index?: number) => {
+    try {
+      // ✅ FIXED: Use centralized upload function with correct signature
+      const uploadResult = await uploadFile(file, { folder: 'our-story' });
+      
+      const mediaItem: MediaItem = {
+        type: file.type.startsWith('image/') ? 'image' : 'video',
+        url: uploadResult.url,
+        title: '',
+      };
+
+      setStoryData(prev => {
+        const newMedia = [...prev.media];
+        if (typeof index === 'number') {
+          newMedia[index] = mediaItem;
+        } else {
+          newMedia.push(mediaItem);
+        }
+        return { ...prev, media: newMedia };
+      });
+    } catch {
       notifications.show({
         title: 'Error',
-        message: error instanceof Error ? error.message : 'Failed to update timeline order',
+        message: 'Failed to upload media',
         color: 'red',
       });
     }
+  };
+
+  const removeMedia = (index: number) => {
+    setStoryData(prev => ({
+      ...prev,
+      media: prev.media.filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateMediaTitle = (index: number, value: string) => {
+    setStoryData(prev => ({
+      ...prev,
+      media: prev.media.map((item, i) => 
+        i === index ? { ...item, title: value } : item
+      ),
+    }));
   };
 
   return (
@@ -830,7 +724,7 @@ export default function OurStoryPage() {
                             size="xs"
                             variant="light"
                             disabled={index === 0}
-                            onClick={() => updateTimelineOrder(item.id!, item.order - 1)}
+                            onClick={() => updateTimelineItem(item.id!, { order: item.order - 1 })}
                           >
                             Move Up
                           </Button>
@@ -838,7 +732,7 @@ export default function OurStoryPage() {
                             size="xs"
                             variant="light"
                             disabled={index === timelineData.length - 1}
-                            onClick={() => updateTimelineOrder(item.id!, item.order + 1)}
+                            onClick={() => updateTimelineItem(item.id!, { order: item.order + 1 })}
                           >
                             Move Down
                           </Button>
@@ -848,7 +742,7 @@ export default function OurStoryPage() {
                           size="xs"
                           color="red"
                           variant="light"
-                          onClick={() => deleteTimelineItem(item.id!)}
+                          onClick={() => removeTimelineItem(item.id!)}
                         >
                           Delete
                         </Button>

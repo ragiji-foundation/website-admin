@@ -26,6 +26,10 @@ import Underline from '@tiptap/extension-underline';
 
 import { handleImageUpload } from '@/utils/imageUpload';
 
+// ✅ MIGRATED: Import centralized hooks
+import { useApiData } from '@/hooks/useApiData';
+import { useCrudOperations } from '@/hooks/useCrudOperations';
+
 // Initiative interface matching our Prisma schema
 interface Initiative {
   id: number;
@@ -36,8 +40,6 @@ interface Initiative {
 }
 
 export default function InitiativesAdmin() {
-  const [initiatives, setInitiatives] = useState<Initiative[]>([]);
-  const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -45,6 +47,10 @@ export default function InitiativesAdmin() {
     imageUrl: '',
     order: 0
   });
+
+  // ✅ MIGRATED: Use centralized data fetching and operations
+  const { data: initiatives = [], loading: _dataLoading, refetch } = useApiData<Initiative[]>('/api/initiatives', []);
+  const { create, update, remove, loading } = useCrudOperations<Initiative>('/api/initiatives');
 
   // TipTap editor setup
   const editor = useEditor({
@@ -61,37 +67,17 @@ export default function InitiativesAdmin() {
   });
 
   useEffect(() => {
-    fetchInitiatives();
-  }, []);
-
-  useEffect(() => {
     // Update editor content when editing an initiative
     if (editor && editingId) {
       editor.commands.setContent(formData.description);
     }
-  }, [editingId, editor]);
-
-  const fetchInitiatives = async () => {
-    try {
-      const response = await fetch('/api/initiatives');
-      if (!response.ok) throw new Error('Failed to fetch initiatives');
-      const data = await response.json();
-      setInitiatives(data);
-    } catch (error) {
-      console.error('Error fetching initiatives:', error);
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to fetch initiatives',
-        color: 'red'
-      });
-    }
-  };
+  }, [editingId, editor, formData.description]);
 
   const onImageUpload = async (file: File | null) => {
     try {
       if (!file) return;
       const url = await handleImageUpload(file);
-      if (url) {
+      if (url && typeof url === 'string') {
         setFormData(prev => ({ ...prev, imageUrl: url }));
         notifications.show({
           title: 'Success',
@@ -120,9 +106,9 @@ export default function InitiativesAdmin() {
     editor?.commands.setContent('');
   };
 
+  // ✅ MIGRATED: Centralized form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
 
     try {
       // Make sure we have content from the editor
@@ -138,29 +124,23 @@ export default function InitiativesAdmin() {
         throw new Error('Description is required');
       }
 
-      const method = editingId ? 'PUT' : 'POST';
-      const url = editingId ? `/api/initiatives/${editingId}` : '/api/initiatives';
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to ${editingId ? 'update' : 'create'} initiative`);
+      let result;
+      if (editingId) {
+        result = await update(editingId, formData);
+      } else {
+        result = await create(formData);
       }
 
-      notifications.show({
-        title: 'Success',
-        message: `Initiative ${editingId ? 'updated' : 'created'} successfully`,
-        color: 'green'
-      });
+      if (result) {
+        notifications.show({
+          title: 'Success',
+          message: `Initiative ${editingId ? 'updated' : 'created'} successfully`,
+          color: 'green'
+        });
 
-      resetForm();
-      fetchInitiatives();
+        resetForm();
+        refetch();
+      }
     } catch (error) {
       console.error(`Error ${editingId ? 'updating' : 'creating'} initiative:`, error);
       notifications.show({
@@ -168,28 +148,25 @@ export default function InitiativesAdmin() {
         message: error instanceof Error ? error.message : 'An error occurred',
         color: 'red'
       });
-    } finally {
-      setLoading(false);
     }
   };
 
+  // ✅ MIGRATED: Centralized delete operation
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this initiative?')) return;
 
     try {
-      const response = await fetch(`/api/initiatives/${id}`, {
-        method: 'DELETE',
-      });
+      const result = await remove(id);
 
-      if (!response.ok) throw new Error('Failed to delete initiative');
+      if (result) {
+        notifications.show({
+          title: 'Success',
+          message: 'Initiative deleted successfully',
+          color: 'green'
+        });
 
-      notifications.show({
-        title: 'Success',
-        message: 'Initiative deleted successfully',
-        color: 'green'
-      });
-
-      fetchInitiatives();
+        refetch();
+      }
     } catch (error) {
       console.error('Error deleting initiative:', error);
       notifications.show({
@@ -259,7 +236,7 @@ export default function InitiativesAdmin() {
         throw new Error('Failed to reorder initiatives');
       }
 
-      fetchInitiatives();
+      refetch();
     } catch (error) {
       console.error('Error reordering initiatives:', error);
       notifications.show({

@@ -19,9 +19,11 @@ import { notifications } from '@mantine/notifications';
 import { IconTrash, IconEdit, IconArrowUp, IconArrowDown } from '@tabler/icons-react';
 import { FileButton } from '@mantine/core';
 
-import { handleImageUpload } from '@/utils/imageUpload';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import TiptapEditor from '@/components/TiptapEditor';
+// ✅ ADDED: Import centralized hooks
+import { useApiData } from '@/hooks/useApiData';
+import { useCrudOperations } from '@/hooks/useCrudOperations';
 
 interface Initiative {
   id: number;
@@ -34,8 +36,31 @@ interface Initiative {
 }
 
 export default function InitiativesAdmin() {
-  const [initiatives, setInitiatives] = useState<Initiative[]>([]);
-  const [loading, setLoading] = useState(false);
+  // ✅ MIGRATED: Using centralized hooks instead of manual state management
+  const { data: initiatives, loading, refetch: fetchInitiatives } = useApiData<Initiative[]>(
+    '/api/initiatives', 
+    [],
+    { showNotifications: true }
+  );
+
+  // ✅ MIGRATED: Using centralized CRUD operations
+  const { create, remove, update } = useCrudOperations<Initiative>('/api/initiatives', {
+    showNotifications: true,
+    onSuccess: () => {
+      fetchInitiatives(); // Refresh data after operations
+      setFormData({
+        title: '',
+        titleHi: '',
+        description: '',
+        descriptionHi: '',
+        imageUrl: '',
+        order: 0
+      });
+      setEditingId(null);
+    }
+  });
+
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     titleHi: '',
@@ -44,27 +69,11 @@ export default function InitiativesAdmin() {
     imageUrl: '',
     order: 0
   });
-  const [editingId, setEditingId] = useState<number | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     fetchInitiatives();
-  }, []);
-
-  const fetchInitiatives = async () => {
-    try {
-      const response = await fetch('/api/initiatives');
-      const data = await response.json();
-      setInitiatives(data);
-    } catch (error) {
-      console.error('Error fetching initiatives:', error);
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to fetch initiatives',
-        color: 'red'
-      });
-    }
-  };
+  }, [fetchInitiatives]);
 
   const onImageUpload = async (file: File | null) => {
     if (!file) return;
@@ -108,7 +117,7 @@ export default function InitiativesAdmin() {
         setUploadProgress(0);
       };
       xhr.send(formData);
-    } catch (error) {
+    } catch {
       notifications.show({
         title: 'Error',
         message: 'Failed to upload image',
@@ -132,84 +141,26 @@ export default function InitiativesAdmin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     try {
-      let response;
       if (editingId) {
-        response = await fetch(`/api/initiatives/${editingId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData),
-        });
+        await update(editingId, formData);
       } else {
-        response = await fetch('/api/initiatives', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData),
-        });
+        await create(formData);
       }
-      if (!response.ok) {
-        throw new Error(editingId ? 'Failed to update initiative' : 'Failed to create initiative');
-      }
-      notifications.show({
-        title: 'Success',
-        message: editingId ? 'Initiative updated successfully' : 'Initiative created successfully',
-        color: 'green'
-      });
-      setFormData({
-        title: '',
-        titleHi: '',
-        description: '',
-        descriptionHi: '',
-        imageUrl: '',
-        order: 0
-      });
-      setEditingId(null);
-      fetchInitiatives();
     } catch (error) {
-      console.error(editingId ? 'Error updating initiative:' : 'Error creating initiative:', error);
-      notifications.show({
-        title: 'Error',
-        message: editingId ? 'Failed to update initiative' : 'Failed to create initiative',
-        color: 'red'
-      });
-    } finally {
-      setLoading(false);
+      console.error('Error submitting initiative:', error);
     }
   };
 
   const handleDelete = async (id: number) => {
     try {
-      const response = await fetch(`/api/initiatives/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete initiative');
-      }
-
-      notifications.show({
-        title: 'Success',
-        message: 'Initiative deleted successfully',
-        color: 'green'
-      });
-
-      fetchInitiatives();
+      await remove(id);
     } catch (error) {
       console.error('Error deleting initiative:', error);
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to delete initiative',
-        color: 'red'
-      });
     }
   };
 
-  const handleReorder = async (id: number, direction: 'up' | 'down') => {
+    const handleReorder = async (id: number, direction: 'up' | 'down') => {
     const currentIndex = initiatives.findIndex(i => i.id === id);
     if (
       (direction === 'up' && currentIndex === 0) ||
@@ -219,6 +170,7 @@ export default function InitiativesAdmin() {
     }
 
     try {
+      // Use manual fetch for reorder as it's a special operation
       const response = await fetch(`/api/initiatives/${id}/reorder`, {
         method: 'PUT',
         headers: {
@@ -231,9 +183,14 @@ export default function InitiativesAdmin() {
         throw new Error('Failed to reorder initiative');
       }
 
-      fetchInitiatives();
-    } catch (error) {
-      console.error('Error reordering initiative:', error);
+      await fetchInitiatives(); // Refresh data
+      
+      notifications.show({
+        title: 'Success',
+        message: 'Initiative reordered successfully',
+        color: 'green'
+      });
+    } catch {
       notifications.show({
         title: 'Error',
         message: 'Failed to reorder initiative',

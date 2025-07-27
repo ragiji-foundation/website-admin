@@ -5,10 +5,10 @@ import { withCors, corsError } from '@/utils/cors';
 export async function PATCH(
   request: NextRequest,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  context: any
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = context.params;
+    const { id } = await params;
     const data = await request.json();
     const stat = await prisma.stat.update({
       where: { id },
@@ -30,10 +30,10 @@ export async function PATCH(
 export async function DELETE(
   request: NextRequest,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  context: any
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = context.params;
+    const { id } = await params;
     await prisma.stat.delete({ where: { id } });
     return withCors(NextResponse.json({ success: true }));
   } catch (error) {

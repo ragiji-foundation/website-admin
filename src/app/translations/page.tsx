@@ -26,6 +26,10 @@ import { useDisclosure } from '@mantine/hooks';
 import { BilingualInput } from '@/components/BilingualInput';
 import { showNotification } from '@mantine/notifications';
 
+// ✅ MIGRATED: Import centralized hooks
+import { useApiData } from '@/hooks/useApiData';
+import { useCrudOperations } from '@/hooks/useCrudOperations';
+
 interface Translation {
   id: string;
   key: string;
@@ -50,8 +54,6 @@ const CATEGORIES = [
 ];
 
 export default function TranslationsPage() {
-  const [translations, setTranslations] = useState<Translation[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -66,6 +68,13 @@ export default function TranslationsPage() {
     valueHi: '',
     category: 'general'
   });
+
+  // ✅ MIGRATED: Use centralized operations (custom fetch for pagination)
+  const { create, update, remove } = useCrudOperations<Translation>('/api/translations');
+  
+  // Custom fetch for pagination support
+  const [translations, setTranslations] = useState<Translation[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const fetchTranslations = async (page = 1, category = '', search = '') => {
     try {
@@ -98,25 +107,19 @@ export default function TranslationsPage() {
     fetchTranslations(currentPage, selectedCategory, searchQuery);
   }, [currentPage, selectedCategory, searchQuery]);
 
+  // ✅ MIGRATED: Centralized form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
-      const url = editingTranslation 
-        ? `/api/translations/${editingTranslation.id}`
-        : '/api/translations';
-      
-      const method = editingTranslation ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+      let result;
+      if (editingTranslation) {
+        result = await update(editingTranslation.id, formData);
+      } else {
+        result = await create(formData);
+      }
 
-      if (response.ok) {
+      if (result) {
         showNotification({
           title: 'Success',
           message: editingTranslation 
@@ -127,8 +130,6 @@ export default function TranslationsPage() {
         
         fetchTranslations(currentPage, selectedCategory, searchQuery);
         handleCloseModal();
-      } else {
-        throw new Error('Failed to save translation');
       }
     } catch (error) {
       console.error('Error saving translation:', error);
@@ -140,15 +141,14 @@ export default function TranslationsPage() {
     }
   };
 
+  // ✅ MIGRATED: Centralized delete operation
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this translation?')) return;
     
     try {
-      const response = await fetch(`/api/translations/${id}`, {
-        method: 'DELETE',
-      });
+      const result = await remove(id);
 
-      if (response.ok) {
+      if (result) {
         showNotification({
           title: 'Success',
           message: 'Translation deleted successfully',
@@ -156,8 +156,6 @@ export default function TranslationsPage() {
         });
         
         fetchTranslations(currentPage, selectedCategory, searchQuery);
-      } else {
-        throw new Error('Failed to delete translation');
       }
     } catch (error) {
       console.error('Error deleting translation:', error);

@@ -17,6 +17,10 @@ import TheNeedPreview from '@/components/TheNeedPreview';
 import TipTapEditor from '@/components/TipTapEditor/TipTapEditor';
 import { MediaUpload } from '@/components/MediaUpload';
 
+// ✅ MIGRATED: Import centralized hooks
+import { useApiData } from '@/hooks/useApiData';
+import { useCrudOperations } from '@/hooks/useCrudOperations';
+
 // Add interface to define type for submission data
 interface TheNeedSubmission {
   id?: string;
@@ -32,8 +36,7 @@ interface TheNeedSubmission {
 }
 
 export default function TheNeedAdminPage() {
-  const { data, setData } = useTheNeed();
-  const [loading, setLoading] = useState(false);
+  const { data: contextData, setData } = useTheNeed();
   const [mainText, setMainText] = useState('');
   const [mainTextHi, setMainTextHi] = useState('');
   const [statistics, setStatistics] = useState('');
@@ -41,37 +44,28 @@ export default function TheNeedAdminPage() {
   const [impact, setImpact] = useState('');
   const [impactHi, setImpactHi] = useState('');
 
+  // ✅ MIGRATED: Use centralized data fetching
+  const { data, loading: _loading, error: _error } = useApiData<TheNeedSubmission>('/api/the-need', {} as TheNeedSubmission);
+  const { create, update, loading: isSubmitting } = useCrudOperations<TheNeedSubmission>('/api/the-need');
+
+  // ✅ MIGRATED: Update context when centralized data changes
   useEffect(() => {
-    void fetchData();
-  }, []);
+    if (data) {
+      setData(data);
+    }
+  }, [data, setData]);
 
   useEffect(() => {
     // Initialize TipTap editors with existing content when data is loaded
-    if (data) {
-      setMainText(data.mainText || '');
-      setMainTextHi(data.mainTextHi || '');
-      setStatistics(data.statistics || '');
-      setStatisticsHi(data.statisticsHi || '');
-      setImpact(data.impact || '');
-      setImpactHi(data.impactHi || '');
+    if (contextData) {
+      setMainText(contextData.mainText || '');
+      setMainTextHi(contextData.mainTextHi || '');
+      setStatistics(contextData.statistics || '');
+      setStatisticsHi(contextData.statisticsHi || '');
+      setImpact(contextData.impact || '');
+      setImpactHi(contextData.impactHi || '');
     }
-  }, [data]);
-
-  const fetchData = async () => {
-    try {
-      const response = await fetch('/api/the-need');
-      if (!response.ok) throw new Error('Failed to fetch data');
-      const result = await response.json();
-      setData(result);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      notifications.show({
-        title: 'Error',
-        message: errorMessage,
-        color: 'red'
-      });
-    }
-  };
+  }, [contextData]);
 
   // Add a debug function
   const testDatabaseConnection = async () => {
@@ -86,9 +80,10 @@ export default function TheNeedAdminPage() {
     }
   };
 
+  // ✅ MIGRATED: Centralized form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    
     try {
       console.log('Form submission started');
 
@@ -99,18 +94,16 @@ export default function TheNeedAdminPage() {
           message: 'All English text fields are required',
           color: 'red'
         });
-        setLoading(false);
         return;
       }
 
       // Check if images are present
-      if (!data?.imageUrl || !data?.statsImageUrl) {
+      if (!contextData?.imageUrl || !contextData?.statsImageUrl) {
         notifications.show({
           title: 'Error',
           message: 'Both images are required',
           color: 'red'
         });
-        setLoading(false);
         return;
       }
 
@@ -122,60 +115,35 @@ export default function TheNeedAdminPage() {
         statisticsHi: statisticsHi || undefined,
         impact,
         impactHi: impactHi || undefined,
-        imageUrl: data?.imageUrl || '',
-        statsImageUrl: data?.statsImageUrl || '',
-        isPublished: Boolean(data?.isPublished)
+        imageUrl: contextData?.imageUrl || '',
+        statsImageUrl: contextData?.statsImageUrl || '',
+        isPublished: Boolean(contextData?.isPublished)
       };
 
       // Now TypeScript knows id can be added to this object
-      if (data?.id) {
-        submissionData.id = data.id;
+      if (contextData?.id) {
+        submissionData.id = contextData.id;
       }
 
       console.log('Submitting data:', submissionData);
 
-      // Make the API request with more detailed error handling
-      const response = await fetch('/api/the-need', {
-        method: data?.id ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(submissionData)
-      });
-
-      // Get full response details
-      const responseText = await response.text();
-      console.log(`API Response (Status ${response.status}):`, responseText);
-
-      let responseData;
-      try {
-        responseData = JSON.parse(responseText);
-      } catch (e) {
-        console.error('Failed to parse response JSON:', responseText);
-        throw new Error(`Invalid API response (Status ${response.status}): ${responseText}`);
+      let result;
+      if (contextData?.id) {
+        result = await update(contextData.id, submissionData);
+      } else {
+        result = await create(submissionData);
       }
 
-      if (!response.ok) {
-        throw new Error(responseData.error || `Server error: ${response.status}`);
+      if (result) {
+        console.log('Save successful, received:', result);
+        notifications.show({
+          title: 'Success',
+          message: `Content saved successfully (ID: ${result.id})`,
+          color: 'green'
+        });
       }
-
-      // Success!
-      console.log('Save successful, received:', responseData);
-      notifications.show({
-        title: 'Success',
-        message: `Content saved successfully (ID: ${responseData.id})`,
-        color: 'green'
-      });
-
-      // Refresh data
-      await fetchData();
     } catch (err) {
       console.error('Save error:', err);
-      notifications.show({
-        title: 'Error',
-        message: err instanceof Error ? err.message : String(err),
-        color: 'red'
-      });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -296,11 +264,11 @@ export default function TheNeedAdminPage() {
 
               <Switch
                 label="Published"
-                checked={data?.isPublished || false}
+                checked={contextData?.isPublished || false}
                 onChange={(e) => {
                   // Fix: Safely handle null data
-                  if (data) {
-                    setData({ ...data, isPublished: e.currentTarget.checked });
+                  if (contextData) {
+                    setData({ ...contextData, isPublished: e.currentTarget.checked });
                   } else {
                     setData(prev => ({
                       ...prev!,
@@ -322,7 +290,7 @@ export default function TheNeedAdminPage() {
 
                 <Button
                   type="submit"
-                  loading={loading}
+                  loading={isSubmitting}
                   variant="gradient"
                   gradient={{ from: 'blue', to: 'cyan' }}
                   size="md"
@@ -336,15 +304,15 @@ export default function TheNeedAdminPage() {
           {/* Add debugging panel (remove in production) */}
           <Box mt="xl" p="md" style={{ background: '#f8f9fa', borderRadius: '8px' }}>
             <Text fw={500} mb="xs">Debug Information</Text>
-            <Text size="sm">Data loaded: {data ? 'Yes' : 'No'}</Text>
+            <Text size="sm">Data loaded: {contextData ? 'Yes' : 'No'}</Text>
             <Text size="sm">Main text (EN) length: {mainText?.length || 0} chars</Text>
             <Text size="sm">Main text (HI) length: {mainTextHi?.length || 0} chars</Text>
             <Text size="sm">Statistics (EN) length: {statistics?.length || 0} chars</Text>
             <Text size="sm">Statistics (HI) length: {statisticsHi?.length || 0} chars</Text>
             <Text size="sm">Impact (EN) length: {impact?.length || 0} chars</Text>
             <Text size="sm">Impact (HI) length: {impactHi?.length || 0} chars</Text>
-            <Text size="sm">Main image: {data?.imageUrl ? 'Present' : 'Missing'}</Text>
-            <Text size="sm">Stats image: {data?.statsImageUrl ? 'Present' : 'Missing'}</Text>
+            <Text size="sm">Main image: {contextData?.imageUrl ? 'Present' : 'Missing'}</Text>
+            <Text size="sm">Stats image: {contextData?.statsImageUrl ? 'Present' : 'Missing'}</Text>
           </Box>
         </Tabs.Panel>
 

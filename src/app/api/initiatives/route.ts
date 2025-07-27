@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { withCors, corsError } from '@/utils/cors';
 import type { Initiative } from '@prisma/client';

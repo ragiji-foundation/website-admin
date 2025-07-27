@@ -1,17 +1,38 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useCallback } from 'react';
 import { Container, Title, Text, Box, LoadingOverlay } from '@mantine/core';
 import { SuccessStoryForm } from '@/components/SuccessStories/SuccessStoryFormUpdated';
 import { useRouter, useParams } from 'next/navigation';
 import { notifications } from '@mantine/notifications';
+
+// ✅ MIGRATED: Import centralized hooks
+import { useApiData } from '@/hooks/useApiData';
+import { useCrudOperations } from '@/hooks/useCrudOperations';
+
+type Json = Record<string, unknown>;
+
+interface SuccessStoryFormData {
+  slug: string;
+  title: string;
+  titleHi?: string;
+  content: Json;
+  contentHi?: Json;
+  personName: string;
+  personNameHi?: string;
+  location: string;
+  locationHi?: string;
+  imageUrl?: string;
+  featured: boolean;
+  order: number;
+}
 
 interface SuccessStoryData {
   id: string;
   slug: string;
   title: string;
   titleHi?: string;
-  content: Record<string, any>;
-  contentHi?: Record<string, any>;
+  content: Record<string, unknown>;
+  contentHi?: Record<string, unknown>;
   personName: string;
   personNameHi?: string;
   location: string;
@@ -22,68 +43,48 @@ interface SuccessStoryData {
 }
 
 export default function EditSuccessStoryPage() {
-  const [story, setStory] = useState<SuccessStoryData | null>(null);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
   const params = useParams();
-  const slug = (params?.slug ?? '') as string;
+  const id = (params?.id ?? '') as string;
 
-  useEffect(() => {
-    if (slug) {
-      fetchStory();
+  // ✅ MIGRATED: Using centralized hooks instead of manual state management
+  const { data: story, loading, error } = useApiData<SuccessStoryData | null>(
+    `/api/success-stories/${id}`,
+    null,
+    { 
+      showNotifications: true,
+      onError: () => router.push('/success-stories')
     }
-  }, [slug]);
+  );
 
-  const fetchStory = async () => {
-    try {
-      const response = await fetch(`/api/success-stories/${slug}`);
-      if (!response.ok) throw new Error('Failed to fetch story');
-      const data = await response.json();
-      setStory(data);
-    } catch (error) {
+  // ✅ MIGRATED: Using centralized CRUD operations
+  const { update, loading: updateLoading } = useCrudOperations<SuccessStoryData>('/api/success-stories', {
+    showNotifications: true,
+    onSuccess: () => router.push('/success-stories')
+  });
+
+  const handleSubmit = useCallback(async (data: SuccessStoryFormData) => {
+    if (!story?.id) {
       notifications.show({
         title: 'Error',
-        message: 'Failed to fetch success story',
+        message: 'Story ID not found',
         color: 'red',
       });
-      router.push('/success-stories');
-    } finally {
-      setLoading(false);
+      return;
     }
-  };
 
-  const handleSubmit = async (data: any) => {
     try {
       // Merge the id from the loaded story into the form data
-      const payload = { ...data, id: story?.id };
-
-      const response = await fetch(`/api/success-stories/${story?.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update success story');
-      }
-
-      notifications.show({
-        title: 'Success',
-        message: 'Success story updated successfully',
-        color: 'green',
-      });
-
-      router.push('/success-stories');
+      const payload = { ...data, id: story.id };
+      await update(story.id, payload);
     } catch (error) {
       throw error; // Re-throw to be handled by the form
     }
-  };
+  }, [story?.id, update]);
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     router.push('/success-stories');
-  };
+  }, [router]);
 
   if (loading) {
     return (
@@ -93,7 +94,7 @@ export default function EditSuccessStoryPage() {
     );
   }
 
-  if (!story) {
+  if (error || !story) {
     return (
       <Container size="xl" py="xl">
         <Title order={1}>Story Not Found</Title>
@@ -116,6 +117,7 @@ export default function EditSuccessStoryPage() {
           initialData={story}
           onSubmit={handleSubmit}
           onCancel={handleCancel}
+          loading={updateLoading}
         />
       </Box>
     </Container>

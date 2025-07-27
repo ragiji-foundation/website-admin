@@ -17,18 +17,20 @@ import {
   LoadingOverlay,
   Box
 } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
 import { IconStar, IconStarFilled, IconEdit, IconTrash, IconPlus, IconEye } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import Link from 'next/link';
+// ✅ ADDED: Import centralized hooks
+import { useApiData } from '@/hooks/useApiData';
+import { useCrudOperations } from '@/hooks/useCrudOperations';
 
 interface SuccessStory {
   id: string;
   slug: string;
   title: string;
   titleHi?: string;
-  content: any;
-  contentHi?: any;
+  content: string | { root?: { children?: Array<{ children?: Array<{ text?: string }> }> } };
+  contentHi?: string | { root?: { children?: Array<{ children?: Array<{ text?: string }> }> } };
   personName: string;
   personNameHi?: string;
   location: string;
@@ -41,73 +43,52 @@ interface SuccessStory {
 }
 
 export default function SuccessStoriesPage() {
-  const [stories, setStories] = useState<SuccessStory[]>([]);
-  const [loading, setLoading] = useState(true);
+  // ✅ MIGRATED: Using centralized hooks instead of manual state management
+  const { data: stories, loading, refetch: fetchStories } = useApiData<SuccessStory[]>(
+    '/api/success-stories', 
+    [],
+    { showNotifications: true }
+  );
+
+  // ✅ MIGRATED: Using centralized CRUD operations
+  const { remove } = useCrudOperations<SuccessStory>('/api/success-stories', {
+    showNotifications: true,
+    onSuccess: () => {
+      fetchStories(); // Refresh data after operations
+      closeDeleteModal();
+    }
+  });
+
   const [deleteStory, setDeleteStory] = useState<SuccessStory | null>(null);
   const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
 
   useEffect(() => {
     fetchStories();
-  }, []);
-
-  const fetchStories = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/success-stories');
-      if (!response.ok) throw new Error('Failed to fetch stories');
-      const data = await response.json();
-      setStories(data);
-    } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to fetch success stories',
-        color: 'red',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [fetchStories]);
 
   const handleDelete = async () => {
     if (!deleteStory) return;
 
     try {
-      const response = await fetch(`/api/success-stories/${deleteStory.slug}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) throw new Error('Failed to delete story');
-
-      notifications.show({
-        title: 'Success',
-        message: 'Success story deleted successfully',
-        color: 'green',
-      });
-
-      fetchStories();
-    } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to delete success story',
-        color: 'red',
-      });
-    } finally {
-      closeDeleteModal();
+      await remove(deleteStory.id);
       setDeleteStory(null);
+    } catch {
+      console.error('Error deleting success story');
     }
   };
 
-  const renderContent = (content: any) => {
+  const renderContent = (content: string | { root?: { children?: Array<{ children?: Array<{ text?: string }> }> } }) => {
     if (typeof content === 'string') {
       return content;
     }
     // Handle rich text content - extract plain text
     if (content?.root?.children) {
       return content.root.children
-        .map((p: any) => p.children?.map((c: any) => c.text).join(''))
-        .join(' ');
+        .map((p) => p.children?.map((c) => c.text).join(''))
+        .join(' ')
+        .substring(0, 200) + '...';
     }
-    return '';
+    return 'No content available';
   };
 
   if (loading) {
@@ -213,7 +194,7 @@ export default function SuccessStoriesPage() {
                   </ActionIcon>
                 </Link>
                 <Group gap="xs">
-                  <Link href={`/success-stories/${story.slug}/edit`}>
+                  <Link href={`/success-stories/${story.id}/edit`}>
                     <ActionIcon variant="light" color="blue">
                       <IconEdit size={16} />
                     </ActionIcon>

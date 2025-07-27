@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { 
   Button, 
   Group, 
@@ -24,6 +24,9 @@ import { IconEdit, IconEye, IconTrash, IconSearch, IconPlus, IconCalendar, IconU
 import { notifications } from '@mantine/notifications';
 import Link from "next/link";
 import { format } from 'date-fns';
+// ✅ ADDED: Import centralized hooks
+import { useApiData } from '@/hooks/useApiData';
+import { useCrudOperations } from '@/hooks/useCrudOperations';
 
 interface Blog {
   id: number;
@@ -53,9 +56,6 @@ const statusColors: Record<string, string> = {
 };
 
 export default function BlogsPage() {
-  const [blogs, setBlogs] = useState<Blog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [pagination, setPagination] = useState<PaginationInfo>({
@@ -65,95 +65,80 @@ export default function BlogsPage() {
     limit: 12
   });
 
-  const fetchBlogs = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const searchParams = new URLSearchParams({
-        page: pagination.page.toString(),
-        limit: pagination.limit.toString(),
-        locale: 'en',
-        ...(searchQuery && { search: searchQuery }),
-        ...(statusFilter !== 'all' && { status: statusFilter })
-      });
-
-      const response = await fetch(`/api/blogs?${searchParams}`);
-      if (!response.ok) throw new Error('Failed to fetch blogs');
-
-      const data = await response.json();
-      
-      // Ensure we're getting the right data structure
-      console.log('API Response:', data);
-      
-      // Handle different response formats
-      let blogData = [];
-      let paginationData = { total: 0, pages: 0, page: 1, limit: 12 };
-      
-      if (Array.isArray(data)) {
-        // If data is directly an array
-        blogData = data;
-        paginationData.total = data.length;
-        paginationData.pages = Math.ceil(data.length / pagination.limit);
-      } else if (data.blogs && Array.isArray(data.blogs)) {
-        // If data has blogs property
-        blogData = data.blogs;
-        paginationData = data.pagination || paginationData;
-      } else if (data.data && Array.isArray(data.data)) {
-        // If data has data property
-        blogData = data.data;
-        paginationData = data.pagination || paginationData;
-      }
-      
-      setBlogs(blogData);
-      setPagination(paginationData);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch blogs');
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to fetch blogs',
-        color: 'red'
-      });
-    } finally {
-      setLoading(false);
-    }
+  // ✅ MIGRATED: Build query params for API call
+  const buildQueryParams = () => {
+    const params = new URLSearchParams({
+      page: pagination.page.toString(),
+      limit: pagination.limit.toString(),
+      locale: 'en',
+    });
+    
+    if (searchQuery) params.set('search', searchQuery);
+    if (statusFilter !== 'all') params.set('status', statusFilter);
+    
+    return params.toString();
   };
 
-  useEffect(() => {
-    fetchBlogs();
-  }, [pagination.page, statusFilter]);
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (pagination.page === 1) {
-        fetchBlogs();
-      } else {
-        setPagination(prev => ({ ...prev, page: 1 }));
+  // ✅ MIGRATED: Using centralized API data fetching
+  const { 
+    data: apiResponse, 
+    loading, 
+    error,
+    fetchWithParams 
+  } = useApiData<{blogs?: Blog[], data?: Blog[], pagination?: PaginationInfo}>(
+    `/api/blogs?${buildQueryParams()}`, 
+    { blogs: [], pagination: { total: 0, pages: 0, page: 1, limit: 12 } },
+    { 
+      immediate: true,
+      showNotifications: true,
+      dependencies: [pagination.page, statusFilter, searchQuery],
+      onSuccess: (data) => {
+        // Handle different response formats
+        let paginationData = { total: 0, pages: 0, page: 1, limit: 12 };
+        
+        if (data.pagination) {
+          paginationData = data.pagination;
+        } else if (Array.isArray(data)) {
+          paginationData.total = data.length;
+          paginationData.pages = Math.ceil(data.length / pagination.limit);
+        }
+        
+        setPagination(prev => ({ ...prev, ...paginationData }));
       }
-    }, 300);
+    }
+  );
 
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
+  // ✅ MIGRATED: Using centralized CRUD operations  
+  const { remove } = useCrudOperations<Blog>('/api/blogs', {
+    showNotifications: true,
+    onSuccess: () => {
+      // Refresh data after operations
+      fetchWithParams();
+    }
+  });
 
+  // Extract blogs from API response
+  const blogs = apiResponse?.blogs || apiResponse?.data || [];
+
+  // ✅ MIGRATED: Centralized delete operation
   const handleDelete = async (slug: string, title: string) => {
     if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
 
     try {
-      const response = await fetch(`/api/blogs/${slug}`, {
-        method: 'DELETE'
-      });
-
-      if (!response.ok) throw new Error('Failed to delete blog');
+      const result = await remove(slug);
       
-      notifications.show({
-        title: 'Success',
-        message: 'Blog deleted successfully',
-        color: 'green'
-      });
-      
-      fetchBlogs();
+      if (result) {
+        notifications.show({
+          title: 'Success',
+          message: 'Blog deleted successfully',
+          color: 'green'
+        });
+        
+        // Refresh data
+        fetchWithParams();
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete blog';
-      setError(errorMessage);
       notifications.show({
         title: 'Error',
         message: errorMessage,
@@ -228,8 +213,8 @@ export default function BlogsPage() {
 
         {/* Error Alert */}
         {error && (
-          <Alert color="red" title="Error" onClose={() => setError(null)}>
-            {error}
+          <Alert color="red" title="Error">
+            {error.message}
           </Alert>
         )}
 

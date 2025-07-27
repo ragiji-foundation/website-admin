@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Container, Title, Table, Group, TextInput, Select, Button,
   Menu, ActionIcon, Modal, Stack, Badge,
@@ -14,6 +14,10 @@ import { useDisclosure } from '@mantine/hooks';
 import * as XLSX from 'xlsx';
 import { DateInput } from '@mantine/dates';
 import { notifications } from '@mantine/notifications';
+
+// ✅ MIGRATED: Import centralized hooks
+import { useApiData } from '@/hooks/useApiData';
+import { useCrudOperations } from '@/hooks/useCrudOperations';
 
 interface Application {
   id: string;
@@ -99,8 +103,6 @@ function ApplicationDetails({
 }
 
 export default function ApplicationsPage() {
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
@@ -109,50 +111,22 @@ export default function ApplicationsPage() {
   const [filterDrawerOpened, { open: openFilterDrawer, close: closeFilterDrawer }] = useDisclosure(false);
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
 
-  const fetchApplications = async () => {
-    try {
-      const response = await fetch('/api/join-us');
-      if (!response.ok) throw new Error('Failed to fetch applications');
-      const data = await response.json();
-      setApplications(data);
-    } catch (error) {
-      console.error('Error:', error);
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to fetch applications',
-        color: 'red',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchApplications();
-  }, []);
+  // ✅ MIGRATED: Use centralized data fetching
+  const { data: applications = [], loading: _loading, error: _error } = useApiData<Application[]>('/api/join-us', []);
+  const { update } = useCrudOperations<Application>('/api/join-us');
 
   const handleStatusChange = async (id: string, newStatus: string) => {
     try {
-      const response = await fetch(`/api/join-us/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (!response.ok) throw new Error('Failed to update status');
-
-      setApplications(apps =>
-        apps.map(app =>
-          app.id === id ? { ...app, status: newStatus } : app
-        )
-      );
-
-      notifications.show({
-        title: 'Success',
-        message: 'Application status updated',
-        color: 'green',
-      });
-    } catch (error) {
+      const result = await update(id, { status: newStatus });
+      
+      if (result) {
+        notifications.show({
+          title: 'Success',
+          message: 'Application status updated',
+          color: 'green',
+        });
+      }
+    } catch {
       notifications.show({
         title: 'Error',
         message: 'Failed to update status',

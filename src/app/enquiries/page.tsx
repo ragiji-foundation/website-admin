@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Container, Table, Text, Paper, Title, Badge, Group, Stack,
   TextInput, Button, ActionIcon, Drawer, Tooltip
@@ -14,6 +14,9 @@ import {
   IconFileSpreadsheet, IconX
 } from '@tabler/icons-react';
 
+// ✅ MIGRATED: Import centralized hooks
+import { useApiData } from '@/hooks/useApiData';
+
 interface Enquiry {
   id: string;
   email: string;
@@ -24,27 +27,12 @@ interface Enquiry {
 }
 
 export default function EnquiriesPage() {
-  const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
   const [filterDrawerOpened, { open: openFilterDrawer, close: closeFilterDrawer }] = useDisclosure(false);
 
-  useEffect(() => {
-    async function fetchEnquiries() {
-      try {
-        const response = await fetch('/api/enquiries');
-        const data = await response.json();
-        setEnquiries(data);
-      } catch (error) {
-        console.error('Error fetching enquiries:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchEnquiries();
-  }, []);
+  // ✅ MIGRATED: Use centralized data fetching
+  const { data: enquiries = [], loading: _loading } = useApiData<Enquiry[]>('/api/enquiries', []);
 
   // Filter function
   const getFilteredEnquiries = () => {
@@ -133,7 +121,7 @@ export default function EnquiriesPage() {
 
   const filteredEnquiries = getFilteredEnquiries();
 
-  if (loading) {
+  if (_loading) {
     return <Text>Loading...</Text>;
   }
 

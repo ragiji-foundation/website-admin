@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Title,
   Group,
   Button,
   Text,
   Card,
-  LoadingOverlay,
   Alert,
   ActionIcon,
   Menu,
@@ -39,6 +38,10 @@ import { notifications } from '@mantine/notifications';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+// ✅ ADDED: Import centralized hooks
+import { useApiData } from '@/hooks/useApiData';
+import { useCrudOperations } from '@/hooks/useCrudOperations';
+
 // Define Feature type without external dependencies
 interface MediaItem {
   type: 'video' | 'image';
@@ -67,71 +70,41 @@ interface SortState {
 }
 
 export default function FeaturesPage() {
-  const [features, setFeatures] = useState<Feature[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  // ✅ MIGRATED: Using centralized hooks instead of manual state management
+  const { data: features, loading, error, refetch: fetchFeatures } = useApiData<Feature[]>(
+    '/api/features', 
+    [],
+    { showNotifications: true }
+  );
+
+  // ✅ MIGRATED: Using centralized CRUD operations
+  const { remove, update } = useCrudOperations<Feature>('/api/features', {
+    showNotifications: true,
+    onSuccess: () => {
+      fetchFeatures(); // Refresh data after operations
+      closeConfirmDelete();
+    }
+  });
+
   const [featureToDelete, setFeatureToDelete] = useState<Feature | null>(null);
   const [confirmDeleteOpened, { open: openConfirmDelete, close: closeConfirmDelete }] = useDisclosure(false);
   const [page, setPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [sortState, setSortState] = useState<SortState>({ column: 'order', direction: 'asc' });
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
   const theme = useMantineTheme();
 
-  useEffect(() => {
-    fetchFeatures();
-  }, []);
-
-  async function fetchFeatures() {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/features');
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch features');
-      }
-
-      const data = await response.json();
-      setFeatures(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to load features',
-        color: 'red'
-      });
-    } finally {
-      setLoading(false);
-    }
-  }
+  // ✅ MIGRATED: Removed manual fetchFeatures function - now using centralized hook
 
   async function handleDelete(feature: Feature) {
     try {
-      const response = await fetch(`/api/features/${feature.id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete feature');
-      }
-
-      notifications.show({
-        title: 'Success',
-        message: 'Feature deleted successfully',
-        color: 'green'
-      });
-
-      // Remove the deleted feature from the list
-      setFeatures(features.filter(f => f.id !== feature.id));
-      closeConfirmDelete();
+      await remove(feature.id);
+      // Success handling is done by the centralized hook
     } catch (err) {
-      notifications.show({
-        title: 'Error',
-        message: err instanceof Error ? err.message : 'Failed to delete feature',
-        color: 'red'
-      });
+      // Error handling is done by the centralized hook
+      console.error('Delete failed:', err);
     }
   }
 
@@ -154,33 +127,11 @@ export default function FeaturesPage() {
 
       // Update the feature with the new order
       const updatedFeature = { ...newFeatures[currentIndex], order: targetOrder };
-      const response = await fetch(`/api/features/${featureId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedFeature),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update feature order');
-      }
+      await update(featureId, updatedFeature);
 
       // Also update the target feature's order
       const targetFeature = { ...newFeatures[targetIndex], order: currentOrder };
-      const targetResponse = await fetch(`/api/features/${newFeatures[targetIndex].id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(targetFeature),
-      });
-
-      if (!targetResponse.ok) {
-        throw new Error('Failed to update feature order');
-      }
-
-      // Swap the features in the array
-      [newFeatures[currentIndex], newFeatures[targetIndex]] =
-        [newFeatures[targetIndex], newFeatures[currentIndex]];
-
-      setFeatures(newFeatures);
+      await update(newFeatures[targetIndex].id, targetFeature);
 
       notifications.show({
         title: 'Success',
@@ -251,8 +202,25 @@ export default function FeaturesPage() {
   const paginatedData = sortedFeatures.slice(startIndex, startIndex + itemsPerPage);
 
   return (
-    <Card shadow="sm" p="lg" radius="md" withBorder>
-      <LoadingOverlay visible={loading} />
+    <Card shadow="sm" p="lg" radius="md" withBorder style={{ position: 'relative' }}>
+      {loading && (
+        <Box 
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}
+        >
+          <Text>Loading features...</Text>
+        </Box>
+      )}
 
       <Group justify="apart" mb="lg">
         <Title order={2}>Manage Features</Title>
@@ -267,7 +235,7 @@ export default function FeaturesPage() {
 
       {error ? (
         <Alert color="red" mb="lg">
-          {error}
+          {error.message || 'An error occurred while loading features'}
         </Alert>
       ) : (
         <>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -11,9 +11,23 @@ import Superscript from '@tiptap/extension-superscript';
 import Link from '@tiptap/extension-link';
 import { useRouter } from 'next/navigation';
 import { notifications } from '@mantine/notifications';
-// Fix the import path to use the correct component
-import TiptapEditor from '@/components/TiptapEditor';
-import { RichTextContent } from '@/components/RichTextContent';
+import dynamic from 'next/dynamic';
+
+// ✅ MIGRATED: Import centralized hooks
+import { useApiData } from '@/hooks/useApiData';
+import { useCrudOperations } from '@/hooks/useCrudOperations';
+
+// Lazy load heavy components
+const TiptapEditor = dynamic(() => import('@/components/TiptapEditor'), {
+  loading: () => <div className="h-64 bg-gray-100 animate-pulse rounded"></div>,
+  ssr: false
+});
+
+const RichTextContent = dynamic(() => 
+  import('@/components/RichTextContent').then(mod => ({ default: mod.RichTextContent })), {
+  loading: () => <div className="h-32 bg-gray-100 animate-pulse rounded"></div>,
+  ssr: false
+});
 
 import {
   Button,
@@ -30,9 +44,11 @@ import {
   Divider,
   ScrollArea,
   ActionIcon,
+  Skeleton,
+  Loader,
+  Center,
 } from '@mantine/core';
 import { IconArrowLeft, IconEye, IconEyeOff } from '@tabler/icons-react';
-
 
 interface Author {
   id: number;
@@ -73,18 +89,22 @@ interface Blog {
   tags: Array<{ id: number; name: string }>;
 }
 
-const getBaseUrl = () => {
-  if (typeof window !== 'undefined') return ''; // browser should use relative url
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`; // SSR should use vercel url
-  return `http://localhost:${process.env.PORT ?? 3000}`; // dev SSR should use localhost
-};
-
 export default function CreateBlog() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [authors, setAuthors] = useState<Author[]>([]);
+  
+  // ✅ MIGRATED: Using centralized hooks instead of manual state management
+  const { data: categories, loading: categoriesLoading } = useApiData<Category[]>('/api/categories', [], { showNotifications: true });
+  const { data: tags, loading: tagsLoading } = useApiData<Tag[]>('/api/tags', [], { showNotifications: true });
+  const { data: authors, loading: authorsLoading } = useApiData<Author[]>('/api/authors', [], { showNotifications: true });
+  
+  // ✅ MIGRATED: Using centralized CRUD operations
+  const { create, loading: createLoading } = useCrudOperations<Blog>('/api/blogs', {
+    showNotifications: true,
+    onSuccess: () => {
+      router.push('/blogs');
+    }
+  });
+
   const [blog, setBlog] = useState<Blog>({
     title: '',
     titleHi: '',
@@ -106,7 +126,8 @@ export default function CreateBlog() {
   });
   const [showPreview, setShowPreview] = useState(false);
 
-  const editor = useEditor({
+  // Memoize editor configuration
+  const editorConfig = useMemo(() => ({
     extensions: [
       StarterKit,
       Underline,
@@ -126,48 +147,21 @@ export default function CreateBlog() {
         class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',
       },
     },
-    onUpdate: ({ editor }) => {
+  }), []);
+
+  const editor = useEditor({
+    ...editorConfig,
+    onUpdate: useCallback(({ editor }: { editor: ReturnType<typeof useEditor> }) => {
       setBlog(prev => ({
         ...prev,
-        content: editor.getHTML()
+        content: editor?.getHTML() || ''
       }));
-    }
+    }, [])
   });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const baseUrl = getBaseUrl();
-        const [categoriesRes, tagsRes, authorsRes] = await Promise.all([
-          fetch(`${baseUrl}/api/categories`),
-          fetch(`${baseUrl}/api/tags`),
-          fetch(`${baseUrl}/api/authors`)
-        ]);
-
-        const [categoriesData, tagsData, authorsData] = await Promise.all([
-          categoriesRes.json(),
-          tagsRes.json(),
-          authorsRes.json()
-        ]);
-
-        setCategories(categoriesData);
-        setTags(tagsData);
-        setAuthors(authorsData);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        notifications.show({
-          title: 'Error',
-          message: 'Failed to fetch categories and tags',
-          color: 'red'
-        });
-      }
-    };
-    fetchData();
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  // ✅ MIGRATED: Optimized form submission using centralized operations
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
 
     try {
       // Validation
@@ -177,7 +171,6 @@ export default function CreateBlog() {
           message: 'Blog title is required',
           color: 'red'
         });
-        setLoading(false);
         return;
       }
 
@@ -187,61 +180,74 @@ export default function CreateBlog() {
           message: 'Blog content is required',
           color: 'red'
         });
-        setLoading(false);
         return;
       }
 
       const blogData = {
         title: blog.title,
-        titleHi: blog.titleHi || null,
+        titleHi: blog.titleHi || undefined,
         content: editor?.getHTML() || blog.content,
-        contentHi: blog.contentHi || null,
+        contentHi: blog.contentHi || undefined,
         status: blog.status,
-        authorId: blog.authorId || 1, // Default to admin if no author selected
+        authorId: blog.authorId || 1,
         authorName: blog.authorName || 'Admin',
-        authorNameHi: blog.authorNameHi || null,
+        authorNameHi: blog.authorNameHi || undefined,
         metaDescription: blog.metaDescription,
-        metaDescriptionHi: blog.metaDescriptionHi || null,
+        metaDescriptionHi: blog.metaDescriptionHi || undefined,
         ogTitle: blog.ogTitle || blog.title,
         ogTitleHi: blog.ogTitleHi || blog.titleHi,
         ogDescription: blog.ogDescription || blog.metaDescription,
         ogDescriptionHi: blog.ogDescriptionHi || blog.metaDescriptionHi,
         categoryId: blog.categoryId,
         locale: blog.locale,
-        tags: blog.tags.map(tag => ({ id: tag.id }))
+        tags: blog.tags
       };
 
-      const response = await fetch('/api/blogs', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(blogData),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || error.message || 'Failed to create blog');
-      }
-
-      notifications.show({
-        title: 'Success',
-        message: 'Blog created successfully',
-        color: 'green'
-      });
-
-      router.push('/blogs');
+      await create(blogData);
     } catch (error) {
       console.error('Error creating blog:', error);
-      notifications.show({
-        title: 'Error',
-        message: error instanceof Error ? error.message : 'Failed to create blog. Please try again.',
-        color: 'red'
-      });
-    } finally {
-      setLoading(false);
+      // Error handling is done by the centralized hook
     }
-  };
+  }, [blog, editor, create]);
+
+  // Show loading state while fetching initial data
+  const dataLoading = categoriesLoading || tagsLoading || authorsLoading;
+  if (dataLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white border-b border-gray-200">
+          <div className="w-full px-[5%]">
+            <Group justify="space-between" align="center" py="xs">
+              <Group>
+                <ActionIcon variant="subtle" size="lg">
+                  <IconArrowLeft size={20} />
+                </ActionIcon>
+                <div>
+                  <Text size="sm" c="dimmed">Creating New</Text>
+                  <Title order={3}>Blog Post</Title>
+                </div>
+              </Group>
+              <Group>
+                <Skeleton height={36} width={120} />
+                <Skeleton height={36} width={100} />
+                <Skeleton height={36} width={80} />
+                <Skeleton height={36} width={100} />
+              </Group>
+            </Group>
+          </div>
+        </header>
+        
+        <div className="w-full px-[5%] py-4">
+          <Center h={400}>
+            <Stack align="center">
+              <Loader size="lg" />
+              <Text>Loading blog editor...</Text>
+            </Stack>
+          </Center>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -293,7 +299,7 @@ export default function CreateBlog() {
                 Cancel
               </Button>
               <Button
-                loading={loading}
+                loading={createLoading}
                 onClick={handleSubmit}
               >
                 Create Blog
@@ -523,7 +529,7 @@ export default function CreateBlog() {
                 <Button
                   fullWidth
                   onClick={handleSubmit}
-                  loading={loading}
+                  loading={createLoading}
                 >
                   Create Blog
                 </Button>

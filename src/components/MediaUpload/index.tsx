@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { FileButton, Button, Group, Text, Stack, Image, Loader, Paper } from '@mantine/core';
-import { handleImageUpload, handleVideoUpload } from '@/utils/imageUpload';
+import { handleImageUpload, handleVideoUpload } from '@/services/uploadService';
 import { IconPhoto, IconVideo, IconX } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 
@@ -34,14 +34,14 @@ export function MediaUpload({
 
     setLoading(true);
     try {
-      let url;
+      let result;
       if (mediaType === 'video') {
-        url = await handleVideoUpload(file, folder || 'videos');
+        result = await handleVideoUpload(file, { folder: folder || 'videos' });
       } else {
-        url = await handleImageUpload(file, folder || 'images');
+        result = await handleImageUpload(file, { folder: folder || 'images' });
       }
 
-      onChange(url);
+      onChange(result.url);
 
       // Add success notification
       notifications.show({

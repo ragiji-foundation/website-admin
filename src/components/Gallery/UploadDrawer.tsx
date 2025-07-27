@@ -2,7 +2,7 @@ import { Drawer, Stack, TextInput, Select, Box, Button, Image } from '@mantine/c
 import { FileButton } from '@mantine/core';
 import { CATEGORIES } from '@/types/gallery';
 import { useState } from 'react';
-import { uploadToCloudinary } from '@/utils/cloudinary';
+import { uploadFile } from '@/services/uploadService';
 import { notifications } from '@mantine/notifications';
 
 interface UploadDrawerProps {
@@ -28,7 +28,7 @@ export function UploadDrawer({ opened, onClose, onSubmit }: UploadDrawerProps) {
     try {
       setLoading(true);
 
-      const result = await uploadToCloudinary(file!, {
+      const result = await uploadFile(file!, {
         folder: 'gallery',
         tags: ['gallery', 'content-library'],
         resourceType: 'image'

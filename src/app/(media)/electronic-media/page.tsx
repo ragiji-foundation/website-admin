@@ -8,7 +8,6 @@ import {
   Group,
   Stack,
   Paper,
-  Table,
   Modal,
   ActionIcon,
   Badge,
@@ -20,9 +19,12 @@ import {
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useDisclosure } from '@mantine/hooks';
-import { showNotification } from '@mantine/notifications';
 import { IconPlus, IconEdit, IconTrash, IconVideo, IconPlayerPlay, IconExternalLink } from '@tabler/icons-react';
 import { BilingualInput } from '@/components/BilingualInput';
+import Image from 'next/image';
+// ✅ ADDED: Import centralized hooks
+import { useApiData } from '@/hooks/useApiData';
+import { useCrudOperations } from '@/hooks/useCrudOperations';
 
 interface ElectronicMedia {
   id: number;
@@ -37,7 +39,22 @@ interface ElectronicMedia {
 }
 
 export default function ElectronicMediaPage() {
-  const [mediaItems, setMediaItems] = useState<ElectronicMedia[]>([]);
+  // ✅ MIGRATED: Using centralized hooks instead of manual state management
+  const { data: mediaItems, loading: _loading, refetch: fetchMediaItems } = useApiData<ElectronicMedia[]>(
+    '/api/electronic-media', 
+    [],
+    { showNotifications: true }
+  );
+
+  // ✅ MIGRATED: Using centralized CRUD operations
+  const { create, remove, update } = useCrudOperations<ElectronicMedia>('/api/electronic-media', {
+    showNotifications: true,
+    onSuccess: () => {
+      fetchMediaItems(); // Refresh data after operations
+      handleCloseModal();
+    }
+  });
+
   const [opened, { open, close }] = useDisclosure(false);
   const [editingMedia, setEditingMedia] = useState<ElectronicMedia | null>(null);
 
@@ -57,51 +74,19 @@ export default function ElectronicMediaPage() {
     },
   });
 
-  const fetchMediaItems = async () => {
-    try {
-      const response = await fetch('/api/electronic-media');
-      const data = await response.json();
-      setMediaItems(data);
-    } catch (error) {
-      console.error('Error fetching media items:', error);
-    }
-  };
-
   useEffect(() => {
     fetchMediaItems();
-  }, []);
+  }, [fetchMediaItems]);
 
   const handleSubmit = async (values: typeof form.values) => {
     try {
-      const url = editingMedia 
-        ? `/api/electronic-media/${editingMedia.id}`
-        : '/api/electronic-media';
-      
-      const method = editingMedia ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
-      });
-
-      if (response.ok) {
-        showNotification({
-          title: 'Success',
-          message: editingMedia 
-            ? 'Video updated successfully' 
-            : 'Video added successfully',
-          color: 'green'
-        });
-        fetchMediaItems();
-        handleCloseModal();
+      if (editingMedia) {
+        await update(editingMedia.id, values);
+      } else {
+        await create(values);
       }
     } catch (error) {
-      showNotification({
-        title: 'Error',
-        message: 'Failed to save video',
-        color: 'red'
-      });
+      console.error('Error submitting electronic media:', error);
     }
   };
 
@@ -123,24 +108,9 @@ export default function ElectronicMediaPage() {
     if (!confirm('Are you sure you want to delete this video?')) return;
     
     try {
-      const response = await fetch(`/api/electronic-media/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        showNotification({
-          title: 'Success',
-          message: 'Video deleted successfully',
-          color: 'green'
-        });
-        fetchMediaItems();
-      }
+      await remove(id);
     } catch (error) {
-      showNotification({
-        title: 'Error',
-        message: 'Failed to delete video',
-        color: 'red'
-      });
+      console.error('Error deleting electronic media:', error);
     }
   };
 
@@ -211,10 +181,11 @@ export default function ElectronicMediaPage() {
             <Card.Section>
               <AspectRatio ratio={16 / 9}>
                 <div style={{ position: 'relative', backgroundColor: '#f8f9fa' }}>
-                  <img
+                  <Image
                     src={media.thumbnail || getVideoThumbnail(media.videoUrl)}
                     alt={media.title}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    fill
+                    style={{ objectFit: 'cover' }}
                   />
                   <div style={{ 
                     position: 'absolute', 
