@@ -68,59 +68,86 @@ export async function GET() {
 }
 
 async function fetchDashboardDataInternal(): Promise<DashboardData> {
-  // Optimize: Use raw SQL for better performance on counts
-  const contentCounts = await prisma.$queryRaw`
-    SELECT 
-      (SELECT COUNT(*)::int FROM "Blog") as total_blogs,
-      (SELECT COUNT(*)::int FROM "Blog" WHERE status = 'published') as published_blogs,
-      (SELECT COUNT(*)::int FROM "Center") as total_centers,
-      (SELECT COUNT(*)::int FROM "Initiative") as total_initiatives,
-      (SELECT COUNT(*)::int FROM "Career") as total_careers,
-      (SELECT COUNT(*)::int FROM "users") as total_users
-  `;
+  try {
+    // Use standard Prisma queries instead of raw SQL to avoid type issues
+    const [
+      totalBlogs,
+      publishedBlogs,
+      totalCenters,
+      totalInitiatives,
+      totalCareers,
+      totalUsers,
+      totalPageViews,
+      monthlyPageViews,
+      monthlyVisitors,
+      activeUsers
+    ] = await Promise.all([
+      prisma.blog.count(),
+      prisma.blog.count({ where: { status: 'PUBLISHED' } }),
+      prisma.center.count(),
+      prisma.initiative.count(),
+      prisma.career.count(),
+      prisma.user.count(),
+      
+      // Analytics queries with safe fallbacks
+      prisma.pageView.count().catch(() => 0),
+      prisma.pageView.count({
+        where: {
+          timestamp: {
+            gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // 30 days ago
+          }
+        }
+      }).catch(() => 0),
+      prisma.visitor.count({
+        where: {
+          lastVisit: {
+            gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // 30 days ago
+          }
+        }
+      }).catch(() => 0),
+      prisma.pageView.groupBy({
+        by: ['sessionId'],
+        where: {
+          timestamp: {
+            gte: new Date(new Date().setHours(0, 0, 0, 0)) // Today start
+          }
+        }
+      }).then(result => result.length).catch(() => 0)
+    ]);
 
-  const counts = Array.isArray(contentCounts) ? contentCounts[0] : contentCounts;
+    // Calculate content completion percentage
+    const contentProgress = totalBlogs > 0 
+      ? Math.round((publishedBlogs / totalBlogs) * 100) 
+      : 0;
 
-  // Get 30 days ago for analytics
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const dashboardData = {
+      totalBlogs,
+      totalCenters,
+      totalInitiatives,
+      totalCareers,
+      activeUsers,
+      monthlyVisitors,
+      pageViews: totalPageViews,
+      progress: contentProgress
+    };
 
-  // Get today start for active sessions
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+    // Cache the result
+    cachedDashboardData = dashboardData;
+    cacheTimestamp = Date.now();
 
-  // Combined analytics query - single database hit
-  const analyticsData = await prisma.$queryRaw`
-    SELECT 
-      (SELECT COUNT(*)::int FROM "PageView") as total_page_views,
-      (SELECT COUNT(*)::int FROM "PageView" WHERE timestamp >= ${thirtyDaysAgo}) as monthly_page_views,
-      (SELECT COUNT(*)::int FROM "Visitor" WHERE "lastVisit" >= ${thirtyDaysAgo}) as monthly_visitors,
-      (SELECT COUNT(DISTINCT "sessionId")::int FROM "PageView" WHERE timestamp >= ${todayStart}) as active_users
-  `;
-
-  const analytics = Array.isArray(analyticsData) ? analyticsData[0] : analyticsData;
-
-  // Calculate content completion percentage
-  const totalBlogs = Number(counts.total_blogs) || 0;
-  const publishedBlogs = Number(counts.published_blogs) || 0;
-  const contentProgress = totalBlogs > 0 
-    ? Math.round((publishedBlogs / totalBlogs) * 100) 
-    : 0;
-
-  const dashboardData = {
-    totalBlogs,
-    totalCenters: Number(counts.total_centers) || 0,
-    totalInitiatives: Number(counts.total_initiatives) || 0,
-    totalCareers: Number(counts.total_careers) || 0,
-    activeUsers: Number(analytics.active_users) || 0,
-    monthlyVisitors: Number(analytics.monthly_visitors) || 0,
-    pageViews: Number(analytics.total_page_views) || 0,
-    progress: contentProgress
-  };
-
-  // Cache the result
-  cachedDashboardData = dashboardData;
-  cacheTimestamp = Date.now();
-
-  return dashboardData;
+    return dashboardData;
+  } catch (error) {
+    console.error('Error in fetchDashboardDataInternal:', error);
+    // Return safe fallback data
+    return {
+      totalBlogs: 0,
+      totalCenters: 0,
+      totalInitiatives: 0,
+      totalCareers: 0,
+      activeUsers: 0,
+      monthlyVisitors: 0,
+      pageViews: 0,
+      progress: 0
+    };
+  }
 }

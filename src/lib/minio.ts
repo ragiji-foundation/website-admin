@@ -1,7 +1,27 @@
 import { Client } from 'minio';
 
+// Extract hostname from MINIO_ENDPOINT if it includes protocol
+function extractHostname(endpoint: string): string {
+  if (!endpoint) return 'localhost';
+  
+  // If endpoint includes protocol, extract hostname
+  if (endpoint.includes('://')) {
+    try {
+      const url = new URL(endpoint);
+      return url.hostname;
+    } catch (error) {
+      console.error('Error parsing MinIO endpoint URL:', error);
+      // Fallback: remove protocol manually
+      return endpoint.replace(/^https?:\/\//, '').split(':')[0];
+    }
+  }
+  
+  // If no protocol, return as is (just hostname)
+  return endpoint.split(':')[0];
+}
+
 const minioClient = new Client({
-  endPoint: process.env.MINIO_ENDPOINT || 'localhost',
+  endPoint: extractHostname(process.env.MINIO_ENDPOINT || 'localhost'),
   port: parseInt(process.env.MINIO_PORT || '9000'),
   useSSL: process.env.MINIO_USE_SSL === 'true',
   accessKey: process.env.MINIO_ACCESS_KEY || '',

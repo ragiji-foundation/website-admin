@@ -1,12 +1,24 @@
 /**
  * Centralized API Data Fetching Hook
  * 
- * This hook eliminates the need for duplicate fetch implementations
- * across the application. It provides consistent error handling,
+ * This hook eliminates the need for duplicate fetch implementa  // Use useRef to store the latest fetchData function to avoid dependency cycles
+  const fetchDataRef = useRef(fetchData);
+  fetchDataRef.current = fetchData;
+
+  const refetch = useCallback(() => fetchDataRef.current(), []);
+  const fetchWithParams = useCallback((params?: Record<string, string | number | boolean>) => fetchDataRef.current(params), []);
+
+  // Auto-fetch on mount and dependency changes - only depend on endpoint and immediate
+  useEffect(() => {
+    if (immediate) {
+      fetchDataRef.current();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [immediate, endpoint]);cross the application. It provides consistent error handling,
  * loading states, and fallback mechanisms.
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { notifications } from '@mantine/notifications';
 
 interface UseApiDataOptions<T = unknown> {
@@ -50,6 +62,18 @@ export function useApiData<T>(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
+  // Use refs to store callback functions to avoid stale closures
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+  const fallbackDataRef = useRef(fallbackData);
+  const showNotificationsRef = useRef(showNotifications);
+  
+  // Update refs when options change
+  onSuccessRef.current = onSuccess;
+  onErrorRef.current = onError;
+  fallbackDataRef.current = fallbackData;
+  showNotificationsRef.current = showNotifications;
+
   const fetchData = useCallback(async (params?: Record<string, string | number | boolean>) => {
     setLoading(true);
     setError(null);
@@ -81,9 +105,10 @@ export function useApiData<T>(
 
       const result = await response.json();
       setData(result);
-      onSuccess?.(result);
+      onSuccessRef.current?.(result);
 
-      if (showNotifications) {
+      // Only log in development mode to reduce console spam
+      if (showNotificationsRef.current && process.env.NODE_ENV === 'development') {
         console.log(`✅ Successfully fetched data from ${endpoint}`);
       }
     } catch (fetchError) {
@@ -91,11 +116,11 @@ export function useApiData<T>(
       console.warn(`⚠️ API error for ${endpoint}:`, errorInstance);
       
       // Use fallback data on error
-      setData(fallbackData);
+      setData(fallbackDataRef.current);
       setError(errorInstance);
-      onError?.(errorInstance);
+      onErrorRef.current?.(errorInstance);
 
-      if (showNotifications) {
+      if (showNotificationsRef.current) {
         notifications.show({
           title: 'Data Loading Issue',
           message: `Using cached data. ${errorInstance.message}`,
@@ -105,7 +130,7 @@ export function useApiData<T>(
     } finally {
       setLoading(false);
     }
-  }, [endpoint, fallbackData, onSuccess, onError, showNotifications]);
+  }, [endpoint]); // Only depend on endpoint to prevent infinite loops
 
   const refetch = useCallback(() => fetchData(), [fetchData]);
   const fetchWithParams = useCallback((params?: Record<string, string | number | boolean>) => fetchData(params), [fetchData]);
