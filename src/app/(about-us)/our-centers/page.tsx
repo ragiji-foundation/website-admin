@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   TextInput,
   Button,
@@ -82,11 +82,7 @@ export default function CentersAdmin() {
     contactInfo: ''
   });
 
-  useEffect(() => {
-    fetchCenters();
-  }, [fetchCenters]);
-
-    const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
@@ -206,7 +202,7 @@ export default function CentersAdmin() {
         </Group>
 
         <Grid>
-          {centers.map((center) => (
+          {Array.isArray(centers) && centers.map((center) => (
             <Grid.Col key={center.id} span={{ base: 12, md: 6 }}>
               <Paper shadow="xs" p="md" withBorder>
                 {center.imageUrl && (
