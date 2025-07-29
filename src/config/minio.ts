@@ -66,9 +66,38 @@ export async function initializeBucket(bucketName: string = DEFAULT_BUCKET) {
 
 // Generate public URL for MinIO objects
 export function getMinioPublicUrl(bucketName: string, objectName: string): string {
+  const isProduction = process.env.NODE_ENV === 'production';
+  const endpoint = process.env.MINIO_ENDPOINT || 'localhost';
+  const port = process.env.MINIO_PORT || '9000';
+  
+  // In production, check for different URL strategies
+  if (isProduction) {
+    // Strategy 1: Use custom public URL (for CDN/proxy setup)
+    if (process.env.MINIO_PUBLIC_URL) {
+      return `${process.env.MINIO_PUBLIC_URL}/${bucketName}/${objectName}`;
+    }
+    
+    // Strategy 2: Use image proxy to avoid mixed content issues
+    if (process.env.USE_IMAGE_PROXY === 'true') {
+      return `/api/image-proxy/${bucketName}/${objectName}`;
+    }
+    
+    // Strategy 3: Force HTTPS (requires MinIO to support HTTPS)
+    if (process.env.MINIO_USE_SSL === 'true') {
+      return `https://${endpoint}/${bucketName}/${objectName}`;
+    }
+    
+    // Fallback: Use image proxy by default in production to avoid mixed content
+    return `/api/image-proxy/${bucketName}/${objectName}`;
+  }
+  
+  // Development: use SSL setting or default to HTTP
   const protocol = process.env.MINIO_USE_SSL === 'true' ? 'https' : 'http';
-  const port = process.env.MINIO_PORT ? `:${process.env.MINIO_PORT}` : '';
-  return `${protocol}://${process.env.MINIO_ENDPOINT}${port}/${bucketName}/${objectName}`;
+  const includePort = endpoint === 'localhost' || endpoint.includes('localhost');
+  
+  return includePort 
+    ? `${protocol}://${endpoint}:${port}/${bucketName}/${objectName}`
+    : `${protocol}://${endpoint}/${bucketName}/${objectName}`;
 }
 
 // Generate presigned URL for temporary access

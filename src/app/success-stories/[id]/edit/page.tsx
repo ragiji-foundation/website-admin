@@ -48,7 +48,7 @@ export default function EditSuccessStoryPage() {
   const id = (params?.id ?? '') as string;
 
   // ✅ MIGRATED: Using centralized hooks instead of manual state management
-  const { data: story, loading, error } = useApiData<SuccessStoryData | null>(
+  const { data: apiResponse, loading, error } = useApiData<any>(
     `/api/success-stories/${id}`,
     null,
     { 
@@ -56,6 +56,12 @@ export default function EditSuccessStoryPage() {
       onError: () => router.push('/success-stories')
     }
   );
+
+  // Extract the story data from the API response structure
+  // Handle both centralized API format {success: true, data: T} and direct format
+  const story: SuccessStoryData | null = apiResponse?.success 
+    ? apiResponse.data 
+    : apiResponse;
 
   // ✅ MIGRATED: Using centralized CRUD operations
   const { update, loading: updateLoading } = useCrudOperations<SuccessStoryData>('/api/success-stories', {

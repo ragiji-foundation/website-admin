@@ -24,8 +24,6 @@ import StarterKit from '@tiptap/starter-kit';
 import Highlight from '@tiptap/extension-highlight';
 import Underline from '@tiptap/extension-underline';
 
-import { handleImageUpload } from '@/utils/imageUpload';
-
 // ✅ MIGRATED: Import centralized hooks
 import { useApiData } from '@/hooks/useApiData';
 import { useCrudOperations } from '@/hooks/useCrudOperations';
@@ -47,6 +45,8 @@ export default function InitiativesAdmin() {
     imageUrl: '',
     order: 0
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [formLoading, setFormLoading] = useState(false);
 
   // ✅ MIGRATED: Use centralized data fetching and operations
   const { data: initiatives = [], loading: _dataLoading, refetch } = useApiData<Initiative[]>('/api/initiatives', []);
@@ -76,20 +76,23 @@ export default function InitiativesAdmin() {
   const onImageUpload = async (file: File | null) => {
     try {
       if (!file) return;
-      const url = await handleImageUpload(file);
-      if (url && typeof url === 'string') {
-        setFormData(prev => ({ ...prev, imageUrl: url }));
-        notifications.show({
-          title: 'Success',
-          message: 'Image uploaded successfully',
-          color: 'green'
-        });
-      }
+      
+      setImageFile(file);
+      
+      // Create a preview URL for immediate display
+      const previewUrl = URL.createObjectURL(file);
+      setFormData(prev => ({ ...prev, imageUrl: previewUrl }));
+      
+      notifications.show({
+        title: 'Success',
+        message: 'Image selected successfully',
+        color: 'green'
+      });
     } catch (error) {
-      console.error('Error uploading image:', error);
+      console.error('Error selecting image:', error);
       notifications.show({
         title: 'Error',
-        message: 'Failed to upload image',
+        message: 'Failed to select image',
         color: 'red'
       });
     }
@@ -103,6 +106,7 @@ export default function InitiativesAdmin() {
       order: 0
     });
     setEditingId(null);
+    setImageFile(null);
     editor?.commands.setContent('');
   };
 
@@ -111,6 +115,8 @@ export default function InitiativesAdmin() {
     e.preventDefault();
 
     try {
+      setFormLoading(true);
+      
       // Make sure we have content from the editor
       if (editor) {
         setFormData(prev => ({ ...prev, description: editor.getHTML() }));
@@ -120,16 +126,37 @@ export default function InitiativesAdmin() {
         throw new Error('Title is required');
       }
 
-      if (!formData.description) {
+      if (!formData.description && !editor?.getHTML()) {
         throw new Error('Description is required');
       }
 
-      let result;
-      if (editingId) {
-        result = await update(editingId, formData);
-      } else {
-        result = await create(formData);
+      // Prepare FormData for file upload
+      const submitData = new FormData();
+      submitData.append('title', formData.title);
+      submitData.append('description', editor ? editor.getHTML() : formData.description);
+      submitData.append('order', formData.order.toString());
+      
+      if (imageFile) {
+        submitData.append('image', imageFile);
+      } else if (formData.imageUrl && !formData.imageUrl.startsWith('blob:')) {
+        // Only include imageUrl if it's not a blob URL (preview URL)
+        submitData.append('imageUrl', formData.imageUrl);
       }
+
+      const url = editingId ? `/api/initiatives/${editingId}` : '/api/initiatives';
+      const method = editingId ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        body: submitData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save initiative');
+      }
+
+      const result = await response.json();
 
       if (result) {
         notifications.show({
@@ -148,6 +175,8 @@ export default function InitiativesAdmin() {
         message: error instanceof Error ? error.message : 'An error occurred',
         color: 'red'
       });
+    } finally {
+      setFormLoading(false);
     }
   };
 
@@ -185,6 +214,7 @@ export default function InitiativesAdmin() {
       order: initiative.order
     });
     setEditingId(initiative.id);
+    setImageFile(null); // Clear any selected file
 
     // Scroll to form
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -318,16 +348,21 @@ export default function InitiativesAdmin() {
               </FileButton>
             </Group>
 
-            {formData.imageUrl && (
+            {(formData.imageUrl || imageFile) && (
               <Box>
                 <Text size="sm" fw={500} mb={5}>Image Preview</Text>
                 <Image
-                  src={formData.imageUrl}
+                  src={imageFile ? URL.createObjectURL(imageFile) : formData.imageUrl}
                   height={200}
                   fit="contain"
                   alt="Preview"
                   radius="md"
                 />
+                {imageFile && (
+                  <Text size="xs" c="dimmed" mt="xs">
+                    New image selected: {imageFile.name}
+                  </Text>
+                )}
               </Box>
             )}
 
@@ -341,7 +376,7 @@ export default function InitiativesAdmin() {
               <Button variant="subtle" onClick={resetForm}>
                 Cancel
               </Button>
-              <Button type="submit" loading={loading}>
+              <Button type="submit" loading={formLoading}>
                 {editingId ? 'Update' : 'Create'} Initiative
               </Button>
             </Group>

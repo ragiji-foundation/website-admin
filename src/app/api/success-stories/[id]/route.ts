@@ -53,8 +53,8 @@ export const PUT = withApiHandler(async (request: NextRequest, { params }: { par
     const validFields = {
       title: body.title,
       titleHi: body.titleHi || '',
-      content: body.content,
-      contentHi: body.contentHi || '',
+      content: typeof body.content === 'string' ? body.content : JSON.stringify(body.content),
+      contentHi: body.contentHi ? (typeof body.contentHi === 'string' ? body.contentHi : JSON.stringify(body.contentHi)) : '',
       personName: body.personName,
       personNameHi: body.personNameHi || '',
       location: body.location || '',

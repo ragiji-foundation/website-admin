@@ -142,7 +142,7 @@ export function SuccessStoryCard({
                 variant="light"
                 leftSection={<IconEye size={14} />}
                 component={Link}
-                href={`/success-stories/${story.slug}`}
+                href={`/success-stories/${story.id}`}
                 target="_blank"
               >
                 View

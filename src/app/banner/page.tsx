@@ -293,7 +293,7 @@ export default function BannerManagement() {
               alt={banner.title}
               height={400}
               fit="cover"
-              fallbackSrc="/placeholder-banner.jpg"
+              fallbackSrc="/default-blog-image.png"
               className={classes.previewImage}
             />
             <Overlay className={classes.previewOverlay} color="#000" opacity={0.6} />
@@ -373,6 +373,8 @@ export default function BannerManagement() {
               maxSize={3 * 1024 * 1024}
               accept={['image/jpeg', 'image/png', 'image/webp']}
               className={dragOver ? classes.dropzoneActive : classes.dropzone}
+              multiple={false}
+              disabled={submitting}
             >
               <Group justify="center" gap="xl" style={{ pointerEvents: 'none', height: '100%' }}>
                 <Dropzone.Accept>
@@ -497,7 +499,7 @@ export default function BannerManagement() {
                     src={banner.backgroundImage}
                     height={200}
                     alt={banner.title}
-                    fallbackSrc="/placeholder-banner.jpg"
+                    fallbackSrc="/default-blog-image.png"
                     fit="cover"
                     className={classes.bannerImage}
                   />

@@ -5,15 +5,19 @@ import { z } from 'zod';
 
 const successStorySchema = z.object({
   title: z.string().min(3).max(255),
-  content: z.string().min(1, { message: "Content is required" }), // Make content required and ensure it's a string
+  content: z.union([z.string(), z.record(z.any())]).transform(val => 
+    typeof val === 'string' ? val : JSON.stringify(val)
+  ), // Accept both string and object, convert object to string
   personName: z.string().min(3).max(255),
   location: z.string().min(3).max(255),
-  imageUrl: z.string().url().optional(),
+  imageUrl: z.string().optional(), // Remove .url() validation to accept MinIO proxy URLs
   featured: z.boolean().default(false),
   order: z.number().int().default(0),
   slug: z.string().min(3).max(255),
   titleHi: z.string().min(3).max(255).optional(),
-  contentHi: z.string().min(1).optional(),
+  contentHi: z.union([z.string(), z.record(z.any())]).transform(val => 
+    typeof val === 'string' ? val : JSON.stringify(val)
+  ).optional(), // Accept both string and object, convert object to string
   personNameHi: z.string().min(3).max(255).optional(),
   locationHi: z.string().min(3).max(255).optional(),
 });

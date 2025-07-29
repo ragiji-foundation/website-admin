@@ -188,7 +188,7 @@ export default function SuccessStoriesPage() {
               </Stack>
 
               <Group justify="space-between" mt="auto">
-                <Link href={`/success-stories/${story.slug}`}>
+                <Link href={`/success-stories/${story.id}`}>
                   <ActionIcon variant="light" color="blue">
                     <IconEye size={16} />
                   </ActionIcon>

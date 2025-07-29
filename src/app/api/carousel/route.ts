@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { uploadFile } from '@/utils/centralized/upload';
+import { uploadFileFromInput } from '@/lib/minio';
 import type { Carousel, CarouselCreateInput } from '@/types/carousel';
 import { withCors, corsError } from '@/utils/cors';
+import { validateFile } from '@/utils/fileValidation';
 
 export async function GET(
   _request: NextRequest
@@ -46,12 +47,18 @@ export async function POST(
       return corsError('Valid type (image or video) is required', 400);
     }
 
-    if (type === 'image' && (!image || !(image instanceof File))) {
-      return corsError('Image file is required for image type', 400);
+    if (type === 'image') {
+      const imageValidation = validateFile(image, { type: 'image', maxSizeMB: 10 });
+      if (!imageValidation.valid) {
+        return corsError(imageValidation.error || 'Invalid image file', 400);
+      }
     }
 
-    if (type === 'video' && (!video || !(video instanceof File))) {
-      return corsError('Video file is required for video type', 400);
+    if (type === 'video') {
+      const videoValidation = validateFile(video, { type: 'video', maxSizeMB: 50 });
+      if (!videoValidation.valid) {
+        return corsError(videoValidation.error || 'Invalid video file', 400);
+      }
     }
 
     // Get max order value
@@ -67,19 +74,15 @@ export async function POST(
 
     try {
       if (type === 'image' && image) {
-        const result = await uploadFile(image, {
+        const result = await uploadFileFromInput(image, {
           folder: 'carousel',
           tags: ['carousel', 'image'],
-          resourceType: 'image',
-          showNotifications: false,
         });
         imageUrl = result.url;
       } else if (type === 'video' && video) {
-        const result = await uploadFile(video, {
+        const result = await uploadFileFromInput(video, {
           folder: 'carousel',
           tags: ['carousel', 'video'],
-          resourceType: 'video',
-          showNotifications: false,
         });
         videoUrl = result.url;
       }

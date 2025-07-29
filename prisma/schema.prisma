@@ -474,3 +474,23 @@ model PageContent {
   @@map("page_content")
 }
 
+model MinioFile {
+  id           String   @id @default(cuid())
+  bucketName   String
+  objectName   String
+  originalName String?
+  url          String
+  contentType  String?
+  size         BigInt?
+  etag         String?
+  lastModified DateTime?
+  referencedBy String?  // Which table/entity uses this file
+  referenceId  String?  // The ID of the entity that uses this file
+  hasReference Boolean  @default(false) // Whether this file is referenced by any entity
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([bucketName, objectName])
+  @@map("minio_files")
+}
+

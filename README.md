@@ -57,7 +57,32 @@ Key variables:
 - `MINIO_ENDPOINT`: MinIO server endpoint (localhost for development)
 - `MINIO_ACCESS_KEY`: MinIO access key
 - `MINIO_SECRET_KEY`: MinIO secret key
+- `MINIO_USE_SSL`: Set to 'true' for HTTPS (required for production)
+- `USE_IMAGE_PROXY`: Set to 'true' to use image proxy (fixes mixed content issues)
+- `MINIO_PUBLIC_URL`: Custom public URL for MinIO (optional, for CDN/proxy setups)
 - `DATABASE_URL`: PostgreSQL connection string
+
+### Production Environment Variables
+
+For production deployment with HTTPS:
+
+```bash
+# Production MinIO Configuration
+MINIO_ENDPOINT=your-minio-domain.com
+MINIO_PORT=443
+MINIO_USE_SSL=true
+MINIO_ACCESS_KEY=your-access-key
+MINIO_SECRET_KEY=your-secret-key
+
+# Enable image proxy to avoid mixed content issues
+USE_IMAGE_PROXY=true
+
+# Optional: Custom public URL for CDN
+MINIO_PUBLIC_URL=https://cdn.your-domain.com
+
+# Database
+DATABASE_URL=postgresql://username:password@host:port/database
+```
 
 ## Getting Started
 
