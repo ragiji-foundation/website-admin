@@ -11,8 +11,7 @@
     "lint": "next lint",
     "postinstall": "prisma generate",
     "db:seed": "prisma db seed",
-    "seed:manual": "node prisma/scripts/seed-manual.mjs",
-    "seed:story": "node prisma/seed/our-story.mjs",
+    "seed:consolidated": "tsx prisma/seed-consolidated.ts",
     "update-api": "node scripts/update-api-routes.mjs"
   },
   "dependencies": {
@@ -110,6 +109,6 @@
     "@lexical/*": "^0.12.2"
   },
   "prisma": {
-    "seed": "node prisma/seed.mjs"
+    "seed": "tsx prisma/seed-consolidated.ts"
   }
 }
