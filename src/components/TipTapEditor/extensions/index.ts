@@ -11,10 +11,6 @@ import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import Highlight from '@tiptap/extension-highlight';
 import Typography from '@tiptap/extension-typography';
-import ResizableImage from './ResizableImage';
-
-export { ResizableImage };
-export type { ResizableImageOptions } from './ResizableImage';
 
 const getExtensions = (placeholder: string, linkClass: string, imageClass: string) => [
   StarterKit.configure({

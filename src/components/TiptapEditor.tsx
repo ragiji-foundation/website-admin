@@ -5,10 +5,8 @@ import TextAlign from '@tiptap/extension-text-align';
 import Subscript from '@tiptap/extension-subscript';
 import Superscript from '@tiptap/extension-superscript';
 import Link from '@tiptap/extension-link';
+import Image from '@tiptap/extension-image';
 import { useCallback, useEffect, useState } from 'react';
-// Import the ResizableImage extension from its separate file
-import ResizableImage from './TiptapEditor/extensions/ResizableImage';
-import type { ResizableImageOptions } from './TiptapEditor/extensions/ResizableImage';
 
 import {
   ActionIcon,
@@ -77,7 +75,7 @@ export default function TiptapEditor({
   const [imageMenuOpen, setImageMenuOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
-  const [imageOptions, setImageOptions] = useState<ResizableImageOptions>({
+  const [imageOptions, setImageOptions] = useState({
     src: '',
     width: '100%',
     alignment: 'center',
@@ -92,7 +90,7 @@ export default function TiptapEditor({
       }),
       Subscript,
       Superscript,
-      ResizableImage.configure({
+      Image.configure({
         inline: false,
         allowBase64: true,
       }),
@@ -121,11 +119,10 @@ export default function TiptapEditor({
   // Helper function to add image from URL with options
   const addImageFromUrl = () => {
     if (editor && imageUrl) {
-      // Use our properly defined command
-      editor.chain().focus().setResizableImage({
+      // Use the basic image command
+      editor.chain().focus().setImage({
         src: imageUrl,
-        width: imageOptions.width,
-        alignment: imageOptions.alignment,
+        alt: '',
       }).run();
       setImageUrl('');
       setImageMenuOpen(false);
@@ -139,11 +136,10 @@ export default function TiptapEditor({
     setUploadLoading(true);
     try {
       const url = await onImageUpload(selectedFile);
-      // Use the correct command based on which extension you're using
-      editor.chain().focus().setResizableImage({
+      // Use the basic image command
+      editor.chain().focus().setImage({
         src: url,
-        width: imageOptions.width,
-        alignment: imageOptions.alignment,
+        alt: '',
       }).run();
       setSelectedFile(null);
       setImageMenuOpen(false);
@@ -443,33 +439,24 @@ export default function TiptapEditor({
         <BubbleMenu
           editor={editor}
           tippyOptions={{ duration: 100 }}
-          shouldShow={({ editor }) => editor.isActive('resizableImage')}
+          shouldShow={({ editor }) => editor.isActive('image')}
         >
           <Paper p="xs" withBorder>
             <Group gap="xs">
-              <ActionIcon size="sm" onClick={() =>
-                editor.chain().focus().updateAttributes('resizableImage', { alignment: 'left' }).run()
-              }>
-                <IconAlignLeft size={16} />
-              </ActionIcon>
-              <ActionIcon size="sm" onClick={() =>
-                editor.chain().focus().updateAttributes('resizableImage', { alignment: 'center' }).run()
-              }>
-                <IconAlignCenter size={16} />
-              </ActionIcon>
-              <ActionIcon size="sm" onClick={() =>
-                editor.chain().focus().updateAttributes('resizableImage', { alignment: 'right' }).run()
-              }>
-                <IconAlignRight size={16} />
-              </ActionIcon>
               <Button
                 size="xs"
                 leftSection={<IconResize size={14} />}
                 onClick={() => {
-                  const width = prompt('Enter image width (e.g., 300px or 50%):',
-                    editor.getAttributes('resizableImage').width || '100%');
-                  if (width) {
-                    editor.chain().focus().updateAttributes('resizableImage', { width }).run();
+                  const width = prompt('Enter image width (e.g., 300px or 50%):');
+                  if (width && editor.view.state.selection) {
+                    // For basic image, we'll use CSS styling
+                    const { from } = editor.view.state.selection;
+                    editor.view.dispatch(
+                      editor.view.state.tr.setNodeMarkup(from, undefined, {
+                        ...editor.getAttributes('image'),
+                        style: `width: ${width}; max-width: 100%;`,
+                      })
+                    );
                   }
                 }}
               >
@@ -487,7 +474,7 @@ export default function TiptapEditor({
           tippyOptions={{ duration: 100 }}
           shouldShow={({ editor, state }) => {
             // Only show for text selections, not for images
-            return !editor.isActive('resizableImage') && !state.selection.empty;
+            return !editor.isActive('image') && !state.selection.empty;
           }}
         >
           <Group gap={0} bg="white" style={{ border: '1px solid #ddd', borderRadius: 4 }}>
@@ -522,17 +509,14 @@ export default function TiptapEditor({
           border-color: red;
         }
         
-        .tiptap-editor .resizable-image {
-          margin: 1rem 0;
-          position: relative;
-        }
-        
-        .tiptap-editor .resizable-image img {
+        .tiptap-editor .image-container img {
           border-radius: 4px;
           transition: all 0.2s ease;
+          max-width: 100%;
+          height: auto;
         }
         
-        .tiptap-editor .resizable-image.ProseMirror-selectednode img {
+        .tiptap-editor img.ProseMirror-selectednode {
           box-shadow: 0 0 0 3px #0096ff;
         }
         
