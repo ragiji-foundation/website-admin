@@ -78,7 +78,7 @@ export const navItems: NavItem[] = [
   { link: '/news-coverage', label: 'NEWS COVERAGE', icon: IconNews },
   { link: '/blog', label: 'BLOGS', icon: IconFileText },
   { link: '/electronic-media', label: 'ELECTRONIC MEDIA', icon: IconPhoto },
-  { link: '/photo-library', label: 'GALLERY', icon: IconPhoto },
+    { link: '/gallery', label: 'GALLERY', icon: IconPhoto },
   { divider: true },
   { link: '/careers', label: 'CAREERS', icon: IconBriefcase },
   // { divider: true, dividerLabel: 'GLOBAL COMPONENTS' },

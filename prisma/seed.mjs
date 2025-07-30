@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
+import bcrypt from 'bcrypt';
 import {
   successStoriesData,
   initiativesData,
@@ -17,16 +17,6 @@ import {
 } from './seed/data.js';
 
 const prisma = new PrismaClient();
-
-const DEFAULT_CONTENT = {
-  type: 'doc',
-  content: [
-    {
-      type: 'paragraph',
-      content: [{ type: 'text', text: 'Sample content' }]
-    }
-  ]
-};
 
 const carouselData = [
   {

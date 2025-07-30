@@ -301,7 +301,7 @@ export function CarouselManager() {
               Carousel Management
             </Title>
             <Text c="white" opacity={0.9} size="lg">
-              Manage your website's carousel items and their display order
+              Manage your website&apos;s carousel items and their display order
             </Text>
           </div>
           <ThemeIcon size="xl" radius="xl" variant="light" color="white">

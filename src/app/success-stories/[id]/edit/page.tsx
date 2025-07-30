@@ -15,8 +15,8 @@ interface SuccessStoryFormData {
   slug: string;
   title: string;
   titleHi?: string;
-  content: Json;
-  contentHi?: Json;
+  content: string;
+  contentHi?: string;
   personName: string;
   personNameHi?: string;
   location: string;
@@ -31,8 +31,8 @@ interface SuccessStoryData {
   slug: string;
   title: string;
   titleHi?: string;
-  content: Record<string, unknown>;
-  contentHi?: Record<string, unknown>;
+  content: string;
+  contentHi?: string;
   personName: string;
   personNameHi?: string;
   location: string;

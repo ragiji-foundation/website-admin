@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Container,
-  Title,
   Grid,
   Card,
   Image,
@@ -11,38 +10,36 @@ import {
   Button,
   Group,
   Modal,
-  Tabs,
   FileButton,
   Stack,
   Skeleton,
   ActionIcon,
   Tooltip,
   Badge,
-  Overlay,
   Paper,
   Box,
-  Text as MantineText,
-  rem,
-  Loader
+  TextInput,
+  Tabs,
+  Progress,
+  Alert
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import {
   IconPhoto,
-  IconFiles,
   IconTrash,
   IconCopy,
   IconSearch,
   IconEye,
   IconEdit,
-  IconX
+  IconX,
+  IconFiles,
+  IconCheck,
+  IconAlertCircle,
+  IconRefresh
 } from '@tabler/icons-react';
-import { ContentLibrarySelector } from '@/components/Gallery/ContentLibrarySelector';
-import { uploadToMinio, getTransformedUrl } from '@/utils/minioUpload';
-import { useHover } from '@mantine/hooks';
-import { Lighthouse } from '@/components/Gallery/Lighthouse';
+import { uploadFile, getTransformedUrl, deleteFile } from '@/services/uploadService';
 import { GalleryImageForm } from '@/components/Gallery/GalleryImageForm';
-// ✅ ADDED: Import centralized hooks
 import { useApiData } from '@/hooks/useApiData';
 import { useCrudOperations } from '@/hooks/useCrudOperations';
 
@@ -50,271 +47,319 @@ interface GalleryItem {
   id: string;
   title: string;
   titleHi?: string;
-  url?: string;
-  imageUrl?: string; // Some API responses might have imageUrl instead of url
-  type?: 'image' | 'content';
-  createdAt: string;
+  imageUrl: string;
   description?: string;
   descriptionHi?: string;
   category?: string;
+  createdAt: string;
 }
 
 export default function GalleryPage() {
-  // ✅ MIGRATED: Using centralized hooks instead of manual state management
+  // 🚀 Centralized data management
   const { 
-    data: items, 
+    data: rawData = [], 
     loading: isLoading, 
-    error, 
     refetch: fetchGalleryItems 
-  } = useApiData<GalleryItem[]>('/api/gallery', [], {
-    showNotifications: true,
-    onSuccess: (data) => {
-      // Transform the data to ensure consistent field names
-      const normalizedItems: GalleryItem[] = data.map((item) => ({
-        id: item.id as string,
-        title: item.title || 'Untitled',
-        titleHi: item.titleHi,
-        url: item.url || item.imageUrl,
-        imageUrl: item.imageUrl || item.url,
-        type: item.type || 'image',
-        createdAt: item.createdAt || new Date().toISOString(),
-        description: item.description || '',
-        descriptionHi: item.descriptionHi,
-        category: item.category || 'general'
-      }));
-      return normalizedItems;
-    }
+  } = useApiData<any>('/api/gallery', [], {
+    showNotifications: true
   });
 
-  // ✅ MIGRATED: Using centralized CRUD operations
-  const { 
-    create, 
-    remove, 
-    loading: crudLoading 
-  } = useCrudOperations<GalleryItem>('/api/gallery', {
+  // Transform data locally
+  const items: GalleryItem[] = useMemo(() => {
+    console.log('Gallery data received:', rawData); // Debug log
+    
+    // Handle API response structure: { success: true, data: Array, message: string }
+    const data = Array.isArray(rawData) ? rawData : rawData?.data || [];
+    console.log('Extracted data array:', data); // Debug log
+    
+    const transformedData = Array.isArray(data) ? data.map((item: any) => ({
+      id: String(item.id),
+      title: item.title || 'Untitled',
+      titleHi: item.titleHi,
+      imageUrl: item.imageUrl || item.url || '',
+      description: item.description || '',
+      descriptionHi: item.descriptionHi,
+      category: item.category || 'general',
+      createdAt: item.createdAt || new Date().toISOString()
+    })) : [];
+    
+    console.log('Transformed gallery items:', transformedData); // Debug log
+    return transformedData;
+  }, [rawData]);
+
+  const { create, remove, update } = useCrudOperations<GalleryItem>('/api/gallery', {
     showNotifications: true,
     onSuccess: () => {
-      fetchGalleryItems(); // Refresh data after operations
+      console.log('CRUD operation completed, refreshing gallery...'); // Debug log
+      fetchGalleryItems();
     }
   });
 
-  const [opened, { open, close }] = useDisclosure(false);
-  const [previewOpened, { open: openPreview, close: closePreview }] = useDisclosure(false);
-  const [loading, setLoading] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
+  // 🎯 UI state management
+  const [uploadModal, uploadHandlers] = useDisclosure(false);
+  const [editModal, editHandlers] = useDisclosure(false);
+  const [previewModal, previewHandlers] = useDisclosure(false);
+  const [uploading, setUploading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  // Hindi support
-  const [language, setLanguage] = useState<'en' | 'hi'>('en');
-  // Bulk upload
-  const [bulkFiles, setBulkFiles] = useState<File[]>([]);
-  // Edit feature
-  const [editOpened, setEditOpened] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
   const [editItem, setEditItem] = useState<GalleryItem | null>(null);
+  
+  // 📦 Bulk upload state
+  const [bulkFiles, setBulkFiles] = useState<File[]>([]);
+  const [bulkUploading, setBulkUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
 
-  // ✅ MIGRATED: Using centralized create operation
-  const handleFileUpload = async (file: File | null) => {
+  // 📤 Upload handler
+  const handleUpload = async (file: File | null) => {
     if (!file) return;
+    
+    setUploading(true);
     try {
-      setLoading(true);
-
-      // Use Cloudinary for upload
-      const result = await uploadToMinio(file, {
+      console.log('Starting upload for:', file.name); // Debug log
+      
+      const result = await uploadFile(file, {
         folder: 'gallery',
-        tags: ['gallery', 'upload'],
-        resourceType: 'image'
+        resourceType: 'image',
+        showNotifications: false
       });
-
-      // Use centralized create function
-      await create({
+      
+      console.log('Upload result:', result); // Debug log
+      
+      const galleryItem = {
         title: file.name.split('.')[0],
         imageUrl: result.url,
-        type: 'image',
-        description: 'Uploaded on ' + new Date().toLocaleDateString(),
+        description: `Uploaded on ${new Date().toLocaleDateString()}`,
         category: 'upload'
-      });
-
-      close();
-    } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: error instanceof Error ? error.message : 'Failed to upload file',
-        color: 'red'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ✅ MIGRATED: Bulk upload using centralized create
-  const handleBulkUpload = async (files: File[] | null) => {
-    if (!files || files.length === 0) return;
-    setLoading(true);
-    try {
-      for (const file of files) {
-        // Use Cloudinary for upload
-        const result = await uploadToMinio(file, {
-          folder: 'gallery',
-          tags: ['gallery', 'upload'],
-          resourceType: 'image'
-        });
-        // Use centralized create function
-        await create({
-          title: file.name.split('.')[0],
-          imageUrl: result.url,
-          type: 'image',
-          description: 'Uploaded on ' + new Date().toLocaleDateString(),
-          category: 'upload'
-        });
-      }
+      };
+      
+      console.log('Creating gallery item:', galleryItem); // Debug log
+      
+      await create(galleryItem);
+      
+      uploadHandlers.close();
       notifications.show({
         title: 'Success',
-        message: 'All files uploaded successfully',
+        message: 'Image uploaded successfully',
         color: 'green'
       });
-      close();
-      setBulkFiles([]);
     } catch (error) {
+      console.error('Upload error:', error); // Debug log
       notifications.show({
         title: 'Error',
-        message: error instanceof Error ? error.message : 'Failed to upload files',
+        message: error instanceof Error ? error.message : 'Upload failed',
         color: 'red'
       });
     } finally {
-      setLoading(false);
+      setUploading(false);
     }
   };
 
-  const handlePreview = (item: GalleryItem) => {
-    setSelectedItem(item);
-    openPreview();
+  // 📦 Bulk upload handler
+  const handleBulkUpload = async (files: File[] | null) => {
+    if (!files || files.length === 0) return;
+    
+    setBulkUploading(true);
+    setUploadProgress({});
+    
+    try {
+      let successCount = 0;
+      let errorCount = 0;
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        try {
+          setUploadProgress(prev => ({ ...prev, [file.name]: 25 }));
+          
+          const result = await uploadFile(file, {
+            folder: 'gallery',
+            resourceType: 'image',
+            showNotifications: false
+          });
+          
+          setUploadProgress(prev => ({ ...prev, [file.name]: 75 }));
+          
+          await create({
+            title: file.name.split('.')[0],
+            imageUrl: result.url,
+            description: `Bulk uploaded on ${new Date().toLocaleDateString()}`,
+            category: 'bulk-upload'
+          });
+          
+          setUploadProgress(prev => ({ ...prev, [file.name]: 100 }));
+          successCount++;
+          
+        } catch (error) {
+          console.error(`Failed to upload ${file.name}:`, error);
+          setUploadProgress(prev => ({ ...prev, [file.name]: -1 })); // -1 indicates error
+          errorCount++;
+        }
+      }
+      
+      setBulkFiles([]);
+      uploadHandlers.close();
+      
+      notifications.show({
+        title: 'Bulk Upload Complete',
+        message: `✅ ${successCount} uploaded successfully${errorCount > 0 ? `, ❌ ${errorCount} failed` : ''}`,
+        color: successCount > 0 ? 'green' : 'red'
+      });
+      
+    } catch (error) {
+      notifications.show({
+        title: 'Error',
+        message: 'Bulk upload failed',
+        color: 'red'
+      });
+    } finally {
+      setBulkUploading(false);
+      setUploadProgress({});
+    }
   };
 
-  // ✅ MIGRATED: Using centralized delete operation
+  // 🗑️ Delete handler
   const handleDelete = async (id: string) => {
-    const confirmed = window.confirm("Are you sure you want to delete this image?");
-    if (!confirmed) return;
-
-    // Use centralized remove function
-    await remove(id);
+    if (window.confirm("Delete this image?")) {
+      try {
+        // Find the item to get the image URL before deleting from database
+        const itemToDelete = items.find(item => item.id === id);
+        
+        // Delete from database first
+        await remove(id);
+        
+        // Then delete from MinIO storage if we have the image URL
+        if (itemToDelete?.imageUrl) {
+          try {
+            await deleteFile(itemToDelete.imageUrl, { showNotifications: false });
+            console.log('Image successfully deleted from MinIO:', itemToDelete.imageUrl);
+          } catch (storageError) {
+            console.warn('Failed to delete image from storage (database record was removed):', storageError);
+            // Don't show error notification since database deletion succeeded
+            // The image might already be deleted or the URL might be invalid
+          }
+        }
+        
+        notifications.show({
+          title: 'Success',
+          message: 'Image deleted successfully',
+          color: 'green'
+        });
+        
+      } catch (error) {
+        console.error('Error deleting image:', error);
+        notifications.show({
+          title: 'Error',
+          message: error instanceof Error ? error.message : 'Failed to delete image',
+          color: 'red'
+        });
+      }
+    }
   };
 
-  const copyToClipboard = (url: string) => {
-    navigator.clipboard.writeText(url);
-    notifications.show({
-      title: 'URL Copied',
-      message: 'Image URL copied to clipboard',
-      color: 'blue'
-    });
-  };
-
-  // ✅ ADDED: Edit handlers for gallery items
+  // ✏️ Edit handlers
   const handleEdit = (item: GalleryItem) => {
     setEditItem(item);
-    setEditOpened(true);
+    editHandlers.open();
   };
-
-  // ✅ MIGRATED: Using centralized update operation
-  const { update } = useCrudOperations<GalleryItem>('/api/gallery', {
-    showNotifications: true,
-    onSuccess: () => {
-      fetchGalleryItems();
-      setEditOpened(false);
-      setEditItem(null);
-    }
-  });
 
   const handleEditSubmit = async (formData: Partial<GalleryItem>) => {
     if (!editItem) return;
     await update(editItem.id, formData);
+    setEditItem(null);
+    editHandlers.close();
   };
 
-  const filteredItems = searchTerm
-    ? items.filter(item =>
-      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()))
-    )
-    : items;
+  // 👁️ Preview handler
+  const handlePreview = (item: GalleryItem) => {
+    setSelectedItem(item);
+    previewHandlers.open();
+  };
 
-  // Hindi/English toggle and pass language to UI
+  // 📋 Copy URL handler
+  const copyToClipboard = (url: string) => {
+    // Convert relative URLs to absolute URLs
+    let fullUrl = url;
+    
+    if (url.startsWith('/api/image-proxy/')) {
+      // Convert proxy URL to full URL
+      fullUrl = `${window.location.origin}${url}`;
+    } else if (url.startsWith('/')) {
+      // Convert any relative URL to absolute
+      fullUrl = `${window.location.origin}${url}`;
+    }
+    // If it's already a full URL (starts with http), use as is
+    
+    navigator.clipboard.writeText(fullUrl);
+    notifications.show({
+      title: 'Success',
+      message: `URL copied: ${fullUrl}`,
+      color: 'blue'
+    });
+  };
+
+  // 🔍 Search filter
+  console.log('Current items state:', items, 'Type:', typeof items, 'Is Array:', Array.isArray(items)); // Debug log
+  
+  const filteredItems = Array.isArray(items) && searchTerm
+    ? items.filter(item =>
+        item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()))
+      )
+    : Array.isArray(items) ? items : [];
+
   return (
     <Container size="xl" py="xl">
+      {/* 📊 Header */}
       <Paper shadow="xs" p="md" mb="lg" withBorder>
         <Group justify="space-between" wrap="nowrap">
-          <MantineText
-            component="h1"
-            size="xl"
-            fw={700}
-            variant="gradient"
-            gradient={{ from: 'blue', to: 'cyan' }}
-          >
-            Media Gallery
-          </MantineText>
+          <Text size="xl" fw={700} variant="gradient" gradient={{ from: 'blue', to: 'cyan' }}>
+            Gallery
+          </Text>
           <Group>
-            {/* Language toggle */}
-            <Button.Group>
-              <Button
-                variant={language === 'en' ? 'filled' : 'outline'}
-                onClick={() => setLanguage('en')}
-                size="xs"
-              >
-                EN
-              </Button>
-              <Button
-                variant={language === 'hi' ? 'filled' : 'outline'}
-                onClick={() => setLanguage('hi')}
-                size="xs"
-              >
-                HI
-              </Button>
-            </Button.Group>
-            <div className="search-container" style={{ position: 'relative' }}>
-              <IconSearch
-                size={16}
-                style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }}
-              />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search images..."
-                style={{
-                  padding: '8px 8px 8px 35px',
-                  borderRadius: '4px',
-                  border: '1px solid #e0e0e0',
-                  width: '200px'
-                }}
-              />
-              {searchTerm && (
-                <ActionIcon
-                  size="xs"
-                  radius="xl"
-                  variant="subtle"
-                  onClick={() => setSearchTerm('')}
-                  style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)' }}
-                >
-                  <IconX size={12} />
-                </ActionIcon>
-              )}
-            </div>
+            <ActionIcon
+              variant="light"
+              color="gray"
+              onClick={() => {
+                console.log('Manual refresh triggered'); // Debug log
+                fetchGalleryItems();
+              }}
+              title="Refresh Gallery"
+            >
+              <IconRefresh size={16} />
+            </ActionIcon>
+            <TextInput
+              placeholder="Search images..."
+              leftSection={<IconSearch size={16} />}
+              rightSection={
+                searchTerm && (
+                  <ActionIcon size="xs" variant="subtle" onClick={() => setSearchTerm('')}>
+                    <IconX size={12} />
+                  </ActionIcon>
+                )
+              }
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              w={200}
+            />
             <Button
-              onClick={open}
+              onClick={uploadHandlers.open}
+              leftSection={<IconPhoto size={16} />}
               variant="gradient"
               gradient={{ from: 'blue', to: 'cyan' }}
-              leftSection={<IconPhoto size={16} />}
             >
-              Add New
+              Upload
             </Button>
           </Group>
         </Group>
       </Paper>
 
+      {/* 🖼️ Gallery Grid */}
       {isLoading ? (
         <Grid>
-          {[1, 2, 3, 4, 5, 6].map((i) => (
+          {Array.from({ length: 6 }, (_, i) => (
             <Grid.Col key={i} span={{ base: 12, sm: 6, md: 4, lg: 3 }}>
-              <Card shadow="sm" padding="lg" radius="md" withBorder>
+              <Card withBorder>
                 <Card.Section>
-                  <Skeleton height={160} />
+                  <Skeleton height={200} />
                 </Card.Section>
                 <Skeleton height={20} mt="md" width="70%" />
                 <Skeleton height={15} mt="sm" width="40%" />
@@ -323,66 +368,56 @@ export default function GalleryPage() {
           ))}
         </Grid>
       ) : filteredItems.length === 0 ? (
-        <Paper
-          p="xl"
-          withBorder
-          style={{
-            textAlign: 'center',
-            borderStyle: 'dashed',
-            backgroundColor: '#f9f9f9'
-          }}
-        >
+        <Paper p="xl" withBorder style={{ textAlign: 'center', borderStyle: 'dashed' }}>
           <IconPhoto size={40} style={{ opacity: 0.5, marginBottom: 10 }} />
           <Text size="lg" fw={500} mb="xs">No images found</Text>
           <Text size="sm" c="dimmed" mb="md">
-            {searchTerm ? 'No results match your search criteria.' : 'Your gallery is empty.'}
+            {searchTerm ? 'No results match your search.' : 'Your gallery is empty.'}
           </Text>
           {!searchTerm && (
-            <Button variant="light" onClick={open} leftSection={<IconPhoto size={16} />}>
+            <Button variant="light" onClick={uploadHandlers.open} leftSection={<IconPhoto size={16} />}>
               Upload your first image
             </Button>
           )}
         </Paper>
       ) : (
-        <Grid gutter="md">
+        <Grid>
           {filteredItems.map((item) => (
             <Grid.Col key={item.id} span={{ base: 12, sm: 6, md: 4, lg: 3 }}>
               <Card
-                shadow="sm"
-                padding="lg"
-                radius="md"
                 withBorder
-                style={{
-                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                  height: '100%',
-                  display: 'flex',
+                style={{ 
+                  height: '100%', 
+                  display: 'flex', 
                   flexDirection: 'column',
-                  overflow: 'hidden'
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease'
                 }}
                 className="gallery-card"
               >
-                <Card.Section style={{ position: 'relative' }} onClick={() => handlePreview(item)}>
+                <Card.Section 
+                  style={{ position: 'relative', cursor: 'pointer' }} 
+                  onClick={() => handlePreview(item)}
+                >
                   <Image
-                    src={getTransformedUrl(item.imageUrl || item.url || '', 600, 400, { quality: 80 })}
+                    src={getTransformedUrl(item.imageUrl, 400, 300)}
                     height={200}
                     alt={item.title}
                     fallbackSrc="/placeholder.svg"
-                    style={{ cursor: 'pointer' }}
                     fit="cover"
                   />
-                  <div className="image-hover-overlay" style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'rgba(0,0,0,0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    opacity: 0,
-                    transition: 'opacity 0.2s ease',
-                  }}>
+                  <div 
+                    className="hover-overlay"
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: 'rgba(0,0,0,0.5)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      opacity: 0,
+                      transition: 'opacity 0.2s ease',
+                    }}
+                  >
                     <IconEye color="white" size={24} />
                   </div>
                 </Card.Section>
@@ -390,50 +425,31 @@ export default function GalleryPage() {
                 <Stack gap="xs" mt="md" style={{ flex: 1 }}>
                   <Text fw={500} lineClamp={1}>{item.title}</Text>
                   <Text size="xs" c="dimmed">
-                    Added on {new Date(item.createdAt).toLocaleDateString()}
+                    {new Date(item.createdAt).toLocaleDateString()}
                   </Text>
                   {item.category && (
-                    <Badge size="sm" variant="light">
-                      {item.category}
-                    </Badge>
+                    <Badge size="sm" variant="light">{item.category}</Badge>
                   )}
                 </Stack>
 
-                <Group mt="auto" gap="xs" style={{ marginTop: 'auto' }}>
+                <Group mt="auto" gap="xs">
                   <Tooltip label="Preview">
-                    <ActionIcon
-                      variant="light"
-                      color="blue"
-                      onClick={() => handlePreview(item)}
-                    >
+                    <ActionIcon variant="light" color="blue" onClick={() => handlePreview(item)}>
                       <IconEye size={16} />
                     </ActionIcon>
                   </Tooltip>
                   <Tooltip label="Copy URL">
-                    <ActionIcon
-                      variant="light"
-                      color="blue"
-                      onClick={() => copyToClipboard(item.url || item.imageUrl || '')}
-                    >
+                    <ActionIcon variant="light" color="blue" onClick={() => copyToClipboard(item.imageUrl)}>
                       <IconCopy size={16} />
                     </ActionIcon>
                   </Tooltip>
                   <Tooltip label="Edit">
-                    <ActionIcon
-                      variant="light"
-                      color="blue"
-                      onClick={() => handleEdit(item)}
-                    >
+                    <ActionIcon variant="light" color="blue" onClick={() => handleEdit(item)}>
                       <IconEdit size={16} />
                     </ActionIcon>
                   </Tooltip>
                   <Tooltip label="Delete">
-                    <ActionIcon
-                      variant="light"
-                      color="red"
-                      onClick={() => handleDelete(item.id)}
-                      ml="auto"
-                    >
+                    <ActionIcon variant="light" color="red" onClick={() => handleDelete(item.id)} ml="auto">
                       <IconTrash size={16} />
                     </ActionIcon>
                   </Tooltip>
@@ -444,50 +460,40 @@ export default function GalleryPage() {
         </Grid>
       )}
 
-      {/* Upload Modal */}
-      <Modal opened={opened} onClose={close} title="Add to Gallery" size="lg">
-        <Tabs defaultValue="upload">
+      {/* 📤 Upload Modal */}
+      <Modal opened={uploadModal} onClose={uploadHandlers.close} title="Upload Images" size="lg">
+        <Tabs defaultValue="single">
           <Tabs.List>
-            <Tabs.Tab value="upload" leftSection={<IconPhoto size={16} />}>
-              Upload Photo
+            <Tabs.Tab value="single" leftSection={<IconPhoto size={16} />}>
+              Single Upload
             </Tabs.Tab>
             <Tabs.Tab value="bulk" leftSection={<IconFiles size={16} />}>
               Bulk Upload
             </Tabs.Tab>
-            <Tabs.Tab value="content" leftSection={<IconFiles size={16} />}>
-              Content Library
-            </Tabs.Tab>
           </Tabs.List>
 
-          <Tabs.Panel value="upload" pt="md">
+          <Tabs.Panel value="single" pt="md">
             <Stack>
               <Box
                 style={{
                   border: '2px dashed #e0e0e0',
                   borderRadius: '8px',
                   padding: '30px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  textAlign: 'center',
                   backgroundColor: '#f9fafb'
                 }}
               >
                 <IconPhoto size={40} style={{ opacity: 0.5, marginBottom: 15 }} />
-                <Text size="sm" ta="center" mb="md">
-                  Drag and drop your image here, or click to select
-                </Text>
-                <FileButton onChange={handleFileUpload} accept="image/png,image/jpeg,image/webp,image/gif">
+                <Text size="sm" mb="md">Select an image to upload</Text>
+                <FileButton onChange={handleUpload} accept="image/*">
                   {(props) => (
-                    <Button {...props} loading={loading} variant="light" size="sm">
-                      Choose image
+                    <Button {...props} loading={uploading} variant="light">
+                      Choose Image
                     </Button>
                   )}
                 </FileButton>
               </Box>
-              <Text size="xs" c="dimmed" mt="xs">
-                Accepted formats: PNG, JPG, WebP, GIF (max 5MB)
-              </Text>
+              <Text size="xs" c="dimmed">Supported: PNG, JPG, WebP, GIF (max 5MB)</Text>
             </Stack>
           </Tabs.Panel>
 
@@ -498,118 +504,120 @@ export default function GalleryPage() {
                   border: '2px dashed #e0e0e0',
                   borderRadius: '8px',
                   padding: '30px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  textAlign: 'center',
                   backgroundColor: '#f9fafb'
                 }}
               >
                 <IconFiles size={40} style={{ opacity: 0.5, marginBottom: 15 }} />
-                <Text size="sm" ta="center" mb="md">
-                  Select multiple images to upload in bulk
-                </Text>
-                <FileButton
-                  onChange={(files) => setBulkFiles(files as File[])}
-                  accept="image/png,image/jpeg,image/webp,image/gif"
+                <Text size="sm" mb="md">Select multiple images to upload</Text>
+                <FileButton 
+                  onChange={setBulkFiles} 
+                  accept="image/*" 
                   multiple
                 >
                   {(props) => (
-                    <Button {...props} loading={loading} variant="light" size="sm">
-                      Choose images
+                    <Button {...props} variant="light" disabled={bulkUploading}>
+                      Choose Images
                     </Button>
                   )}
                 </FileButton>
-                {bulkFiles.length > 0 && (
-                  <Text size="xs" mt="sm">{bulkFiles.length} files selected</Text>
-                )}
-                <Button
-                  mt="md"
-                  loading={loading}
-                  disabled={bulkFiles.length === 0}
-                  onClick={() => handleBulkUpload(bulkFiles)}
-                >
-                  Upload All
-                </Button>
               </Box>
-              <Text size="xs" c="dimmed" mt="xs">
-                Accepted formats: PNG, JPG, WebP, GIF (max 5MB)
+              
+              {bulkFiles.length > 0 && (
+                <Stack>
+                  <Alert 
+                    icon={<IconFiles size={16} />} 
+                    title="Files Selected" 
+                    color="blue"
+                  >
+                    {bulkFiles.length} image(s) selected for upload
+                  </Alert>
+                  
+                  {Object.keys(uploadProgress).length > 0 && (
+                    <Stack gap="xs">
+                      {bulkFiles.map((file) => {
+                        const progress = uploadProgress[file.name];
+                        const isError = progress === -1;
+                        const isComplete = progress === 100;
+                        
+                        return (
+                          <Group key={file.name} gap="xs">
+                            <Text size="xs" style={{ flex: 1 }} truncate>
+                              {file.name}
+                            </Text>
+                            {isError ? (
+                              <IconAlertCircle size={16} color="red" />
+                            ) : isComplete ? (
+                              <IconCheck size={16} color="green" />
+                            ) : (
+                              <Progress 
+                                value={progress || 0} 
+                                size="sm" 
+                                style={{ width: 100 }}
+                              />
+                            )}
+                          </Group>
+                        );
+                      })}
+                    </Stack>
+                  )}
+                  
+                  <Button 
+                    onClick={() => handleBulkUpload(bulkFiles)}
+                    loading={bulkUploading}
+                    disabled={bulkFiles.length === 0}
+                    fullWidth
+                  >
+                    Upload All Images
+                  </Button>
+                </Stack>
+              )}
+              
+              <Text size="xs" c="dimmed">
+                Supported: PNG, JPG, WebP, GIF (max 5MB each)
               </Text>
             </Stack>
-          </Tabs.Panel>
-
-          <Tabs.Panel value="content" pt="md">
-            <ContentLibrarySelector onSelect={handleFileUpload} />
           </Tabs.Panel>
         </Tabs>
       </Modal>
 
-      {/* Preview Modal */}
-      <Lighthouse
-        opened={previewOpened}
-        onClose={closePreview}
-        item={selectedItem}
-        onDelete={(id) => {
-          handleDelete(id as string);
-          closePreview();
-        }}
-        language={language}
-      />
-
-      {/* Edit Modal */}
-      <Modal opened={editOpened} onClose={() => setEditOpened(false)} title="Edit Image" size="lg">
+      {/* ✏️ Edit Modal */}
+      <Modal opened={editModal} onClose={editHandlers.close} title="Edit Image" size="lg">
         {editItem && (
           <GalleryImageForm
             initialValues={editItem}
             onSubmit={handleEditSubmit}
-            loading={loading}
+            loading={false}
           />
         )}
       </Modal>
 
-      {/*
-      <Modal
-        opened={previewOpened}
-        onClose={closePreview}
-        title={selectedItem?.title || 'Image Preview'}
-        size="xl"
-        padding="lg"
-      >
+      {/* 👁️ Preview Modal */}
+      <Modal opened={previewModal} onClose={previewHandlers.close} title="Preview" size="xl">
         {selectedItem && (
           <Stack>
-            <Box
-              style={{
-                width: '100%',
-                display: 'flex',
-                justifyContent: 'center',
-                backgroundColor: '#f5f5f5',
-                borderRadius: '4px',
-                overflow: 'hidden'
-              }}
-            >
+            <Box style={{ textAlign: 'center', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
               <Image
-                src={selectedItem.imageUrl || selectedItem.url || ''}
-                alt={language === 'hi' ? selectedItem.titleHi || selectedItem.title : selectedItem.title}
+                src={selectedItem.imageUrl}
+                alt={selectedItem.title}
                 fit="contain"
                 style={{ maxHeight: '60vh' }}
                 fallbackSrc="/placeholder.svg"
               />
             </Box>
-
-            <Stack gap="xs" mt="xs">
-              <Text fw={500} size="lg">{language === 'hi' ? selectedItem.titleHi || selectedItem.title : selectedItem.title}</Text>
+            <Stack gap="xs">
+              <Text fw={500} size="lg">{selectedItem.title}</Text>
               {selectedItem.description && (
-                <Text size="sm" c="dimmed">{language === 'hi' ? selectedItem.descriptionHi || selectedItem.description : selectedItem.description}</Text>
+                <Text size="sm" c="dimmed">{selectedItem.description}</Text>
               )}
               <Text size="xs" c="dimmed">
-                Added on {new Date(selectedItem.createdAt).toLocaleDateString()}
+                {new Date(selectedItem.createdAt).toLocaleDateString()}
               </Text>
-
               <Group mt="md">
                 <Button
                   variant="light"
                   leftSection={<IconCopy size={16} />}
-                  onClick={() => copyToClipboard(selectedItem.url || selectedItem.imageUrl || '')}
+                  onClick={() => copyToClipboard(selectedItem.imageUrl)}
                 >
                   Copy URL
                 </Button>
@@ -619,25 +627,24 @@ export default function GalleryPage() {
                   leftSection={<IconTrash size={16} />}
                   onClick={() => {
                     handleDelete(selectedItem.id);
-                    closePreview();
+                    previewHandlers.close();
                   }}
                 >
-                  Delete Image
+                  Delete
                 </Button>
               </Group>
             </Stack>
           </Stack>
         )}
       </Modal>
-      */}
 
-      {/* Add custom styling */}
+      {/* 🎨 Hover Effects */}
       <style jsx global>{`
         .gallery-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
-        .gallery-card:hover .image-hover-overlay {
+        .gallery-card:hover .hover-overlay {
           opacity: 1;
         }
       `}</style>

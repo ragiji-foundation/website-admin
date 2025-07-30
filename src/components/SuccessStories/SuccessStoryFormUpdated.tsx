@@ -13,7 +13,7 @@ import {
   Tabs,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import TipTapEditor from '@/components/TipTapEditor/TipTapEditor';
+import TiptapEditor from '@/components/TiptapEditor';
 import { MediaUpload } from '@/components/MediaUpload';
 
 type Json = Record<string, any>;
@@ -22,8 +22,8 @@ interface SuccessStoryFormData {
   slug: string;
   title: string;
   titleHi?: string;
-  content: Json;
-  contentHi?: Json;
+  content: string;
+  contentHi?: string;
   personName: string;
   personNameHi?: string;
   location: string;
@@ -46,16 +46,16 @@ export function SuccessStoryForm({
   onCancel,
   loading = false,
 }: SuccessStoryFormProps) {
-  const [contentEn, setContentEn] = useState(initialData?.content || {});
-  const [contentHi, setContentHi] = useState(initialData?.contentHi || {});
+  const [contentEn, setContentEn] = useState(initialData?.content || '');
+  const [contentHi, setContentHi] = useState(initialData?.contentHi || '');
 
   const form = useForm<SuccessStoryFormData>({
     initialValues: {
       slug: initialData?.slug || '',
       title: initialData?.title || '',
       titleHi: initialData?.titleHi || '',
-      content: initialData?.content || {},
-      contentHi: initialData?.contentHi || {},
+      content: initialData?.content || '',
+      contentHi: initialData?.contentHi || '',
       personName: initialData?.personName || '',
       personNameHi: initialData?.personNameHi || '',
       location: initialData?.location || '',
@@ -212,18 +212,18 @@ export function SuccessStoryForm({
             </Tabs.List>
 
             <Tabs.Panel value="english" pt="md">
-              <TipTapEditor
+              <TiptapEditor
                 content={contentEn}
-                onChange={setContentEn}
+                onChange={(content: string) => setContentEn(content)}
                 minHeight={400}
                 placeholder="Write the success story in English..."
               />
             </Tabs.Panel>
 
             <Tabs.Panel value="hindi" pt="md">
-              <TipTapEditor
+              <TiptapEditor
                 content={contentHi}
-                onChange={setContentHi}
+                onChange={(content: string) => setContentHi(content)}
                 minHeight={400}
                 placeholder="सफलता की कहानी हिंदी में लिखें..."
               />

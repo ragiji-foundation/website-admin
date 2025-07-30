@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
-import { TextInput, Textarea, Button, Group, Stack, Select, Box } from '@mantine/core';
+import { useState } from 'react';
+import { Stack, TextInput, Textarea, Button, Group, Box } from '@mantine/core';
 
-export interface GalleryImageFormValues {
+interface GalleryImageFormValues {
   title: string;
   titleHi?: string;
   description?: string;
   descriptionHi?: string;
-  imageUrl: string;
-  category: string;
+  imageUrl?: string;
+  category?: string;
   categoryHi?: string;
 }
 
@@ -53,36 +53,27 @@ export function GalleryImageForm({ initialValues = {}, onSubmit, loading }: Gall
             onChange={(e) => handleChange('titleHi', e.target.value)}
           />
         </Group>
+
         <Group grow>
           <Textarea
             label="Description (English)"
             value={values.description}
             onChange={(e) => handleChange('description', e.target.value)}
-            autosize
-            minRows={2}
+            minRows={3}
           />
           <Textarea
             label="Description (Hindi)"
             value={values.descriptionHi}
             onChange={(e) => handleChange('descriptionHi', e.target.value)}
-            autosize
-            minRows={2}
+            minRows={3}
           />
         </Group>
-        <Group grow>
-          <TextInput
-            label="Image URL"
-            value={values.imageUrl}
-            onChange={(e) => handleChange('imageUrl', e.target.value)}
-            required
-          />
-        </Group>
+
         <Group grow>
           <TextInput
             label="Category (English)"
             value={values.category}
             onChange={(e) => handleChange('category', e.target.value)}
-            required
           />
           <TextInput
             label="Category (Hindi)"
@@ -90,10 +81,15 @@ export function GalleryImageForm({ initialValues = {}, onSubmit, loading }: Gall
             onChange={(e) => handleChange('categoryHi', e.target.value)}
           />
         </Group>
-        <Button type="submit" loading={loading} mt="md">
-          Save Image
-        </Button>
+
+        <Group justify="flex-end" mt="md">
+          <Button type="submit" loading={loading}>
+            Save Changes
+          </Button>
+        </Group>
       </Stack>
     </Box>
   );
 }
+
+export default GalleryImageForm;

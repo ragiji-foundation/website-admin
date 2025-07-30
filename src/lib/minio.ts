@@ -1,4 +1,5 @@
 import { Client } from 'minio';
+import { Agent } from 'https';
 
 // Extract hostname from MINIO_ENDPOINT if it includes protocol
 function extractHostname(endpoint: string): string {
@@ -30,7 +31,7 @@ const minioClient = new Client({
   ...(process.env.NODE_ENV === 'development' && {
     // Disable SSL verification for development
     transportAgent: process.env.MINIO_USE_SSL === 'true' ? 
-      require('https').Agent({ rejectUnauthorized: false }) : undefined
+      new Agent({ rejectUnauthorized: false }) : undefined
   })
 });
 

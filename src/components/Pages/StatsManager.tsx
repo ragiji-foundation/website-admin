@@ -11,44 +11,30 @@ import {
   Stack,
   ActionIcon,
   LoadingOverlay,
-  Box,
-  Progress,
   Badge,
-  Grid,
   Container,
   Paper,
   Title,
-  NumberInput,
-  Textarea,
-  Select,
   Tabs,
   SimpleGrid,
   Divider,
   Alert,
   ThemeIcon,
   Tooltip,
-  Flex,
-  ScrollArea,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { modals } from '@mantine/modals';
-import { spotlight } from '@mantine/spotlight';
 import { 
   IconGripVertical, 
   IconPlus, 
   IconTrash, 
   IconEdit, 
   IconChartBar,
-  IconTrendingUp,
   IconUsers,
-  IconTarget,
-  IconAward,
   IconSearch,
   IconEye,
-  IconEyeOff,
   IconCopy,
-  IconDownload,
   IconRefresh,
   IconFilter,
   IconSortAscending,
@@ -56,8 +42,6 @@ import {
   IconCalendar,
   IconSettings,
   IconBulb,
-  IconHeart,
-  IconMedal,
   IconDeviceFloppy,
   IconStar,
 } from '@tabler/icons-react';
@@ -73,50 +57,11 @@ interface Stat {
   updatedAt: string;
 }
 
-interface StatPreview {
-  id: string;
-  label: string;
-  value: string;
-  icon: string;
-  color: string;
-  description?: string;
-}
-
-const ICON_PRESETS = [
-  { value: '👥', label: 'People/Users', category: 'people' },
-  { value: '🏆', label: 'Achievement', category: 'achievement' },
-  { value: '📊', label: 'Statistics', category: 'data' },
-  { value: '🎯', label: 'Target/Goal', category: 'goal' },
-  { value: '💝', label: 'Donation/Gift', category: 'charity' },
-  { value: '🏠', label: 'Homes/Centers', category: 'building' },
-  { value: '🎓', label: 'Education', category: 'education' },
-  { value: '❤️', label: 'Hearts/Love', category: 'emotion' },
-  { value: '🌟', label: 'Star/Success', category: 'achievement' },
-  { value: '📚', label: 'Books/Learning', category: 'education' },
-  { value: '🤝', label: 'Partnership', category: 'people' },
-  { value: '💡', label: 'Ideas/Innovation', category: 'idea' },
-  { value: '🎨', label: 'Creativity/Art', category: 'creative' },
-  { value: '🌱', label: 'Growth/Development', category: 'growth' },
-  { value: '⭐', label: 'Excellence', category: 'achievement' },
-  { value: '🔥', label: 'Impact/Energy', category: 'impact' },
-];
-
-const STAT_TEMPLATES = [
-  { label: 'Lives Impacted', labelHi: 'प्रभावित जीवन', value: '10,000+', icon: '👥' },
-  { label: 'Centers', labelHi: 'केंद्र', value: '25+', icon: '🏠' },
-  { label: 'Volunteers', labelHi: 'स्वयंसेवक', value: '500+', icon: '🤝' },
-  { label: 'Years of Service', labelHi: 'सेवा के वर्ष', value: '15+', icon: '🏆' },
-  { label: 'Programs', labelHi: 'कार्यक्रम', value: '50+', icon: '📚' },
-  { label: 'Awards', labelHi: 'पुरस्कार', value: '8+', icon: '🥇' },
-];
-
 export function StatsManager() {
   const [stats, setStats] = useState<Stat[]>([]);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingStat, setEditingStat] = useState<Stat | null>(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [previewMode, setPreviewMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -220,7 +165,7 @@ export function StatsManager() {
     fetchStats();
   }, []);
 
-  const handleTemplateSelect = (template: any) => {
+  const handleTemplateSelect = (template: typeof templates[0]) => {
     form.setValues({
       value: template.value,
       label: template.label,
@@ -373,16 +318,6 @@ export function StatsManager() {
     }
   };
 
-  const applyTemplate = (template: typeof STAT_TEMPLATES[0]) => {
-    form.setValues({
-      label: template.label,
-      labelHi: template.labelHi,
-      value: template.value,
-      icon: template.icon,
-    });
-    setModalOpen(true);
-  };
-
   const filteredStats = stats
     .filter(stat => 
       stat.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -413,7 +348,7 @@ export function StatsManager() {
               </Group>
             </Title>
             <Text c="dimmed" size="sm">
-              Manage and showcase your organization's key achievements and metrics
+              Manage and showcase your organization&apos;s key achievements and metrics
             </Text>
           </div>
           <Group>
@@ -559,7 +494,7 @@ export function StatsManager() {
 
               {searchQuery && (
                 <Alert icon={<IconFilter size={16} />} color="blue" variant="light" mb="md">
-                  Showing {filteredStats.length} of {stats.length} statistics matching "{searchQuery}"
+                  Showing {filteredStats.length} of {stats.length} statistics matching &quot;{searchQuery}&quot;
                 </Alert>
               )}
             </Paper>
@@ -737,7 +672,7 @@ export function StatsManager() {
                   No statistics to preview
                 </Title>
                 <Text c="dimmed" size="sm">
-                  Add some statistics to see how they'll look on your website.
+                  Add some statistics to see how they&apos;ll look on your website.
                 </Text>
               </div>
             ) : (
@@ -903,7 +838,7 @@ export function StatsManager() {
               </Button>
               <Button 
                 type="submit" 
-                loading={submitting}
+                loading={loading}
                 leftSection={editingStat ? <IconDeviceFloppy size={16} /> : <IconPlus size={16} />}
               >
                 {editingStat ? 'Update Statistic' : 'Add Statistic'}

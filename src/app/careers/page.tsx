@@ -25,7 +25,7 @@ import { notifications } from '@mantine/notifications';
 import { IconTrash, IconEdit, IconSearch } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import { generateSlug } from '@/utils/slug';
-import LexicalEditor from '@/components/LexicalEditor';
+import TiptapEditor from '@/components/TiptapEditor';
 // ✅ ADDED: Import centralized hooks
 import { useApiData } from '@/hooks/useApiData';
 import { useCrudOperations } from '@/hooks/useCrudOperations';
@@ -56,17 +56,6 @@ const JOB_TYPES = [
   { value: 'volunteer', label: 'Volunteer' },
 ];
 
-interface EditorContent {
-  json: any;
-  isEmpty: boolean;
-  text: string;
-}
-
-const isEmptyContent = (content: EditorContent | null | undefined): boolean => {
-  if (!content) return true;
-  return content.isEmpty || !content.text || !content.text.trim();
-};
-
 interface FormData {
   title: string;
   titleHi: string;
@@ -74,10 +63,10 @@ interface FormData {
   locationHi: string;
   type: string;
   typeHi: string;
-  description: EditorContent | null;
-  descriptionHi: EditorContent | null;
-  requirements: EditorContent | null;
-  requirementsHi: EditorContent | null;
+  description: string;
+  descriptionHi: string;
+  requirements: string;
+  requirementsHi: string;
   isActive: boolean;
 }
 
@@ -88,25 +77,11 @@ const initialFormData: FormData = {
   locationHi: '',
   type: '',
   typeHi: '',
-  description: null,
-  descriptionHi: null,
-  requirements: null,
-  requirementsHi: null,
+  description: '',
+  descriptionHi: '',
+  requirements: '',
+  requirementsHi: '',
   isActive: true,
-};
-
-const parseRichText = (content: string): string => {
-  try {
-    const parsed = JSON.parse(content);
-    return parsed.root.children
-      .map((p: any) => p.children
-        .map((c: any) => c.text)
-        .join('')
-      )
-      .join('\n');
-  } catch (e) {
-    return content;
-  }
 };
 
 export default function CareersAdmin() {
@@ -144,7 +119,7 @@ export default function CareersAdmin() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (isEmptyContent(formData.description) || isEmptyContent(formData.requirements)) {
+    if (!formData.description.trim() || !formData.requirements.trim()) {
       notifications.show({
         title: 'Validation Error',
         message: 'Description and Requirements are required',
@@ -158,10 +133,6 @@ export default function CareersAdmin() {
       const payload = {
         ...formData,
         slug,
-        description: formData.description?.json,
-        descriptionHi: formData.descriptionHi?.json,
-        requirements: formData.requirements?.json,
-        requirementsHi: formData.requirementsHi?.json,
       };
 
       if (editingId) {
@@ -184,22 +155,10 @@ export default function CareersAdmin() {
       locationHi: career.locationHi || '',
       type: career.type,
       typeHi: career.typeHi || '',
-      description: typeof career.description === 'string'
-        ? JSON.parse(career.description)
-        : career.description,
-      descriptionHi: career.descriptionHi
-        ? typeof career.descriptionHi === 'string'
-          ? JSON.parse(career.descriptionHi)
-          : career.descriptionHi
-        : null,
-      requirements: typeof career.requirements === 'string'
-        ? JSON.parse(career.requirements)
-        : career.requirements,
-      requirementsHi: career.requirementsHi
-        ? typeof career.requirementsHi === 'string'
-          ? JSON.parse(career.requirementsHi)
-          : career.requirementsHi
-        : null,
+      description: career.description || '',
+      descriptionHi: career.descriptionHi || '',
+      requirements: career.requirements || '',
+      requirementsHi: career.requirementsHi || '',
       isActive: career.isActive,
     });
     setEditingId(career.id);
@@ -362,7 +321,7 @@ export default function CareersAdmin() {
                   </Group>
                 </Group>
                 <Text size="sm" lineClamp={2} mb="xs">
-                  {parseRichText(career.description)}
+                  {career.description.replace(/<[^>]*>/g, '').substring(0, 100)}...
                 </Text>
                 <Text size="sm" c="dimmed">
                   Last updated: {new Date(career.updatedAt).toLocaleDateString()}
@@ -425,38 +384,36 @@ export default function CareersAdmin() {
               placeholder="नौकरी का प्रकार"
               style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}
             />
-            <LexicalEditor
+            <TiptapEditor
               label="Description (English)"
               required
-              content={formData.description?.json || null}
-              onChange={(content) => setFormData(prev => ({
+              content={formData.description}
+              onChange={(content: string) => setFormData(prev => ({
                 ...prev,
                 description: content
               }))}
-              error={isEmptyContent(formData.description) ? 'Description is required' : undefined}
             />
-            <LexicalEditor
+            <TiptapEditor
               label="Description (Hindi)"
-              content={formData.descriptionHi?.json || null}
-              onChange={(content) => setFormData(prev => ({
+              content={formData.descriptionHi}
+              onChange={(content: string) => setFormData(prev => ({
                 ...prev,
                 descriptionHi: content
               }))}
             />
-            <LexicalEditor
+            <TiptapEditor
               label="Requirements (English)"
               required
-              content={formData.requirements?.json || null}
-              onChange={(content) => setFormData(prev => ({
+              content={formData.requirements}
+              onChange={(content: string) => setFormData(prev => ({
                 ...prev,
                 requirements: content
               }))}
-              error={isEmptyContent(formData.requirements) ? 'Requirements are required' : undefined}
             />
-            <LexicalEditor
+            <TiptapEditor
               label="Requirements (Hindi)"
-              content={formData.requirementsHi?.json || null}
-              onChange={(content) => setFormData(prev => ({
+              content={formData.requirementsHi}
+              onChange={(content: string) => setFormData(prev => ({
                 ...prev,
                 requirementsHi: content
               }))}

@@ -8,11 +8,11 @@ function serializeRichText(content: any): string {
   if (!content) return '';
 
   try {
-    // If it's a Lexical editor state object
-    if (content.json) {
-      return JSON.stringify(content.json);
+    // If it's a TipTap editor JSON object (has type: 'doc' or similar structure)
+    if (content.type || content.content) {
+      return JSON.stringify(content);
     }
-    // If it's already a JSON object
+    // If it's already a JSON object, stringify it
     return JSON.stringify(content);
   } catch (error) {
     console.error('Error serializing rich text:', error);
@@ -120,7 +120,9 @@ export async function PUT(request: NextRequest) {
         ...updateData,
         slug: generateSlug(updateData.title),
         description: serializeRichText(updateData.description),
-        requirements: serializeRichText(updateData.requirements)
+        descriptionHi: serializeRichText(updateData.descriptionHi),
+        requirements: serializeRichText(updateData.requirements),
+        requirementsHi: serializeRichText(updateData.requirementsHi)
       },
     });
 

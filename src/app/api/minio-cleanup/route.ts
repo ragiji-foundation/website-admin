@@ -24,7 +24,7 @@ export async function POST() {
     console.log(`Found ${orphanedFiles.length} orphaned files to clean up`);
 
     let deletedCount = 0;
-    let errors: string[] = [];
+    const errors: string[] = [];
 
     for (const file of orphanedFiles) {
       try {

@@ -22,7 +22,7 @@ import {
 import { notifications } from '@mantine/notifications';
 import { IconEye, IconDeviceFloppy, IconPlus, IconTrash } from '@tabler/icons-react';
 // Fix the import path to use the correct component
-import TipTapEditor from '@/components/TipTapEditor/TipTapEditor';
+import TiptapEditor from '@/components/TiptapEditor';
 import { MediaUpload } from '@/components/MediaUpload';
 import OurStoryPreview from '@/components/previews/OurStoryPreview';
 // ✅ FIXED: Import centralized upload instead of old cloudinary
@@ -426,7 +426,7 @@ export default function OurStoryPage() {
 
               <Box>
                 <Text fw={500} mb="xs">Content (English)</Text>
-                <TipTapEditor
+                <TiptapEditor
                   content={storyData.content}
                   onChange={handleStoryContentChange}
                   minHeight={400}
@@ -435,9 +435,9 @@ export default function OurStoryPage() {
 
               <Box>
                 <Text fw={500} mb="xs">Content (Hindi)</Text>
-                <TipTapEditor
+                <TiptapEditor
                   content={storyData.contentHi || ''}
-                  onChange={(html) => setStoryData(prev => ({ ...prev, contentHi: html }))}
+                  onChange={(html: string) => setStoryData(prev => ({ ...prev, contentHi: html }))}
                   minHeight={400}
                 />
               </Box>
@@ -539,7 +539,7 @@ export default function OurStoryPage() {
             <Stack gap="md">
               <Box>
                 <Text fw={500} mb="xs">Description (English)</Text>
-                <TipTapEditor
+                <TiptapEditor
                   content={modelData.description}
                   onChange={handleModelDescriptionChange}
                   minHeight={300}
@@ -548,9 +548,9 @@ export default function OurStoryPage() {
 
               <Box>
                 <Text fw={500} mb="xs">Description (Hindi)</Text>
-                <TipTapEditor
+                <TiptapEditor
                   content={modelData.descriptionHi || ''}
-                  onChange={(html) => setModelData(prev => ({ ...prev, descriptionHi: html }))}
+                  onChange={(html: string) => setModelData(prev => ({ ...prev, descriptionHi: html }))}
                   minHeight={300}
                 />
               </Box>
@@ -588,7 +588,7 @@ export default function OurStoryPage() {
                 <Grid.Col span={6}>
                   <Box>
                     <Text fw={500} mb="xs">Vision Statement (English)</Text>
-                    <TipTapEditor
+                    <TiptapEditor
                       content={visionMissionData.vision}
                       onChange={handleVisionChange}
                       minHeight={200}
@@ -596,9 +596,9 @@ export default function OurStoryPage() {
                   </Box>
                   <Box mt="md">
                     <Text fw={500} mb="xs">Vision Statement (Hindi)</Text>
-                    <TipTapEditor
+                    <TiptapEditor
                       content={visionMissionData.visionHi || ''}
-                      onChange={(html) => setVisionMissionData(prev => ({ ...prev, visionHi: html }))}
+                      onChange={(html: string) => setVisionMissionData(prev => ({ ...prev, visionHi: html }))}
                       minHeight={200}
                     />
                   </Box>
@@ -607,7 +607,7 @@ export default function OurStoryPage() {
                 <Grid.Col span={6}>
                   <Box>
                     <Text fw={500} mb="xs">Mission Statement (English)</Text>
-                    <TipTapEditor
+                    <TiptapEditor
                       content={visionMissionData.mission}
                       onChange={handleMissionChange}
                       minHeight={200}
@@ -615,9 +615,9 @@ export default function OurStoryPage() {
                   </Box>
                   <Box mt="md">
                     <Text fw={500} mb="xs">Mission Statement (Hindi)</Text>
-                    <TipTapEditor
+                    <TiptapEditor
                       content={visionMissionData.missionHi || ''}
-                      onChange={(html) => setVisionMissionData(prev => ({ ...prev, missionHi: html }))}
+                      onChange={(html: string) => setVisionMissionData(prev => ({ ...prev, missionHi: html }))}
                       minHeight={200}
                     />
                   </Box>

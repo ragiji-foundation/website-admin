@@ -14,7 +14,7 @@ import {
 import { notifications } from '@mantine/notifications';
 import { useTheNeed } from '@/context/TheNeedContext';
 import TheNeedPreview from '@/components/TheNeedPreview';
-import TipTapEditor from '@/components/TipTapEditor/TipTapEditor';
+import TiptapEditor from '@/components/TiptapEditor';
 import { MediaUpload } from '@/components/MediaUpload';
 
 // ✅ MIGRATED: Import centralized hooks
@@ -169,7 +169,7 @@ export default function TheNeedAdminPage() {
             <Stack gap="md">
               <Box>
                 <Title order={3}>Main Text (English)</Title>
-                <TipTapEditor
+                <TiptapEditor
                   content={mainText}
                   onChange={setMainText}
                   minHeight={300}
@@ -181,7 +181,7 @@ export default function TheNeedAdminPage() {
 
               <Box>
                 <Title order={3}>Main Text (Hindi)</Title>
-                <TipTapEditor
+                <TiptapEditor
                   content={mainTextHi}
                   onChange={setMainTextHi}
                   minHeight={300}
@@ -193,7 +193,7 @@ export default function TheNeedAdminPage() {
 
               <Box>
                 <Title order={3}>Statistics (English)</Title>
-                <TipTapEditor
+                <TiptapEditor
                   content={statistics}
                   onChange={setStatistics}
                   minHeight={250}
@@ -205,7 +205,7 @@ export default function TheNeedAdminPage() {
 
               <Box>
                 <Title order={3}>Statistics (Hindi)</Title>
-                <TipTapEditor
+                <TiptapEditor
                   content={statisticsHi}
                   onChange={setStatisticsHi}
                   minHeight={250}
@@ -217,7 +217,7 @@ export default function TheNeedAdminPage() {
 
               <Box>
                 <Title order={3}>Impact (English)</Title>
-                <TipTapEditor
+                <TiptapEditor
                   content={impact}
                   onChange={setImpact}
                   minHeight={250}
@@ -229,7 +229,7 @@ export default function TheNeedAdminPage() {
 
               <Box>
                 <Title order={3}>Impact (Hindi)</Title>
-                <TipTapEditor
+                <TiptapEditor
                   content={impactHi}
                   onChange={setImpactHi}
                   minHeight={250}

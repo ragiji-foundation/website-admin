@@ -71,6 +71,7 @@ export async function GET(request: NextRequest) {
         ogTitleHi: true,
         ogDescription: true,
         ogDescriptionHi: true,
+        featuredImage: true,
         createdAt: true,
         updatedAt: true,
         author: {
@@ -98,7 +99,7 @@ export async function GET(request: NextRequest) {
         excerpt: (isHindi && blog.contentHi ? blog.contentHi : blog.content) ? 
           (isHindi && blog.contentHi ? blog.contentHi : blog.content).replace(/<[^>]*>/g, '').substring(0, 150) + '...' : '',
         status: blog.status || 'draft',
-        featuredImage: undefined,
+        featuredImage: undefined, // TODO: Enable after migration: blog.featuredImage || undefined,
         tags: []
       };
     });
@@ -175,6 +176,7 @@ export async function POST(request: NextRequest) {
         ogTitleHi: data.ogTitleHi || null,
         ogDescription: data.ogDescription || null,
         ogDescriptionHi: data.ogDescriptionHi || null,
+        // featuredImage: data.featuredImage || null, // Will be enabled after database migration
         authorId: DEFAULT_ADMIN_USER_ID,
         categoryId: data.categoryId ? parseInt(data.categoryId.toString()) : null,
         tags: {

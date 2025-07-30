@@ -261,6 +261,92 @@ export function getPublicIdFromUrl(url: string): string | null {
 }
 
 /**
+ * Delete a file from MinIO storage
+ */
+export async function deleteFile(
+  url: string,
+  options: { showNotifications?: boolean } = {}
+): Promise<boolean> {
+  const { showNotifications = true } = options;
+
+  try {
+    if (!url) {
+      throw new Error('No URL provided');
+    }
+
+    // Extract object name from URL
+    let objectName = getPublicIdFromUrl(url);
+    let bucketName = 'ragiji-images'; // Default bucket
+    
+    if (!objectName) {
+      // Try alternative extraction for image proxy URLs like /api/image-proxy/ragiji-images/filename.jpg
+      if (url.includes('/api/image-proxy/')) {
+        const parts = url.split('/api/image-proxy/')[1];
+        if (parts) {
+          const pathParts = parts.split('/');
+          if (pathParts.length >= 2) {
+            bucketName = pathParts[0];
+            objectName = pathParts.slice(1).join('/');
+          }
+        }
+      }
+      
+      if (!objectName) {
+        throw new Error('Could not extract object name from URL');
+      }
+    } else {
+      // Check if objectName contains bucket prefix (e.g., "ragiji-images/filename.jpg")
+      if (objectName.includes('/')) {
+        const parts = objectName.split('/');
+        if (parts.length >= 2 && parts[0].includes('ragiji')) {
+          bucketName = parts[0];
+          objectName = parts.slice(1).join('/');
+        }
+      }
+    }
+
+    console.log('Deleting file:', { url, bucketName, objectName }); // Debug log
+
+    const response = await fetch(`/api/upload?objectName=${encodeURIComponent(objectName)}&bucket=${encodeURIComponent(bucketName)}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to delete file');
+    }
+
+    if (showNotifications) {
+      notifications.show({
+        title: 'Success',
+        message: 'File deleted successfully',
+        color: 'green',
+      });
+    }
+
+    return true;
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to delete file';
+    
+    console.error('Error deleting file:', error);
+    
+    if (showNotifications) {
+      notifications.show({
+        title: 'Error',
+        message: errorMessage,
+        color: 'red',
+      });
+    }
+    
+    throw new Error(errorMessage);
+  }
+}
+
+/**
  * Generate a video thumbnail URL (placeholder)
  */
 export function getVideoThumbnail(

@@ -1,8 +1,8 @@
 import React from 'react';
-import TiptapEditor from '../TiptapEditor';
+import TiptapEditorCore from '../TiptapEditor';
 
 // Define the props interface expected by consumers
-interface TipTapEditorProps {
+interface TiptapEditorProps {
   content: string | any;  // Accept both string and rich text object
   onChange: (content: any) => void;
   minHeight?: number;
@@ -12,7 +12,7 @@ interface TipTapEditorProps {
   onImageUpload?: (file: File) => Promise<string>;
 }
 
-const TipTapEditor: React.FC<TipTapEditorProps> = ({
+const TiptapEditor: React.FC<TiptapEditorProps> = ({
   content,
   onChange,
   minHeight = 400,
@@ -22,7 +22,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
   onImageUpload,
 }) => {
   return (
-    <TiptapEditor
+    <TiptapEditorCore
       content={content}
       onChange={onChange}
       minHeight={minHeight}
@@ -34,7 +34,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
   );
 };
 
-export default TipTapEditor;
+export default TiptapEditor;
 
 
 
@@ -85,7 +85,7 @@ export default TipTapEditor;
 //   IconUpload
 // } from '@tabler/icons-react';
 // import { useDisclosure } from '@mantine/hooks';
-// import classes from './TipTapEditor.module.css';
+// import classes from './TiptapEditor.module.css';
 
 // interface TiptapEditorProps {
 //   content?: string | null;

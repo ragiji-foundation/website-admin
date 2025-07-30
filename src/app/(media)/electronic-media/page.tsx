@@ -19,7 +19,7 @@ import {
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useDisclosure } from '@mantine/hooks';
-import { IconPlus, IconEdit, IconTrash, IconVideo, IconPlayerPlay, IconExternalLink } from '@tabler/icons-react';
+import { IconPlus, IconEdit, IconTrash, IconVideo, IconPlayerPlay, IconExternalLink, IconBrandYoutube, IconBrandInstagram, IconBrandFacebook, IconBrandTwitter, IconBrandVimeo } from '@tabler/icons-react';
 import { BilingualInput } from '@/components/BilingualInput';
 import Image from 'next/image';
 // ✅ ADDED: Import centralized hooks
@@ -70,7 +70,35 @@ export default function ElectronicMediaPage() {
     },
     validate: {
       title: (value) => (!value ? 'Title is required' : null),
-      videoUrl: (value) => (!value ? 'Video URL is required' : null),
+      videoUrl: (value) => {
+        if (!value) return 'Video URL is required';
+        
+        // Check if it's a valid URL
+        try {
+          new URL(value);
+        } catch {
+          return 'Please enter a valid URL';
+        }
+        
+        // Check if it's from a supported platform
+        const supportedPatterns = [
+          /youtube\.com\/watch\?v=/,
+          /youtu\.be\//,
+          /vimeo\.com\/\d+/,
+          /instagram\.com\/(?:p|reel|tv)\//,
+          /facebook\.com\/.*?\/(?:videos|posts)\//,
+          /fb\.watch\//,
+          /(?:twitter\.com|x\.com)\/\w+\/status\//,
+          /\.(mp4|webm|ogg|mov|avi)(\?|$)/i // Direct video files
+        ];
+        
+        const isSupported = supportedPatterns.some(pattern => pattern.test(value));
+        if (!isSupported) {
+          return 'URL must be from YouTube, Vimeo, Instagram, Facebook, Twitter/X, or a direct video file';
+        }
+        
+        return null;
+      },
     },
   });
 
@@ -131,12 +159,86 @@ export default function ElectronicMediaPage() {
     if (youtubeMatch) {
       return `https://img.youtube.com/vi/${youtubeMatch[1]}/hqdefault.jpg`;
     }
-    return '/placeholder-video.jpg';
+    
+    // Extract Vimeo video ID and create thumbnail URL
+    const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+    if (vimeoMatch) {
+      return `https://vumbnail.com/${vimeoMatch[1]}.jpg`;
+    }
+    
+    // For social media platforms, use a generic placeholder or default image
+    if (url.includes('instagram.com')) {
+      return '/default-blog-image.png';
+    }
+    if (url.includes('facebook.com') || url.includes('fb.watch')) {
+      return '/default-blog-image.png';
+    }
+    if (url.includes('twitter.com') || url.includes('x.com')) {
+      return '/default-blog-image.png';
+    }
+    
+    return '/placeholder-banner.jpg';
   };
 
   const getVideoId = (url: string) => {
     const youtubeMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
-    return youtubeMatch ? youtubeMatch[1] : null;
+    if (youtubeMatch) return { platform: 'youtube', id: youtubeMatch[1] };
+    
+    const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+    if (vimeoMatch) return { platform: 'vimeo', id: vimeoMatch[1] };
+    
+    const instagramMatch = url.match(/instagram\.com\/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/);
+    if (instagramMatch) return { platform: 'instagram', id: instagramMatch[1] };
+    
+    const facebookMatch = url.match(/(?:facebook\.com|fb\.watch)\/.*?\/(?:videos|posts)\/(\d+)/);
+    if (facebookMatch) return { platform: 'facebook', id: facebookMatch[1] };
+    
+    const twitterMatch = url.match(/(?:twitter\.com|x\.com)\/\w+\/status\/(\d+)/);
+    if (twitterMatch) return { platform: 'twitter', id: twitterMatch[1] };
+    
+    return null;
+  };
+
+  const getPlatformStatistics = () => {
+    const stats = {
+      youtube: 0,
+      vimeo: 0,
+      instagram: 0,
+      facebook: 0,
+      twitter: 0,
+      other: 0
+    };
+    
+    mediaItems.forEach(media => {
+      const videoInfo = getVideoId(media.videoUrl);
+      if (videoInfo) {
+        stats[videoInfo.platform as keyof typeof stats]++;
+      } else {
+        stats.other++;
+      }
+    });
+    
+    return stats;
+  };
+
+  const getPlatformBadge = (url: string) => {
+    const videoInfo = getVideoId(url);
+    if (!videoInfo) return { color: 'gray', label: 'Video', icon: IconVideo };
+    
+    switch (videoInfo.platform) {
+      case 'youtube':
+        return { color: 'red', label: 'YouTube', icon: IconBrandYoutube };
+      case 'vimeo':
+        return { color: 'blue', label: 'Vimeo', icon: IconBrandVimeo };
+      case 'instagram':
+        return { color: 'pink', label: 'Instagram', icon: IconBrandInstagram };
+      case 'facebook':
+        return { color: 'blue', label: 'Facebook', icon: IconBrandFacebook };
+      case 'twitter':
+        return { color: 'cyan', label: 'Twitter', icon: IconBrandTwitter };
+      default:
+        return { color: 'gray', label: 'Video', icon: IconVideo };
+    }
   };
 
   return (
@@ -149,7 +251,7 @@ export default function ElectronicMediaPage() {
       </Group>
 
       {/* Statistics */}
-      <Group mb="lg">
+      <Group mb="lg" wrap="wrap">
         <Card withBorder>
           <Text size="lg" fw={700}>{mediaItems.length}</Text>
           <Text size="sm" c="dimmed">Total Videos</Text>
@@ -172,6 +274,45 @@ export default function ElectronicMediaPage() {
           </Text>
           <Text size="sm" c="dimmed">With Descriptions</Text>
         </Card>
+        
+        {/* Platform Statistics */}
+        {(() => {
+          const platformStats = getPlatformStatistics();
+          return (
+            <>
+              {platformStats.youtube > 0 && (
+                <Card withBorder>
+                  <Text size="lg" fw={700} c="red">{platformStats.youtube}</Text>
+                  <Text size="sm" c="dimmed">YouTube</Text>
+                </Card>
+              )}
+              {platformStats.instagram > 0 && (
+                <Card withBorder>
+                  <Text size="lg" fw={700} c="pink">{platformStats.instagram}</Text>
+                  <Text size="sm" c="dimmed">Instagram</Text>
+                </Card>
+              )}
+              {platformStats.facebook > 0 && (
+                <Card withBorder>
+                  <Text size="lg" fw={700} c="blue">{platformStats.facebook}</Text>
+                  <Text size="sm" c="dimmed">Facebook</Text>
+                </Card>
+              )}
+              {platformStats.twitter > 0 && (
+                <Card withBorder>
+                  <Text size="lg" fw={700} c="cyan">{platformStats.twitter}</Text>
+                  <Text size="sm" c="dimmed">Twitter/X</Text>
+                </Card>
+              )}
+              {platformStats.vimeo > 0 && (
+                <Card withBorder>
+                  <Text size="lg" fw={700} c="blue">{platformStats.vimeo}</Text>
+                  <Text size="sm" c="dimmed">Vimeo</Text>
+                </Card>
+              )}
+            </>
+          );
+        })()}
       </Group>
 
       {/* Media Grid */}
@@ -239,9 +380,20 @@ export default function ElectronicMediaPage() {
                   >
                     {getTranslationStatus(media) === 'complete' ? 'Translated' : 'Partial'}
                   </Badge>
-                  {getVideoId(media.videoUrl) && (
-                    <Badge size="sm" color="red" ml="xs">YouTube</Badge>
-                  )}
+                  {(() => {
+                    const platformInfo = getPlatformBadge(media.videoUrl);
+                    const IconComponent = platformInfo.icon;
+                    return (
+                      <Badge 
+                        size="sm" 
+                        color={platformInfo.color} 
+                        ml="xs"
+                        leftSection={<IconComponent size={12} />}
+                      >
+                        {platformInfo.label}
+                      </Badge>
+                    );
+                  })()}
                 </div>
                 
                 <Group gap="xs">
@@ -288,8 +440,12 @@ export default function ElectronicMediaPage() {
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <Stack>
             <Alert color="blue" mb="md">
-              <Text size="sm">
-                Supports YouTube, Vimeo, and direct video links. YouTube thumbnails are auto-generated.
+              <Text size="sm" mb="xs">
+                Supports YouTube, Vimeo, Instagram, Facebook, Twitter/X, and direct video links. 
+                YouTube and Vimeo thumbnails are auto-generated.
+              </Text>
+              <Text size="xs" c="dimmed">
+                Examples: youtube.com/watch?v=..., instagram.com/p/..., facebook.com/video/..., x.com/user/status/...
               </Text>
             </Alert>
 
@@ -324,8 +480,8 @@ export default function ElectronicMediaPage() {
               valueHi=""
               onChangeEn={(value) => form.setFieldValue('videoUrl', value)}
               onChangeHi={() => {}}
-              placeholder="https://www.youtube.com/watch?v=..."
-              description="YouTube, Vimeo, or direct video file URL"
+              placeholder="https://www.youtube.com/watch?v=... or https://instagram.com/p/..."
+              description="YouTube, Vimeo, Instagram, Facebook, Twitter/X, or direct video file URL"
               error={form.errors.videoUrl as string}
             />
 
@@ -336,7 +492,7 @@ export default function ElectronicMediaPage() {
               onChangeEn={(value) => form.setFieldValue('thumbnail', value)}
               onChangeHi={() => {}}
               placeholder="https://example.com/thumbnail.jpg"
-              description="Optional: Custom thumbnail (YouTube thumbnails auto-generated)"
+              description="Optional: Custom thumbnail (YouTube/Vimeo thumbnails auto-generated)"
             />
 
             <NumberInput

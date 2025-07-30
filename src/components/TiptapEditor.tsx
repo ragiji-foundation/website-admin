@@ -7,7 +7,7 @@ import Superscript from '@tiptap/extension-superscript';
 import Link from '@tiptap/extension-link';
 import { useCallback, useEffect, useState } from 'react';
 // Import the ResizableImage extension from its separate file
-import { ResizableImage, ResizableImageOptions } from './TipTapEditor/extensions/ResizableImage';
+import { ResizableImage, ResizableImageOptions } from './TiptapEditor/extensions/ResizableImage';
 
 import {
   ActionIcon,

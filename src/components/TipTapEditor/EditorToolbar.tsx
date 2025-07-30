@@ -8,7 +8,7 @@ import {
   IconAlignLeft, IconAlignCenter, IconAlignRight, IconAlignJustified,
   IconPhoto, IconDeviceFloppy
 } from '@tabler/icons-react';
-import classes from './TipTapEditor.module.css';
+import classes from './TiptapEditor.module.css';
 
 interface EditorToolbarProps {
   editor: Editor | null;

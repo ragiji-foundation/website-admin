@@ -35,8 +35,8 @@ interface SuccessStoryFormData {
   slug: string;
   title: string;
   titleHi?: string;
-  content: Record<string, any>;
-  contentHi?: Record<string, any>;
+  content: string;
+  contentHi?: string;
   personName: string;
   personNameHi?: string;
   location: string;

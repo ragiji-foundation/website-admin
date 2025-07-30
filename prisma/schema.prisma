@@ -49,6 +49,7 @@ model Blog {
   ogTitleHi       String?
   ogDescription   String?
   ogDescriptionHi String?
+  featuredImage   String?
   authorId        Int
   categoryId      Int?
   createdAt       DateTime  @default(now())
@@ -292,8 +293,8 @@ model SuccessStory {
   slug       String   @unique
   title      String
   titleHi    String?
-  content    Json
-  contentHi  Json?
+  content    String
+  contentHi  String?
   personName String
   personNameHi String?
   location   String

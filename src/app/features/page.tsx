@@ -427,7 +427,7 @@ export default function FeaturesPage() {
               </Group>
             </Title>
             <Text c="dimmed" size="sm">
-              Manage and showcase your organization's key features and capabilities
+              Manage and showcase your organization&apos;s key features and capabilities
             </Text>
           </div>
           <Group>

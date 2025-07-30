@@ -16,6 +16,7 @@ import dynamic from 'next/dynamic';
 // ✅ MIGRATED: Import centralized hooks
 import { useApiData } from '@/hooks/useApiData';
 import { useCrudOperations } from '@/hooks/useCrudOperations';
+import { MediaUpload } from '@/components/MediaUpload';
 
 // Lazy load heavy components
 const TiptapEditor = dynamic(() => import('@/components/TiptapEditor'), {
@@ -87,6 +88,7 @@ interface Blog {
   category?: { id: number; name: string };
   locale: string;
   tags: Array<{ id: number; name: string }>;
+  featuredImage?: string;
 }
 
 export default function CreateBlog() {
@@ -118,11 +120,12 @@ export default function CreateBlog() {
     ogDescription: '',
     ogDescriptionHi: '',
     tags: [],
-    locale: 'en',
+    locale: 'hi',
     authorId: undefined,
     authorName: 'Admin',
     authorNameHi: '',
     categoryId: undefined,
+    featuredImage: '',
   });
   const [showPreview, setShowPreview] = useState(false);
 
@@ -200,7 +203,8 @@ export default function CreateBlog() {
         ogDescriptionHi: blog.ogDescriptionHi || blog.metaDescriptionHi,
         categoryId: blog.categoryId,
         locale: blog.locale,
-        tags: blog.tags
+        tags: blog.tags,
+        featuredImage: blog.featuredImage || undefined,
       };
 
       await create(blogData);
@@ -277,21 +281,6 @@ export default function CreateBlog() {
                 {showPreview ? "Hide Preview" : "Show Preview"}
               </Button>
 
-              <Select
-                value={blog.locale}
-                onChange={(value) => {
-                  setBlog({ ...blog, locale: value || 'en' });
-                  // Update URL to reflect locale change
-                  const url = new URL(window.location.href);
-                  url.searchParams.set('locale', value || 'en');
-                  window.history.replaceState({}, '', url.toString());
-                }}
-                data={[
-                  { value: 'en', label: 'English' },
-                  { value: 'hi', label: 'Hindi' },
-                ]}
-                size="md"
-              />
               <Button
                 variant="light"
                 onClick={() => router.push('/blogs')}
@@ -358,6 +347,20 @@ export default function CreateBlog() {
                     />
                   </Paper>
                 )}
+
+                <Paper shadow="sm" p="sm" withBorder>
+                  <MediaUpload
+                    label="Featured Image"
+                    value={blog.featuredImage || ''}
+                    onChange={(url) => setBlog({ ...blog, featuredImage: url })}
+                    folder="blogs"
+                    buttonLabel="Upload Featured Image"
+                    withPreview={true}
+                  />
+                  <Text size="xs" c="dimmed" mt="xs">
+                    Upload a featured image for your blog post. This will be displayed as the main image.
+                  </Text>
+                </Paper>
               </Stack>
             </Grid.Col>
 
@@ -371,6 +374,23 @@ export default function CreateBlog() {
 
                     <div className="blog-preview">
                       <Title order={2} mb="xs">{blog.title || 'Untitled Blog'}</Title>
+
+                      {/* Featured Image */}
+                      {blog.featuredImage && (
+                        <div style={{ marginBottom: '1rem' }}>
+                          <img
+                            src={blog.featuredImage}
+                            alt="Featured image"
+                            style={{
+                              width: '100%',
+                              height: 'auto',
+                              borderRadius: '8px',
+                              objectFit: 'cover',
+                              maxHeight: '200px'
+                            }}
+                          />
+                        </div>
+                      )}
 
                       {/* Author and Date */}
                       <Group mb="md">
