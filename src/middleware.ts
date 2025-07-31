@@ -33,11 +33,24 @@ const key = new TextEncoder().encode(secretKey);
 async function verifyAuth(request: NextRequest): Promise<boolean> {
   try {
     const token = request.cookies.get('authToken')?.value;
-    if (!token) return false;
     
-    await jwtVerify(token, key);
+    console.log('🔍 Auth verification:', {
+      hasToken: !!token,
+      tokenLength: token?.length,
+      path: request.nextUrl.pathname,
+      authTokenExists: !!request.cookies.get('authToken')
+    });
+    
+    if (!token) {
+      console.log('❌ No auth token found');
+      return false;
+    }
+    
+    const result = await jwtVerify(token, key);
+    console.log('✅ Token verified successfully:', result.payload);
     return true;
-  } catch {
+  } catch (error) {
+    console.error('❌ Token verification failed:', error);
     return false;
   }
 }

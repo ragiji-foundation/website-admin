@@ -13,7 +13,7 @@ const withNextra = nextra({
 /** @type {import('next').NextConfig} */
 const nextConfig = withNextra({
   images: {
-    domains: ["images.unsplash.com", "res.cloudinary.com"],
+    domains: ["images.unsplash.com", "res.cloudinary.com", "www.octavertexmedia.com"],
   },
   experimental: {
     serverActions: {
