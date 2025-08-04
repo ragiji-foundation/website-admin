@@ -68,23 +68,23 @@ export default function OurStoryPreview({
 
           {/* Media Items */}
           <SimpleGrid cols={3} mt="md">
-            {story?.media?.map((item, index) => ( // Use optional chaining
+            {Array.isArray(story?.media) ? story.media.map((item, index) => (
               <Card key={index} shadow="sm" padding="lg" radius="md" withBorder>
-                {item.type === 'image' ? (
+                {item.type === 'image' && item.url ? (
                   <Image src={item.url} alt={item.title || 'Story Image'} height={150} />
-                ) : (
+                ) : item.type === 'video' && item.url ? (
                   <iframe
                     src={item.url}
                     title={item.title || 'Story Video'}
                     height="150"
                     style={{ border: 'none', width: '100%' }}
                   />
-                )}
+                ) : null}
                 <Text mt="sm" fw={500}>
                   {item.title || 'Untitled Media'}
                 </Text>
               </Card>
-            )) || null} {/* render null instead if story?.media is undefined or null*/}
+            )) : null}
           </SimpleGrid>
         </div>
       </Container>

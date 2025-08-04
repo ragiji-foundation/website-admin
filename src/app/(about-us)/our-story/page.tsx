@@ -445,30 +445,30 @@ export default function OurStoryPage() {
               <Box>
                 <Text fw={500} mb="md">Media Items</Text>
                 <Grid>
-                  {storyData.media.map((item, index) => (
-                    <Grid.Col span={4} key={index}>
-                      <Paper p="xs" withBorder>
-                        <Stack gap="xs">
-                          {item.type === 'image' ? (
-                            <Image src={item.url} height={150} alt={item.title || 'Story image'} />
-                          ) : (
-                            <iframe
-                              src={item.url}
-                              title={item.title || 'Video content'}
-                              height="150"
-                              style={{ border: 'none', width: '100%' }}
-                            />
-                          )}
-                          <Group justify="apart">
-                            <Text size="sm" fw={500}>{item.title || 'Untitled'}</Text>
-                            <ActionIcon color="red" variant="subtle" onClick={() => removeMediaItem(index)}>
-                              <IconTrash size={16} />
-                            </ActionIcon>
-                          </Group>
-                        </Stack>
-                      </Paper>
-                    </Grid.Col>
-                  ))}
+          {Array.isArray(storyData.media) ? storyData.media.map((item, index) => (
+            <Grid.Col span={4} key={index}>
+              <Paper p="xs" withBorder>
+                <Stack gap="xs">
+                  {item.type === 'image' && item.url ? (
+                    <Image src={item.url} height={150} alt={item.title || 'Story image'} />
+                  ) : item.type === 'video' && item.url ? (
+                    <iframe
+                      src={item.url}
+                      title={item.title || 'Video content'}
+                      height="150"
+                      style={{ border: 'none', width: '100%' }}
+                    />
+                  ) : null}
+                  <Group justify="apart">
+                    <Text size="sm" fw={500}>{item.title || 'Untitled'}</Text>
+                    <ActionIcon color="red" variant="subtle" onClick={() => removeMediaItem(index)}>
+                      <IconTrash size={16} />
+                    </ActionIcon>
+                  </Group>
+                </Stack>
+              </Paper>
+            </Grid.Col>
+          )) : null}
 
                   <Grid.Col span={4}>
                     <Paper p="md" withBorder style={{ height: '100%' }}>
