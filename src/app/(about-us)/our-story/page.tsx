@@ -18,17 +18,16 @@ import {
   Tooltip,
   TextInput,
   NumberInput,
+  ThemeIcon,
+  Divider,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconEye, IconDeviceFloppy, IconPlus, IconTrash } from '@tabler/icons-react';
-// Fix the import path to use the correct component
+
+import { IconEye, IconDeviceFloppy, IconPlus, IconTrash, IconBook, IconBulb, IconTargetArrow, IconTimeline } from '@tabler/icons-react';
 import TiptapEditor from '@/components/TiptapEditor';
 import { MediaUpload } from '@/components/MediaUpload';
 import OurStoryPreview from '@/components/previews/OurStoryPreview';
-// ✅ FIXED: Import centralized upload instead of old cloudinary
 import { uploadFile } from '@/utils/centralized';
-
-// ✅ MIGRATED: Import centralized hooks
 import { useApiData } from '@/hooks/useApiData';
 import { useCrudOperations } from '@/hooks/useCrudOperations';
 
@@ -238,16 +237,40 @@ export default function OurStoryPage() {
   const saveStoryData = async () => {
     try {
       setLoadingStory(true);
+      // Ensure we're passing the modelType with the id for the update operation
       const payload = { ...storyData, modelType: 'OurStory' };
       
       if (storyData.id) {
-        await update(storyData.id, payload);
+        console.log('Updating story with ID:', storyData.id);
+        const result = await update(storyData.id, payload) as OurStoryData;
+        // Update local state with the latest version from server
+        if (result) {
+          setStoryData(prev => ({ 
+            ...prev, 
+            version: result.version,
+            media: Array.isArray(result.media) ? result.media : 
+                  typeof result.media === 'string' ? JSON.parse(result.media) : []
+          }));
+        }
       } else {
-        const result = await create(payload) as any;
-        setStoryData(prev => ({ ...prev, id: result.id, version: result.version }));
+        const result = await create(payload) as OurStoryData;
+        if (result) {
+          setStoryData(prev => ({ 
+            ...prev, 
+            id: result.id, 
+            version: result.version,
+            media: Array.isArray(result.media) ? result.media : 
+                  typeof result.media === 'string' ? JSON.parse(result.media) : []
+          }));
+        }
       }
     } catch (error) {
       console.error('Error saving story data:', error);
+      notifications.show({
+        title: 'Error',
+        message: 'Failed to save story data. Please try again.',
+        color: 'red',
+      });
     } finally {
       setLoadingStory(false);
     }
@@ -391,8 +414,10 @@ export default function OurStoryPage() {
   };
 
   return (
-    <Container size="lg" py="xl">
-      <Title order={1} mb="xl">Manage Our Story Content</Title>
+    <Container size="lg" py={{ base: 'md', md: 'xl' }}>
+      <Title order={1} mb="xl" ta="center">
+        Manage Our Story Content
+      </Title>
 
       <Tabs value={activeTab} onChange={setActiveTab}>
         <Tabs.List mb="xl">
@@ -405,9 +430,16 @@ export default function OurStoryPage() {
 
         {/* Story Tab */}
         <Tabs.Panel value="story">
-          <Paper p="md" withBorder>
+          <Paper p={{ base: 'md', md: 'xl' }} withBorder>
             <LoadingOverlay visible={loadingStory} />
             <Stack gap="md">
+              <Group justify="center" mb="md">
+                <ThemeIcon size={40} radius="xl" color="blue">
+                  <IconBook />
+                </ThemeIcon>
+                <Title order={2} mb={0}>Story</Title>
+              </Group>
+
               <TextInput
                 label="Title (English)"
                 required
@@ -534,9 +566,16 @@ export default function OurStoryPage() {
 
         {/* The Model Tab */}
         <Tabs.Panel value="model">
-          <Paper p="md" withBorder>
+          <Paper p={{ base: 'md', md: 'xl' }} withBorder>
             <LoadingOverlay visible={loadingModel} />
             <Stack gap="md">
+              <Group justify="center" mb="sm">
+                <ThemeIcon size={36} radius="xl" color="orange">
+                  <IconTargetArrow />
+                </ThemeIcon>
+                <Title order={3} mb={0}>The Model</Title>
+              </Group>
+
               <Box>
                 <Text fw={500} mb="xs">Description (English)</Text>
                 <TiptapEditor
@@ -581,9 +620,16 @@ export default function OurStoryPage() {
 
         {/* Vision & Mission Tab */}
         <Tabs.Panel value="vision-mission">
-          <Paper p="md" withBorder>
+          <Paper p={{ base: 'md', md: 'xl' }} withBorder>
             <LoadingOverlay visible={loadingVisionMission} />
             <Stack gap="md">
+              <Group justify="center" mb="sm">
+                <ThemeIcon size={36} radius="xl" color="orange">
+                  <IconBulb />
+                </ThemeIcon>
+                <Title order={3} mb={0}>Vision & Mission</Title>
+              </Group>
+
               <Grid>
                 <Grid.Col span={6}>
                   <Box>
@@ -667,10 +713,15 @@ export default function OurStoryPage() {
 
         {/* Timeline Tab */}
         <Tabs.Panel value="timeline">
-          <Paper p="md" withBorder>
+          <Paper p={{ base: 'md', md: 'xl' }} withBorder>
             <LoadingOverlay visible={loadingTimeline} />
             <Stack gap="md">
-              <Title order={3}>Timeline Items</Title>
+              <Group justify="center" mb="sm">
+                <ThemeIcon size={40} radius="xl" color="blue">
+                  <IconTimeline />
+                </ThemeIcon>
+                <Title order={3} mb={0}>Timeline Items</Title>
+              </Group>
 
               {timelineData.map((item, index) => (
                 <Paper key={item.id} p="md" withBorder>
@@ -836,7 +887,7 @@ export default function OurStoryPage() {
 
         {/* Preview Tab */}
         <Tabs.Panel value="preview">
-          <Paper p="md" withBorder>
+          <Paper p={{ base: 'md', md: 'xl' }} withBorder>
             <Box mb="md">
               <Group justify="right">
                 <Button
@@ -849,6 +900,7 @@ export default function OurStoryPage() {
               </Group>
             </Box>
 
+            <Divider my="md" />
             <OurStoryPreview
               story={storyData}
               model={modelData}

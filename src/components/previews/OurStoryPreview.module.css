@@ -4,10 +4,55 @@
 
 .sectionContainer {
   margin-bottom: 30px;
+  background-color: var(--mantine-color-white);
+  border-radius: var(--mantine-radius-lg);
+  overflow: hidden;
 }
 
 .sectionTitle {
   font-size: 24px;
-  margin-bottom: 15px;
-  color: #228be6; /* Example color */
+  margin-bottom: 24px;
+  color: var(--mantine-color-blue-6);
+  position: relative;
+  display: inline-block;
+}
+
+.sectionTitle::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 60%;
+  height: 3px;
+  background-color: var(--mantine-color-blue-2);
+  border-radius: 2px;
+}
+
+.contentWrapper {
+  padding-right: 32px;
+  font-size: 1.1rem;
+  line-height: 1.7;
+}
+
+.mediaGrid {
+  position: relative;
+}
+
+.featuredMedia {
+  overflow: hidden;
+  transition: transform 0.2s ease;
+}
+
+.featuredMedia:hover {
+  transform: translateY(-4px);
+}
+
+.mainImage {
+  border-radius: var(--mantine-radius-md);
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.mainImage:hover {
+  transform: scale(1.05);
 }

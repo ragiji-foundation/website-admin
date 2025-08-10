@@ -63,29 +63,61 @@ export default function OurStoryPreview({
       {/* Story Section */}
       <Container size="xl" py="xl">
         <div className={classes.sectionContainer}>
-          <h2 className={classes.sectionTitle}>★ {story?.title || "Our Story"}</h2> {/* Use optional chaining and default title*/}
-          <RichTextContent content={story?.content || ""} />{/* Use optional chaining and empty string as default*/}
-
-          {/* Media Items */}
-          <SimpleGrid cols={3} mt="md">
-            {Array.isArray(story?.media) ? story.media.map((item, index) => (
-              <Card key={index} shadow="sm" padding="lg" radius="md" withBorder>
-                {item.type === 'image' && item.url ? (
-                  <Image src={item.url} alt={item.title || 'Story Image'} height={150} />
-                ) : item.type === 'video' && item.url ? (
-                  <iframe
-                    src={item.url}
-                    title={item.title || 'Story Video'}
-                    height="150"
-                    style={{ border: 'none', width: '100%' }}
-                  />
-                ) : null}
-                <Text mt="sm" fw={500}>
-                  {item.title || 'Untitled Media'}
-                </Text>
-              </Card>
-            )) : null}
-          </SimpleGrid>
+          <h2 className={classes.sectionTitle}>★ {story?.title || "Our Story"}</h2>
+          <Grid gutter="xl">
+            <Grid.Col span={7}>
+              <div className={classes.contentWrapper}>
+                <RichTextContent content={story?.content || ""} />
+              </div>
+            </Grid.Col>
+            <Grid.Col span={5}>
+              {Array.isArray(story?.media) && story.media.length > 0 && (
+                <div className={classes.mediaGrid}>
+                  <Card shadow="sm" padding="lg" radius="md" withBorder className={classes.featuredMedia}>
+                    {story.media[0].type === 'image' && story.media[0].url ? (
+                      <Image
+                        src={story.media[0].url}
+                        alt={story.media[0].title || 'Featured Story Image'}
+                        height={300}
+                        fit="cover"
+                        className={classes.mainImage}
+                      />
+                    ) : story.media[0].type === 'video' && story.media[0].url ? (
+                      <iframe
+                        src={story.media[0].url}
+                        title={story.media[0].title || 'Featured Story Video'}
+                        height="300"
+                        style={{ border: 'none', width: '100%', borderRadius: 'var(--mantine-radius-md)' }}
+                      />
+                    ) : null}
+                  </Card>
+                  {story.media.length > 1 && (
+                    <SimpleGrid cols={2} mt="md">
+                      {story.media.slice(1, 3).map((item, index) => (
+                        <Card key={index} shadow="sm" padding="xs" radius="md" withBorder>
+                          {item.type === 'image' && item.url ? (
+                            <Image 
+                              src={item.url} 
+                              alt={item.title || 'Story Image'} 
+                              height={120}
+                              fit="cover"
+                            />
+                          ) : item.type === 'video' && item.url ? (
+                            <iframe
+                              src={item.url}
+                              title={item.title || 'Story Video'}
+                              height="120"
+                              style={{ border: 'none', width: '100%', borderRadius: 'var(--mantine-radius-md)' }}
+                            />
+                          ) : null}
+                        </Card>
+                      ))}
+                    </SimpleGrid>
+                  )}
+                </div>
+              )}
+            </Grid.Col>
+          </Grid>
         </div>
       </Container>
 

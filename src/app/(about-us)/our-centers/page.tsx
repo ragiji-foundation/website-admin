@@ -22,6 +22,7 @@ import { notifications } from '@mantine/notifications';
 import { IconTrash, IconEdit, IconPlus } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import TiptapEditor from '@/components/TiptapEditor';
+import { stripHtml } from '@/utils/stripHtml';
 // ✅ ADDED: Import centralized hooks
 import { useApiData } from '@/hooks/useApiData';
 import { useCrudOperations } from '@/hooks/useCrudOperations';
@@ -42,11 +43,13 @@ interface Center {
 
 export default function CentersAdmin() {
   // ✅ MIGRATED: Using centralized hooks instead of manual state management
-  const { data: centers, loading, refetch: fetchCenters } = useApiData<Center[]>(
+  const { data: response, loading, refetch: fetchCenters } = useApiData<{ success: boolean; data: Center[]; message: string }>(
     '/api/centers', 
-    [],
+    { success: false, data: [], message: '' },
     { showNotifications: true }
   );
+  
+  const centers = response?.data || [];
 
   // ✅ MIGRATED: Using centralized CRUD operations
   const { create, remove, update } = useCrudOperations<Center>('/api/centers', {
@@ -241,8 +244,18 @@ export default function CentersAdmin() {
                       )}
                     </div>
                     <Text size="sm" lineClamp={2}>
-                      {center.description}
+                      {stripHtml(center.description)}
                     </Text>
+                    {center.descriptionHi && (
+                      <Text 
+                        size="sm" 
+                        c="dimmed"
+                        style={{ fontFamily: 'Noto Sans Devanagari, sans-serif' }}
+                        lineClamp={2}
+                      >
+                        {stripHtml(center.descriptionHi)}
+                      </Text>
+                    )}
                     {center.contactInfo && (
                       <Text size="xs" c="dimmed">{center.contactInfo}</Text>
                     )}

@@ -116,18 +116,24 @@ export function useCrudOperations<T>(
 
   const update = useCallback(async (id: string | number, data: Partial<T>): Promise<T | null> => {
     return handleOperation(async () => {
-      const response = await fetch(`${baseEndpoint}/${id}`, {
-        method: 'PUT',
-        headers: defaultHeaders,
-        body: JSON.stringify(data)
-      });
+      try {
+        const response = await fetch(baseEndpoint, {
+          method: 'PUT',
+          headers: defaultHeaders,
+          body: JSON.stringify({ ...data, id })
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ message: response.statusText }));
+          throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        return result;
+      } catch (error) {
+        console.error('Update operation failed:', error);
+        throw error;
       }
-
-      return response.json();
     }, 'update', 'Item updated successfully');
   }, [baseEndpoint, defaultHeaders, handleOperation]);
 
