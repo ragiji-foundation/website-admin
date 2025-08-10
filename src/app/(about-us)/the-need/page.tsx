@@ -80,10 +80,24 @@ export default function TheNeedAdminPage() {
     }
   };
 
+  // Helper to delete old image from storage
+  const deleteOldImage = async (url: string) => {
+    if (!url) return;
+    try {
+      await fetch('/api/media-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+    } catch (err) {
+      console.error('Failed to delete old image:', err);
+    }
+  };
+
   // ✅ MIGRATED: Centralized form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       console.log('Form submission started');
 
@@ -107,7 +121,7 @@ export default function TheNeedAdminPage() {
         return;
       }
 
-      // Create a data object with the optional id property in the type
+      // Prepare submission data
       const submissionData: TheNeedSubmission = {
         mainText,
         mainTextHi: mainTextHi || undefined,
@@ -120,17 +134,26 @@ export default function TheNeedAdminPage() {
         isPublished: Boolean(contextData?.isPublished)
       };
 
-      // Now TypeScript knows id can be added to this object
+      // Always send the correct id for update
       if (contextData?.id) {
         submissionData.id = contextData.id;
       }
 
-      console.log('Submitting data:', submissionData);
+      // Handle image replacement logic
+      // If a new image is selected, delete the old one before uploading the new
+      if (data?.imageUrl && contextData?.imageUrl && data.imageUrl !== contextData.imageUrl) {
+        await deleteOldImage(data.imageUrl);
+      }
+      if (data?.statsImageUrl && contextData?.statsImageUrl && data.statsImageUrl !== contextData.statsImageUrl) {
+        await deleteOldImage(data.statsImageUrl);
+      }
 
       let result;
       if (contextData?.id) {
+        // Use PUT for update (remove third argument)
         result = await update(contextData.id, submissionData);
       } else {
+        // Use POST only for initial creation (remove second argument)
         result = await create(submissionData);
       }
 

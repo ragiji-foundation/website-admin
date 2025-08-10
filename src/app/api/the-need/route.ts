@@ -2,6 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { withCors } from '@/utils/cors';
 
+// Helper to delete old media
+async function deleteMedia(url: string) {
+  if (!url) return;
+  try {
+    await fetch(process.env.MEDIA_DELETE_API || '/api/media-delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+  } catch (err) {
+    console.error('Failed to delete media:', err);
+  }
+}
+
 export async function GET() {
   try {
     const theNeed = await prisma.theNeed.findFirst({
@@ -35,6 +49,17 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    // Enforce single entry
+    const existing = await prisma.theNeed.findFirst();
+    if (existing) {
+      return withCors(
+        NextResponse.json(
+          { error: 'The Need content already exists.' },
+          { status: 409 }
+        )
+      );
+    }
+
     const body = await request.json();
     const theNeed = await prisma.theNeed.create({
       data: {
@@ -67,6 +92,18 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
+    const existing = await prisma.theNeed.findUnique({ where: { id: body.id } });
+
+    // Delete old images if new ones are provided
+    if (existing) {
+      if (body.imageUrl && body.imageUrl !== existing.imageUrl) {
+        await deleteMedia(existing.imageUrl);
+      }
+      if (body.statsImageUrl && body.statsImageUrl !== existing.statsImageUrl) {
+        await deleteMedia(existing.statsImageUrl);
+      }
+    }
+
     const theNeed = await prisma.theNeed.update({
       where: { id: body.id },
       data: {
@@ -99,73 +136,3 @@ export async function OPTIONS() {
   return withCors(new NextResponse(null, { status: 200 }));
 }
 
-// import { withCors, corsError } from '@/utils/cors';
-// import { NextResponse } from 'next/server';
-// import prisma from '@/lib/prisma';
-
-// export async function GET() {
-//   try {
-//     const content = await prisma.theNeed.findFirst({
-//       orderBy: { createdAt: 'desc' }
-//     });
-    
-//     return withCors(NextResponse.json(content));
-//   } catch (error) {
-//     console.error('Failed to fetch content:', error);
-//     return corsError('Internal server error', 500);
-    
-//   }
-// }
-
-// export async function POST(request: Request) {
-//   try {
-//     const body = await request.json();
-//     const content = await prisma.theNeed.create({
-//       data: {
-//         mainText: body.mainText,
-//         statistics: body.statistics,
-//         impact: body.impact,
-//         imageUrl: body.imageUrl,
-//         statsImageUrl: body.statsImageUrl,
-//         isPublished: body.isPublished
-//       }
-//     });
-    
-//     return NextResponse.json(content);
-//   } catch (error) {
-//     return NextResponse.json(
-//       { error: 'Internal server error' },
-//       { status: 500 }
-//     );
-//   }
-// }
-
-// export async function PUT(request: Request) {
-//   try {
-//     const body = await request.json();
-//     const content = await prisma.theNeed.update({
-//       where: { id: body.id },
-//       data: {
-//         mainText: body.mainText,
-//         statistics: body.statistics,
-//         impact: body.impact,
-//         imageUrl: body.imageUrl,
-//         statsImageUrl: body.statsImageUrl,
-//         isPublished: body.isPublished,
-//         version: { increment: 1 }
-//       }
-//     });
-    
-//     return NextResponse.json(content);
-//   } catch (error) {
-//     return NextResponse.json(
-//       { error: 'Internal server error' },
-//       { status: 500 }
-//     );
-//   }
-// }
-
-
-// export async function OPTIONS() {
-//   return withCors(new NextResponse(null, { status: 200 }));
-// }

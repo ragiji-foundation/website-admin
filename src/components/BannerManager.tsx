@@ -71,7 +71,7 @@ export function BannerManager() {
   const fetchBanners = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/banners');
+      const response = await fetch('/api/banner');
       if (!response.ok) throw new Error('Failed to fetch banners');
       const data = await response.json();
       setBanners(data);
@@ -93,7 +93,7 @@ export function BannerManager() {
   const handleSubmit = async (values: typeof form.values) => {
     try {
       const method = editingBanner ? 'PUT' : 'POST';
-      const url = editingBanner ? `/api/banners/${editingBanner.id}` : '/api/banners';
+      const url = editingBanner ? `/api/banner/${editingBanner.id}` : '/api/banner';
 
       const response = await fetch(url, {
         method,
@@ -139,7 +139,7 @@ export function BannerManager() {
     if (!confirm('Are you sure you want to delete this banner?')) return;
 
     try {
-      const response = await fetch(`/api/banners/${id}`, {
+      const response = await fetch(`/api/banner/${id}`, {
         method: 'DELETE',
       });
 
