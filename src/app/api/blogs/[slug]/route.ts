@@ -13,9 +13,9 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const locale = searchParams.get('locale') || 'en';
 
-    // Use the correct compound unique key from schema: @@unique([slug, locale])
+    // Use the compound unique key from schema
     const blog = await prisma.blog.findUnique({
-      where: { 
+      where: {
         slug_locale: {
           slug,
           locale
@@ -102,7 +102,7 @@ export async function PUT(
     }
 
     const updatedBlog = await prisma.blog.update({
-      where: { 
+      where: {
         slug_locale: {
           slug,
           locale

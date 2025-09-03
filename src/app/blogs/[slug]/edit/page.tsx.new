@@ -23,7 +23,7 @@ import {
   Badge,
   Switch,
 } from '@mantine/core';
-import { IconArrowLeft, IconClock, IconEye, IconEyeOff } from '@tabler/icons-react';
+import { IconArrowLeft, IconClock, IconCalendar, IconEye, IconEyeOff } from '@tabler/icons-react';
 import TiptapEditor from '@/components/TiptapEditor';
 import { RichTextContent } from '@/components/RichTextContent';
 import { format } from 'date-fns';

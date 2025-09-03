@@ -1,7 +1,10 @@
 {
-  "name": "admin",
+  "name": "website-admin",
   "version": "0.1.0",
   "private": true,
+  "prisma": {
+    "seed": "tsx prisma/seed-consolidated.ts"
+  },
   "type": "module",
   "scripts": {
     "dev": "next dev",
@@ -102,13 +105,11 @@
     "eslint-config-next": "^15.0.3",
     "prisma": "^6.3.1",
     "tailwindcss": "^3.4.1",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.3"
   },
   "resolutions": {
     "lexical": "^0.12.2",
     "@lexical/*": "^0.12.2"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed-consolidated.ts"
   }
 }

@@ -14,19 +14,51 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Upload the image to Cloudinary
-   // Upload the image to Cloudinary
-const result = await uploadToMinio(file, { folder: 'blogs' });
+    // Validate file size (5MB limit)
+    const MAX_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      return NextResponse.json(
+        { error: 'File size exceeds 5MB limit' },
+        { status: 400 }
+      );
+    }
 
-    // Return the URL of the uploaded image
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      return NextResponse.json(
+        { error: 'Invalid file type. Only JPEG, PNG, WebP and GIF are allowed' },
+        { status: 400 }
+      );
+    }
+
+    // Upload with optimized settings
+    const result = await uploadToMinio(file, { 
+      folder: 'blogs',
+      resourceType: 'image',
+      tags: ['blog', 'content'],
+      showNotifications: false
+    });
+
+    if (!result || !result.url) {
+      throw new Error('Upload failed: No URL returned');
+    }
+
+    // Return optimized response
     return NextResponse.json({
       url: result.url,
-      success: true
+      success: true,
+      publicId: result.publicId,
+      size: file.size,
+      type: file.type,
+      format: result.format
     });
+
   } catch (error) {
     console.error('Error uploading image:', error);
+    const message = error instanceof Error ? error.message : 'Failed to upload image';
     return NextResponse.json(
-      { error: 'Failed to upload image', success: false },
+      { error: message, success: false },
       { status: 500 }
     );
   }

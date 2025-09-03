@@ -125,77 +125,100 @@ export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
 
-    // Validate required fields
-    if (!data.title || !data.content || !data.locale || !data.authorName) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
+    // Enhanced validation for bilingual content
+    const validateLocaleContent = (locale: string) => {
+      if (locale === 'en') {
+        if (!data.title || !data.content) {
+          throw new Error('English title and content are required');
+        }
+      } else if (locale === 'hi') {
+        if (!data.titleHi || !data.contentHi) {
+          throw new Error('Hindi title and content are required');
+        }
+      }
+    };
 
-    // Generate slug from title
-    let slug = slugify(data.title, { lower: true, strict: true });
+    // Validate based on locale
+    validateLocaleContent(data.locale);
+    
+    // Generate slug from appropriate title
+    const baseSlug = slugify(
+      data.locale === 'hi' ? data.titleHi : data.title,
+      { lower: true, strict: true }
+    );
 
     // Check for unique slug + locale combination
-    const existingBlog = await prisma.blog.findUnique({
+    const existingBlog = await prisma.blog.findFirst({
       where: {
-        slug_locale: {
-          slug,
-          locale: data.locale
-        }
+        OR: [
+          { slug: baseSlug, locale: 'en' },
+          { slug: baseSlug, locale: 'hi' }
+        ]
       }
     });
 
+    // Generate unique slug if needed
+    let slug = baseSlug;
     if (existingBlog) {
       const count = await prisma.blog.count({
         where: {
           slug: {
-            startsWith: slug,
-          },
-          locale: data.locale,
+            startsWith: baseSlug,
+          }
         },
       });
-      slug = `${slug}-${count + 1}`;
+      slug = `${baseSlug}-${count + 1}`;
     }
 
-    // Create the blog post
-    const blog = await prisma.blog.create({
-      data: {
-        title: data.title,
-        titleHi: data.titleHi || null,
-        content: data.content,
-        contentHi: data.contentHi || null,
-        slug: slug,
-        locale: data.locale, // Save locale with blog post
-        status: data.status || 'draft',
-        authorName: data.authorName,
-        authorNameHi: data.authorNameHi || null,
-        metaDescription: data.metaDescription || null,
-        metaDescriptionHi: data.metaDescriptionHi || null,
-        ogTitle: data.ogTitle || null,
-        ogTitleHi: data.ogTitleHi || null,
-        ogDescription: data.ogDescription || null,
-        ogDescriptionHi: data.ogDescriptionHi || null,
-        // featuredImage: data.featuredImage || null, // Will be enabled after database migration
-        authorId: DEFAULT_ADMIN_USER_ID,
-        categoryId: data.categoryId ? parseInt(data.categoryId.toString()) : null,
-        tags: {
-          connect: data.tags?.map((tag: { id: number }) => ({
-            id: parseInt(tag.id.toString())
-          })) || []
-        }
-      },
-      include: {
-        category: true,
-        tags: true,
-        author: {
-          select: {
-            id: true,
-            name: true,
-            image: true,
-          }
-        }
-      },
+    // Create the blog posts with a transaction
+    const blog = await prisma.$transaction(async (tx) => {
+      // Helper function to create a blog in specific locale
+      const createBlogInLocale = async (locale: 'en' | 'hi') => {
+        const isHindi = locale === 'hi';
+        return tx.blog.create({
+          data: {
+            title: isHindi ? data.titleHi : data.title,
+            content: isHindi ? data.contentHi : data.content,
+            slug: slug, // Use same slug for both versions
+            locale: locale,
+            status: data.status || 'draft',
+            authorName: isHindi ? (data.authorNameHi || data.authorName) : data.authorName,
+            metaDescription: isHindi ? (data.metaDescriptionHi || data.metaDescription) : data.metaDescription,
+            ogTitle: isHindi ? (data.ogTitleHi || data.ogTitle) : data.ogTitle,
+            ogDescription: isHindi ? (data.ogDescriptionHi || data.ogDescription) : data.ogDescription,
+            authorId: DEFAULT_ADMIN_USER_ID,
+            categoryId: data.categoryId ? parseInt(data.categoryId.toString()) : null,
+            tags: {
+              connect: data.tags?.map((tag: { id: number }) => ({
+                id: parseInt(tag.id.toString())
+              })) || []
+            }
+          },
+          include: {
+            category: true,
+            tags: true,
+            author: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              }
+            }
+          },
+        });
+      };
+
+      // Create the requested locale version
+      const primaryBlog = await createBlogInLocale(data.locale as 'en' | 'hi');
+
+      // If other locale content is provided, create that version too
+      if (data.locale === 'en' && data.titleHi && data.contentHi) {
+        await createBlogInLocale('hi');
+      } else if (data.locale === 'hi' && data.title && data.content) {
+        await createBlogInLocale('en');
+      }
+
+      return primaryBlog;
     });
 
     return NextResponse.json(blog);

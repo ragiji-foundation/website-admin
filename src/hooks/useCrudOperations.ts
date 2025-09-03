@@ -117,10 +117,11 @@ export function useCrudOperations<T>(
   const update = useCallback(async (id: string | number, data: Partial<T>): Promise<T | null> => {
     return handleOperation(async () => {
       try {
-        const response = await fetch(baseEndpoint, {
+        const url = id.toString().includes('?') ? `${baseEndpoint}/${id}` : `${baseEndpoint}/${id}`;
+        const response = await fetch(url, {
           method: 'PUT',
           headers: defaultHeaders,
-          body: JSON.stringify({ ...data, id })
+          body: JSON.stringify(data)
         });
 
         if (!response.ok) {
